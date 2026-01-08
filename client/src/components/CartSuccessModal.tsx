@@ -44,18 +44,19 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg px-4"
           >
-            <div className="relative bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent pointer-events-none" />
-              <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
-              
+            <div className="relative pt-8">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: [0, 1.2, 1] }}
                 transition={{ delay: 0.2, duration: 0.5 }}
-                className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30"
+                className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 z-10"
               >
                 <Check className="w-6 h-6 text-white" strokeWidth={3} />
               </motion.div>
+              
+              <div className="relative bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
 
               <button
                 onClick={onClose}
@@ -189,6 +190,7 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                 transition={{ delay: 0.3, duration: 0.6 }}
                 className="h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent origin-left"
               />
+              </div>
             </div>
           </motion.div>
         </>
