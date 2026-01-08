@@ -7,27 +7,38 @@ import heroImage from '@assets/generated_images/athletic_torso_hero_image.png';
 const categories = [
   {
     id: 1,
-    name: 'Tişörtler',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
-    count: 48,
+    name: 'Eşofman',
+    slug: 'esofman',
+    image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop',
+    count: 42,
   },
   {
     id: 2,
-    name: 'Sweatshirtler',
-    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&h=800&fit=crop',
-    count: 32,
+    name: 'Şalvar & Pantolon',
+    slug: 'salvar-pantolon',
+    image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop',
+    count: 28,
   },
   {
     id: 3,
-    name: 'Şortlar',
+    name: 'Sıfır Kol & Atlet',
+    slug: 'sifir-kol-atlet',
+    image: 'https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&h=800&fit=crop',
+    count: 36,
+  },
+  {
+    id: 4,
+    name: 'Şort',
+    slug: 'sort',
     image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=800&fit=crop',
     count: 24,
   },
   {
-    id: 4,
-    name: 'Eşofman Altları',
-    image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop',
-    count: 36,
+    id: 5,
+    name: 'T-Shirt',
+    slug: 'tshirt',
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
+    count: 58,
   },
 ];
 
@@ -184,11 +195,11 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
             {categories.map((category) => (
               <Link
                 key={category.id}
-                href={`/kategori/${category.name.toLowerCase()}`}
+                href={`/kategori/${category.slug}`}
                 data-testid={`link-category-${category.id}`}
               >
                 <div className="group relative aspect-[3/4] overflow-hidden bg-card hover-lift cursor-pointer">
