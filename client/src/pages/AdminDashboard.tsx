@@ -833,6 +833,11 @@ function ProductModal({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  
+  const [previewSize, setPreviewSize] = useState<string | null>(formData.availableSizes[0] || null);
+  const [previewColor, setPreviewColor] = useState<{name: string; hex: string} | null>(formData.availableColors[0] || null);
+  const [previewImage, setPreviewImage] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
 
   const toggleSize = (size: string) => {
     setFormData(prev => ({
