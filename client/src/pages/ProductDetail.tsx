@@ -247,7 +247,7 @@ export default function ProductDetail() {
               </div>
 
               <div className="flex-1">
-                <div className="conic-glow rounded">
+                <div className="snake-border">
                 <motion.div 
                   ref={imageRef}
                   className="relative aspect-[3/4] bg-card rounded overflow-hidden cursor-zoom-in group"
