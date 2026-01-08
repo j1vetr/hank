@@ -115,36 +115,29 @@ export default function Home() {
 
         <div className="relative z-10 h-full flex items-center justify-center">
           <div className="text-center px-6 w-full">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="mb-8"
-            >
-              <span className="inline-flex items-center gap-3 px-6 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-sm tracking-[0.2em] uppercase text-white/90">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                2025 Yeni Sezon
-              </span>
-            </motion.div>
-            
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="font-display text-5xl sm:text-7xl lg:text-[140px] xl:text-[180px] text-white tracking-wider mb-4 leading-[0.85]"
+              transition={{ duration: 0.8 }}
+              className="font-display text-5xl sm:text-7xl lg:text-[140px] xl:text-[180px] text-white tracking-wider mb-12 leading-none"
             >
-              <span className="block">GÜCÜNÜ</span>
-              <span className="block text-stroke-white bg-gradient-to-r from-white/0 via-white/10 to-white/0">GÖSTER</span>
+              <motion.span 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="block mb-4 lg:mb-8"
+              >
+                GÜCÜNÜ
+              </motion.span>
+              <motion.span 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="block text-stroke-white"
+              >
+                GÖSTER
+              </motion.span>
             </motion.h1>
-            
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-lg sm:text-xl text-white/70 mb-10 max-w-lg mx-auto font-body"
-            >
-              Premium kalite fitness giyim
-            </motion.p>
             
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
