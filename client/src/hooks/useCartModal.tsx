@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { CartSuccessModal } from '@/components/CartSuccessModal';
 import { useCart } from '@/hooks/useCart';
 
@@ -27,31 +27,17 @@ export function useCartModal() {
 export function CartModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [product, setProduct] = useState<ProductInfo | null>(null);
-  const [expectedTotal, setExpectedTotal] = useState(0);
-  const [expectedCount, setExpectedCount] = useState(0);
   const { subtotal, totalItems } = useCart();
 
   const showModal = useCallback((productInfo: ProductInfo) => {
     setProduct(productInfo);
-    setExpectedTotal(subtotal + productInfo.price);
-    setExpectedCount(totalItems + productInfo.quantity);
     setIsOpen(true);
-  }, [subtotal, totalItems]);
-
-  useEffect(() => {
-    if (isOpen && subtotal >= expectedTotal) {
-      setExpectedTotal(subtotal);
-      setExpectedCount(totalItems);
-    }
-  }, [subtotal, totalItems, isOpen, expectedTotal]);
+  }, []);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
     setTimeout(() => setProduct(null), 300);
   }, []);
-
-  const displayTotal = isOpen ? Math.max(expectedTotal, subtotal) : subtotal;
-  const displayCount = isOpen ? Math.max(expectedCount, totalItems) : totalItems;
 
   return (
     <CartModalContext.Provider value={{ showModal }}>
@@ -60,8 +46,8 @@ export function CartModalProvider({ children }: { children: ReactNode }) {
         isOpen={isOpen}
         onClose={handleClose}
         product={product}
-        cartTotal={displayTotal}
-        cartItemCount={displayCount}
+        cartTotal={subtotal}
+        cartItemCount={totalItems}
       />
     </CartModalContext.Provider>
   );

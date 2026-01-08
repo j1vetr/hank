@@ -67,9 +67,6 @@ export function useCartProvider() {
       if (!res.ok) throw new Error('Sepete eklenemedi');
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-    },
   });
 
   const updateMutation = useMutation({
@@ -128,6 +125,7 @@ export function useCartProvider() {
     isLoading,
     addToCart: async (productId: string, variantId?: string, quantity = 1) => {
       await addMutation.mutateAsync({ productId, variantId, quantity });
+      await queryClient.refetchQueries({ queryKey: ['cart'] });
     },
     updateQuantity: async (itemId: string, quantity: number) => {
       await updateMutation.mutateAsync({ itemId, quantity });
