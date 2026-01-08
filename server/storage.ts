@@ -111,22 +111,22 @@ export class DbStorage implements IStorage {
   }
 
   async getProducts(filters?: { categoryId?: string; isFeatured?: boolean; isNew?: boolean; search?: string }): Promise<Product[]> {
-    let query = db.select().from(products).where(eq(products.isActive, true));
+    const conditions = [eq(products.isActive, true)];
     
     if (filters?.categoryId) {
-      query = query.where(eq(products.categoryId, filters.categoryId)) as any;
+      conditions.push(eq(products.categoryId, filters.categoryId));
     }
     if (filters?.isFeatured !== undefined) {
-      query = query.where(eq(products.isFeatured, filters.isFeatured)) as any;
+      conditions.push(eq(products.isFeatured, filters.isFeatured));
     }
     if (filters?.isNew !== undefined) {
-      query = query.where(eq(products.isNew, filters.isNew)) as any;
+      conditions.push(eq(products.isNew, filters.isNew));
     }
     if (filters?.search) {
-      query = query.where(ilike(products.name, `%${filters.search}%`)) as any;
+      conditions.push(ilike(products.name, `%${filters.search}%`));
     }
 
-    return (query as any).orderBy(desc(products.createdAt));
+    return db.select().from(products).where(and(...conditions)).orderBy(desc(products.createdAt));
   }
 
   async getProduct(id: string): Promise<Product | undefined> {
@@ -140,18 +140,12 @@ export class DbStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values({
-      ...product,
-      updatedAt: new Date(),
-    }).returning();
+    const [newProduct] = await db.insert(products).values(product).returning();
     return newProduct;
   }
 
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined> {
-    const [updated] = await db.update(products).set({
-      ...product,
-      updatedAt: new Date(),
-    }).where(eq(products.id, id)).returning();
+    const [updated] = await db.update(products).set(product).where(eq(products.id, id)).returning();
     return updated;
   }
 
@@ -201,8 +195,9 @@ export class DbStorage implements IStorage {
     );
 
     if (existing.length > 0) {
+      const newQuantity = (existing[0].quantity || 0) + (item.quantity || 1);
       const [updated] = await db.update(cartItems)
-        .set({ quantity: existing[0].quantity + item.quantity })
+        .set({ quantity: newQuantity })
         .where(eq(cartItems.id, existing[0].id))
         .returning();
       return updated;
@@ -240,18 +235,12 @@ export class DbStorage implements IStorage {
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values({
-      ...order,
-      updatedAt: new Date(),
-    }).returning();
+    const [newOrder] = await db.insert(orders).values(order).returning();
     return newOrder;
   }
 
   async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
-    const [updated] = await db.update(orders).set({
-      status,
-      updatedAt: new Date(),
-    }).where(eq(orders.id, id)).returning();
+    const [updated] = await db.update(orders).set({ status }).where(eq(orders.id, id)).returning();
     return updated;
   }
 

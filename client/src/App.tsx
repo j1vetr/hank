@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import ProductDetail from "@/pages/ProductDetail";
+import AdminLogin from "@/pages/AdminLogin";
+import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -12,6 +14,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/urun/:slug" component={ProductDetail} />
+      <Route path="/toov-admin/login" component={AdminLogin} />
+      <Route path="/toov-admin" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
