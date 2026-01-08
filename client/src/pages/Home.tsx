@@ -2,7 +2,9 @@ import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { ArrowRight, ChevronRight } from 'lucide-react';
 import { Link } from 'wouter';
-import heroImage from '@assets/generated_images/athletic_torso_hero_image.png';
+import { useState, useEffect } from 'react';
+import heroImage1 from '@assets/hero-1.jpg';
+import heroImage2 from '@assets/hero-2.jpg';
 
 const categories = [
   {
@@ -118,32 +120,81 @@ const featuredProducts = [
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
 export default function Home() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const heroImages = [heroImage1, heroImage2];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
-        <div className="absolute inset-0">
-          <img
-            src={heroImage}
-            alt="HANK Hero"
-            className="w-full h-full object-cover"
-            data-testid="img-hero"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {heroImages.map((img, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              activeSlide === index ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <img
+              src={img}
+              alt={`HANK Hero ${index + 1}`}
+              className="w-full h-full object-cover object-top scale-105"
+              data-testid={`img-hero-${index}`}
+            />
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+          </div>
+        ))}
+
+        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 flex justify-between px-6 pointer-events-none">
+          <button
+            onClick={() => setActiveSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)}
+            className="w-12 h-12 border border-white/30 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all pointer-events-auto"
+            data-testid="button-hero-prev"
+          >
+            <ChevronRight className="w-6 h-6 rotate-180" />
+          </button>
+          <button
+            onClick={() => setActiveSlide((prev) => (prev + 1) % heroImages.length)}
+            className="w-12 h-12 border border-white/30 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all pointer-events-auto"
+            data-testid="button-hero-next"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setActiveSlide(index)}
+              className={`h-1 transition-all duration-500 ${
+                activeSlide === index ? 'w-12 bg-white' : 'w-6 bg-white/40'
+              }`}
+              data-testid={`button-hero-dot-${index}`}
+            />
+          ))}
         </div>
 
         <div className="relative z-10 h-full flex items-center">
           <div className="max-w-[1400px] mx-auto px-6 w-full">
             <div className="max-w-2xl animate-fade-up">
-              <span className="inline-block text-sm tracking-[0.3em] uppercase text-white/70 mb-6">
-                2024 Yeni Sezon
+              <span className="inline-block text-sm tracking-[0.3em] uppercase text-white/70 mb-6 animate-pulse">
+                2025 Yeni Sezon
               </span>
-              <h1 className="font-display text-6xl sm:text-7xl lg:text-8xl text-white tracking-wide mb-6">
-                GÜCÜNÜ<br />GÖSTER
+              <h1 className="font-display text-6xl sm:text-7xl lg:text-[120px] text-white tracking-wide mb-6 leading-[0.9]">
+                GÜCÜNÜ<br />
+                <span className="text-stroke-white">GÖSTER</span>
               </h1>
-              <p className="text-lg text-white/80 mb-8 max-w-md font-body">
+              <p className="text-lg text-white/80 mb-10 max-w-md font-body">
                 Premium kalite fitness giyim. Antrenmanlarında fark yarat, 
                 tarzınla öne çık.
               </p>
@@ -151,18 +202,18 @@ export default function Home() {
                 <Link href="/erkek">
                   <button
                     data-testid="button-shop-men"
-                    className="group px-8 py-4 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-colors"
+                    className="group px-10 py-5 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4"
                   >
-                    Erkek Koleksiyonu
+                    Koleksiyonu Keşfet
                     <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </button>
                 </Link>
-                <Link href="/kadin">
+                <Link href="/tum-urunler">
                   <button
-                    data-testid="button-shop-women"
-                    className="px-8 py-4 bg-transparent border-2 border-white text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-colors"
+                    data-testid="button-shop-all"
+                    className="px-10 py-5 bg-transparent border-2 border-white text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-colors"
                   >
-                    Kadın Koleksiyonu
+                    Tüm Ürünler
                   </button>
                 </Link>
               </div>
@@ -170,11 +221,13 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden py-4 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm">
-          <div className="animate-marquee flex whitespace-nowrap">
-            <span className="font-display text-2xl text-white/40 tracking-[0.2em]">
-              {marqueeText}{marqueeText}
-            </span>
+        <div className="absolute bottom-0 left-0 right-0 overflow-hidden py-5 bg-black/60 backdrop-blur-sm border-t border-white/10">
+          <div className="marquee-container">
+            <div className="animate-marquee-right flex whitespace-nowrap">
+              <span className="font-display text-2xl text-white/50 tracking-[0.3em] px-4">
+                {marqueeText}{marqueeText}{marqueeText}{marqueeText}
+              </span>
+            </div>
           </div>
         </div>
       </section>
