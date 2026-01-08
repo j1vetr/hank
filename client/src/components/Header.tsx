@@ -30,7 +30,7 @@ export function Header() {
             </button>
 
             <nav className="hidden lg:flex items-center gap-8">
-              {navLinks.slice(1, 4).map((link) => (
+              {navLinks.slice(1, 3).map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -45,7 +45,7 @@ export function Header() {
               ))}
             </nav>
 
-            <Link href="/" data-testid="link-logo" className="absolute left-1/2 -translate-x-1/2">
+            <Link href="/" data-testid="link-logo">
               <img
                 src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
                 alt="HANK"
@@ -55,16 +55,19 @@ export function Header() {
             </Link>
 
             <div className="hidden lg:flex items-center gap-8">
-              <Link
-                href="/yeni"
-                data-testid="link-nav-yeni"
-              >
-                <span className={`text-sm tracking-wide uppercase font-medium transition-colors hover:text-foreground ${
-                  location === '/yeni' ? 'text-foreground' : 'text-muted-foreground'
-                }`}>
-                  Yeni Gelenler
-                </span>
-              </Link>
+              {navLinks.slice(3, 5).map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  data-testid={`link-nav-${link.label.toLowerCase()}`}
+                >
+                  <span className={`text-sm tracking-wide uppercase font-medium transition-colors hover:text-foreground ${
+                    location === link.href ? 'text-foreground' : 'text-muted-foreground'
+                  }`}>
+                    {link.label}
+                  </span>
+                </Link>
+              ))}
             </div>
 
             <div className="flex items-center gap-4">
