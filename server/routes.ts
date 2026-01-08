@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema } from "@shared/schema";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema } from "@shared/schema";
 import "./types";
 
 export async function registerRoutes(
@@ -53,6 +53,73 @@ export async function registerRoutes(
     }
     next();
   };
+
+  // User Authentication
+  app.post("/api/auth/register", async (req: Request, res) => {
+    try {
+      const { email, password, firstName, lastName, phone } = req.body;
+      
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Bu e-posta adresi zaten kayıtlı" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        phone,
+      });
+
+      req.session.userId = user.id;
+      res.status(201).json({ 
+        success: true, 
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } 
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json({ error: "Kayıt işlemi başarısız" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req: Request, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ error: "E-posta veya şifre hatalı" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ 
+        success: true, 
+        user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Giriş işlemi başarısız" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req: Request, res) => {
+    req.session.userId = undefined;
+    res.json({ success: true });
+  });
+
+  app.get("/api/auth/me", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+    }
+
+    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
+  });
 
   // Categories API
   app.get("/api/categories", async (req, res) => {
