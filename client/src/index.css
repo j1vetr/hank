@@ -160,3 +160,25 @@
 .animate-marquee {
   animation: marquee 30s linear infinite;
 }
+
+@keyframes border-rotate {
+  0% {
+    background: linear-gradient(0deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);
+  }
+  25% {
+    background: linear-gradient(90deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);
+  }
+  50% {
+    background: linear-gradient(180deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);
+  }
+  75% {
+    background: linear-gradient(270deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);
+  }
+  100% {
+    background: linear-gradient(360deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);
+  }
+}
+
+.animate-border-rotate {
+  animation: border-rotate 3s linear infinite;
+}

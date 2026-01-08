@@ -289,7 +289,7 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { title: 'Ücretsiz Kargo', desc: '500 TL üzeri siparişlerde' },
+              { title: 'Ücretsiz Kargo', desc: '2000 TL üzeri siparişlerde' },
               { title: 'Kolay İade', desc: '14 gün içinde ücretsiz iade' },
               { title: 'Güvenli Ödeme', desc: 'SSL ile korunan ödeme' },
               { title: 'Hızlı Teslimat', desc: '2-4 iş günü içinde' },
