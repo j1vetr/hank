@@ -242,27 +242,25 @@
 
 .snake-border {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
 }
 
 .snake-border::before {
   content: '';
   position: absolute;
-  inset: -2px;
-  border-radius: 8px;
+  inset: -1px;
+  border-radius: 6px;
   background: conic-gradient(
     from var(--border-angle),
     transparent 0%,
-    transparent 35%,
-    rgba(255, 255, 255, 0.2) 40%,
-    rgba(255, 255, 255, 0.5) 45%,
-    rgba(255, 255, 255, 0.8) 48%,
+    transparent 42%,
+    rgba(255, 255, 255, 0.4) 46%,
+    rgba(255, 255, 255, 0.8) 49%,
     white 50%,
-    rgba(255, 255, 255, 0.8) 52%,
-    rgba(255, 255, 255, 0.5) 55%,
-    rgba(255, 255, 255, 0.2) 60%,
-    transparent 65%,
+    rgba(255, 255, 255, 0.8) 51%,
+    rgba(255, 255, 255, 0.4) 54%,
+    transparent 58%,
     transparent 100%
   );
   -webkit-mask: 
@@ -273,27 +271,7 @@
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  padding: 2px;
-  animation: rotate-border 6s linear infinite;
-  pointer-events: none;
-}
-
-.snake-border::after {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 12px;
-  background: conic-gradient(
-    from var(--border-angle),
-    transparent 0%,
-    transparent 40%,
-    rgba(255, 255, 255, 0.15) 48%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0.15) 52%,
-    transparent 60%,
-    transparent 100%
-  );
-  filter: blur(6px);
-  animation: rotate-border 6s linear infinite;
+  padding: 1px;
+  animation: rotate-border 10s linear infinite;
   pointer-events: none;
 }
