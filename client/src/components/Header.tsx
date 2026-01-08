@@ -33,15 +33,25 @@ export function Header() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50">
         <div className="bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-xl border-b border-white/5">
-          <div className="hidden lg:block border-b border-white/5">
-            <div className="max-w-[1400px] mx-auto px-6">
-              <div className="flex items-center justify-between h-10 text-xs text-muted-foreground">
-                <span className="tracking-wider">PREMIUM FITNESS & BODYBUILDING WEAR</span>
-                <div className="flex items-center gap-6">
-                  <span>Ücretsiz Kargo: 2000₺ üzeri</span>
-                  <span>|</span>
-                  <span>Kolay İade</span>
-                </div>
+          <div className="hidden lg:block border-b border-white/5 overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900">
+            <div className="relative h-9 flex items-center">
+              <div className="absolute inset-0 flex items-center animate-marquee-slow whitespace-nowrap">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-12 mx-8">
+                    <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      <span className="text-white font-medium">WORLDWIDE SHIPPING</span>
+                    </span>
+                    <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-emerald-400 font-medium">2000₺ VE ÜZERİ ÜCRETSİZ KARGO</span>
+                    </span>
+                    <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" />
+                      <span className="text-white/80">KOLAY İADE</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -65,8 +75,8 @@ export function Header() {
                     href={link.href}
                     data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
                   >
-                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-foreground group ${
-                      location === link.href ? 'text-foreground' : 'text-muted-foreground'
+                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                      location === link.href ? 'text-white' : 'text-white/70'
                     }`}>
                       {link.label}
                       <motion.span
@@ -105,8 +115,8 @@ export function Header() {
                     href={link.href}
                     data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
                   >
-                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-foreground group ${
-                      location === link.href ? 'text-foreground' : 'text-muted-foreground'
+                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                      location === link.href ? 'text-white' : 'text-white/70'
                     }`}>
                       {link.label}
                       <motion.span
