@@ -21,7 +21,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const price = parseFloat(product.basePrice);
+  const price = parseFloat(product.basePrice || '0') || 0;
   const mainImage = product.images && product.images.length > 0 
     ? product.images[0] 
     : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';

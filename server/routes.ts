@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema } from "@shared/schema";
-import type { AuthRequest } from "./types";
+import "./types";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -11,7 +11,7 @@ export async function registerRoutes(
 ): Promise<Server> {
   
   // Admin Authentication
-  app.post("/api/admin/login", async (req: AuthRequest, res) => {
+  app.post("/api/admin/login", async (req: Request, res) => {
     try {
       const { username, password } = req.body;
       const user = await storage.getAdminUserByUsername(username);
@@ -27,13 +27,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/logout", (req: AuthRequest, res) => {
+  app.post("/api/admin/logout", (req: Request, res) => {
     req.session.destroy(() => {
       res.json({ success: true });
     });
   });
 
-  app.get("/api/admin/me", async (req: AuthRequest, res) => {
+  app.get("/api/admin/me", async (req: Request, res) => {
     if (!req.session.adminId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -47,7 +47,7 @@ export async function registerRoutes(
   });
 
   // Middleware for admin routes
-  const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
     if (!req.session.adminId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -212,7 +212,7 @@ export async function registerRoutes(
   });
 
   // Cart API
-  app.get("/api/cart", async (req: AuthRequest, res) => {
+  app.get("/api/cart", async (req: Request, res) => {
     try {
       const sessionId = req.sessionID;
       const items = await storage.getCartItems(sessionId);
@@ -222,7 +222,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/cart", async (req: AuthRequest, res) => {
+  app.post("/api/cart", async (req: Request, res) => {
     try {
       const sessionId = req.sessionID;
       const validated = insertCartItemSchema.parse({
@@ -258,7 +258,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/cart", async (req: AuthRequest, res) => {
+  app.delete("/api/cart", async (req: Request, res) => {
     try {
       const sessionId = req.sessionID;
       await storage.clearCart(sessionId);
@@ -291,7 +291,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/orders", async (req: AuthRequest, res) => {
+  app.post("/api/orders", async (req: Request, res) => {
     try {
       const sessionId = req.sessionID;
       const cartItems = await storage.getCartItems(sessionId);
