@@ -9,7 +9,14 @@ import {
   Minus, 
   Plus,
   X,
-  Loader2
+  Loader2,
+  Shield,
+  Package,
+  Star,
+  Check,
+  Ruler,
+  Share2,
+  ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useProduct, useProducts } from '@/hooks/useProducts';
@@ -17,6 +24,8 @@ import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
 import { useToast } from '@/hooks/use-toast';
 import { ProductCard } from '@/components/ProductCard';
+
+const FREE_SHIPPING_THRESHOLD = 2500;
 
 export default function ProductDetail() {
   const params = useParams<{ slug: string }>();
@@ -34,6 +43,7 @@ export default function ProductDetail() {
   const [isAdding, setIsAdding] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isZooming, setIsZooming] = useState(false);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   const imageRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll();
@@ -54,7 +64,7 @@ export default function ProductDetail() {
     const hasSizes = hasVariants && product.variants!.some(v => v.size);
     
     if (hasSizes && !selectedSize) {
-      toast({ title: 'Uyarı', description: 'Lütfen bir beden seçiniz', variant: 'destructive' });
+      toast({ title: 'Uyarı', description: 'Lütfen bir beden seçiniz.', variant: 'destructive' });
       return;
     }
     
@@ -73,7 +83,7 @@ export default function ProductDetail() {
         quantity: quantity,
       });
     } catch (error) {
-      toast({ title: 'Hata', description: 'Sepete eklenemedi', variant: 'destructive' });
+      toast({ title: 'Hata', description: 'Sepete eklenemedi.', variant: 'destructive' });
     } finally {
       setIsAdding(false);
     }
@@ -83,13 +93,23 @@ export default function ProductDetail() {
     ? Array.from(new Set(product.variants.map(v => v.size).filter((s): s is string => Boolean(s))))
     : [];
 
+  const uniqueColors = product?.variants
+    ? Array.from(new Set(product.variants.map(v => v.color).filter((c): c is string => Boolean(c))))
+    : [];
+
   if (productLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-32 pb-20 px-6">
-          <div className="max-w-[1200px] mx-auto flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            >
+              <Loader2 className="w-10 h-10 text-white/50" />
+            </motion.div>
+            <p className="mt-4 text-sm text-muted-foreground">Ürün yükleniyor...</p>
           </div>
         </main>
       </div>
@@ -101,10 +121,20 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-32 pb-20 px-6">
-          <div className="max-w-[1200px] mx-auto text-center">
-            <h1 className="font-display text-4xl mb-4">Ürün Bulunamadı</h1>
+          <div className="max-w-7xl mx-auto text-center min-h-[60vh] flex flex-col items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6">
+              <Package className="w-12 h-12 text-white/30" />
+            </div>
+            <h1 className="font-display text-3xl mb-4">Ürün Bulunamadı</h1>
+            <p className="text-muted-foreground mb-8">Aradığınız ürün mevcut değil veya kaldırılmış olabilir.</p>
             <Link href="/">
-              <span className="text-muted-foreground hover:text-foreground">Ana Sayfaya Dön</span>
+              <motion.span 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg font-medium"
+              >
+                Ana Sayfaya Dön
+              </motion.span>
             </Link>
           </div>
         </main>
@@ -117,7 +147,24 @@ export default function ProductDetail() {
     : ['https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop'];
 
   const price = parseFloat(product.basePrice || '0');
-  const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, 4);
+  const relatedProducts = allProducts
+    .filter(p => p.id !== product.id && p.categoryId === product.categoryId)
+    .slice(0, 4);
+  const moreProducts = relatedProducts.length < 4 
+    ? [...relatedProducts, ...allProducts.filter(p => p.id !== product.id && p.categoryId !== product.categoryId).slice(0, 4 - relatedProducts.length)]
+    : relatedProducts;
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      await navigator.share({
+        title: product.name,
+        url: window.location.href,
+      });
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: 'Bağlantı kopyalandı!' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -134,255 +181,453 @@ export default function ProductDetail() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-8"
+            className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
             onClick={() => setLightboxOpen(false)}
           >
             <motion.button
-              initial={{ opacity: 0, rotate: -90 }}
-              animate={{ opacity: 1, rotate: 0 }}
-              className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors"
               onClick={() => setLightboxOpen(false)}
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </motion.button>
+            
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev === 0 ? images.length - 1 : prev - 1); }}
+              className="absolute left-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            
             <motion.img
-              initial={{ scale: 0.8, opacity: 0 }}
+              key={selectedImage}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: 'spring', damping: 25 }}
               src={images[selectedImage]}
               alt={product.name}
-              className="max-w-full max-h-full object-contain"
+              className="max-w-[90vw] max-h-[90vh] object-contain"
               onClick={(e) => e.stopPropagation()}
             />
+            
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev === images.length - 1 ? 0 : prev + 1); }}
+              className="absolute right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+              {images.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setSelectedImage(idx); }}
+                  className={`w-2 h-2 rounded-full transition-all ${idx === selectedImage ? 'bg-white w-6' : 'bg-white/30'}`}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSizeGuide && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setShowSizeGuide(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-zinc-900 rounded-2xl p-8 max-w-lg w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-display text-xl">Beden Rehberi</h3>
+                <button onClick={() => setShowSizeGuide(false)} className="p-2 hover:bg-white/10 rounded-full">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Beden</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Göğüs (cm)</th>
+                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Boy (cm)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { size: 'S', chest: '96-100', length: '70-72' },
+                      { size: 'M', chest: '100-104', length: '72-74' },
+                      { size: 'L', chest: '104-108', length: '74-76' },
+                      { size: 'XL', chest: '108-112', length: '76-78' },
+                    ].map((row) => (
+                      <tr key={row.size} className="border-b border-white/5">
+                        <td className="py-3 px-4 font-medium">{row.size}</td>
+                        <td className="py-3 px-4 text-center text-muted-foreground">{row.chest}</td>
+                        <td className="py-3 px-4 text-center text-muted-foreground">{row.length}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <main className="pt-24 pb-20">
-        <div className="max-w-[1200px] mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-6">
           <motion.nav 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 text-xs text-muted-foreground mb-6"
+            className="flex items-center gap-2 text-xs text-muted-foreground mb-8"
           >
-            <Link href="/">Ana Sayfa</Link>
+            <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
+            <ChevronRight className="w-3 h-3" />
+            <Link href={`/kategori/${product.categoryId}`} className="hover:text-white transition-colors">Ürünler</Link>
             <ChevronRight className="w-3 h-3" />
             <span className="text-foreground truncate max-w-[200px]">{product.name}</span>
           </motion.nav>
 
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-14">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20">
             <motion.div 
-              initial={{ opacity: 0, x: -30 }}
+              initial={{ opacity: 0, x: -40 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex gap-3"
+              transition={{ duration: 0.6 }}
+              className="space-y-4"
             >
-              <div className="hidden sm:flex flex-col gap-2 w-16 shrink-0">
-                {images.map((image, index) => (
-                  <motion.button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`relative aspect-[3/4] rounded overflow-hidden transition-all ${
-                      index === selectedImage 
-                        ? 'ring-1 ring-white' 
-                        : 'opacity-40 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={image} alt="" className="w-full h-full object-cover" />
-                  </motion.button>
-                ))}
-              </div>
+              <div className="relative">
+                <motion.div 
+                  ref={imageRef}
+                  className="relative aspect-[4/5] bg-zinc-900 rounded-2xl overflow-hidden cursor-zoom-in group"
+                  onMouseEnter={() => setIsZooming(true)}
+                  onMouseLeave={() => setIsZooming(false)}
+                  onMouseMove={handleMouseMove}
+                  onClick={() => setLightboxOpen(true)}
+                  whileHover={{ boxShadow: '0 30px 60px -15px rgba(0,0,0,0.5)' }}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={selectedImage}
+                      initial={{ opacity: 0 }}
+                      animate={{ 
+                        opacity: 1,
+                        scale: isZooming ? 2.5 : 1,
+                        x: isZooming ? (50 - mousePosition.x) * 5 : 0,
+                        y: isZooming ? (50 - mousePosition.y) * 5 : 0,
+                      }}
+                      exit={{ opacity: 0 }}
+                      transition={{ opacity: { duration: 0.2 } }}
+                      className="w-full h-full"
+                    >
+                      <img
+                        src={images[selectedImage]}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    </motion.div>
+                  </AnimatePresence>
 
-              <div className="flex-1">
-                <div className="snake-border">
-                  <motion.div 
-                    ref={imageRef}
-                    className="relative aspect-[3/4] bg-card rounded overflow-hidden cursor-zoom-in group"
-                    onMouseEnter={() => setIsZooming(true)}
-                    onMouseLeave={() => setIsZooming(false)}
-                    onMouseMove={handleMouseMove}
-                    onClick={() => setLightboxOpen(true)}
-                    whileHover={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
-                  >
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={selectedImage}
-                        initial={{ opacity: 0, scale: 1.1 }}
-                        animate={{ 
-                          opacity: 1,
-                          scale: isZooming ? 2 : 1,
-                          x: isZooming ? (50 - mousePosition.x) * 4 : 0,
-                          y: isZooming ? (50 - mousePosition.y) * 4 : 0,
-                        }}
-                        exit={{ opacity: 0 }}
-                        className="w-full h-full"
-                      >
-                        <img
-                          src={images[selectedImage]}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                      </motion.div>
-                    </AnimatePresence>
-
+                  <div className="absolute top-4 left-4 flex flex-col gap-2">
                     {product.isNew && (
-                      <motion.div 
-                        initial={{ x: -50, opacity: 0 }}
+                      <motion.span 
+                        initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
-                        className="absolute top-3 left-3"
+                        className="bg-white text-black text-[10px] font-bold px-3 py-1.5 tracking-widest uppercase"
                       >
-                        <span className="bg-white text-black text-xs font-bold px-3 py-1.5 tracking-wider">
-                          YENİ
-                        </span>
-                      </motion.div>
+                        Yeni
+                      </motion.span>
                     )}
-                  </motion.div>
-                </div>
+                    {product.isFeatured && (
+                      <motion.span 
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-black text-[10px] font-bold px-3 py-1.5 tracking-widest uppercase"
+                      >
+                        Öne Çıkan
+                      </motion.span>
+                    )}
+                  </div>
 
-                <div className="flex sm:hidden gap-2 mt-3 overflow-x-auto pb-2">
+                  <div className="absolute bottom-4 right-4 flex gap-2">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                      className="w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => { e.stopPropagation(); setIsLiked(!isLiked); }}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                        isLiked ? 'bg-red-600' : 'bg-black/50 backdrop-blur-sm hover:bg-black/70'
+                      }`}
+                    >
+                      <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                    </motion.button>
+                  </div>
+
+                  {!isZooming && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <span className="bg-black/70 backdrop-blur-sm text-white text-xs px-4 py-2 rounded-full">
+                        Yakınlaştırmak için tıklayın
+                      </span>
+                    </div>
+                  )}
+                </motion.div>
+
+                <div className="absolute -left-2 lg:-left-20 top-4 flex flex-col gap-2">
                   {images.map((image, index) => (
-                    <button
+                    <motion.button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`shrink-0 w-14 aspect-[3/4] rounded overflow-hidden ${
-                        index === selectedImage ? 'ring-1 ring-white' : 'opacity-50'
+                      whileHover={{ scale: 1.05, x: 4 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`relative w-14 lg:w-16 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                        index === selectedImage 
+                          ? 'ring-2 ring-white ring-offset-2 ring-offset-background' 
+                          : 'opacity-50 hover:opacity-100'
                       }`}
                     >
                       <img src={image} alt="" className="w-full h-full object-cover" />
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
             </motion.div>
 
             <motion.div 
-              initial={{ opacity: 0, x: 30 }}
+              initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="lg:sticky lg:top-24 lg:self-start space-y-5"
+              transition={{ duration: 0.6 }}
+              className="lg:sticky lg:top-32 lg:self-start"
             >
-              <div>
-                <h1 className="font-display text-2xl sm:text-3xl tracking-wide mb-3" data-testid="text-product-name">
-                  {product.name}
-                </h1>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-2xl font-bold" data-testid="text-price">
-                    {price.toLocaleString('tr-TR')} ₺
-                  </span>
+              <div className="space-y-6">
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                    <span className="text-xs text-muted-foreground">(128 değerlendirme)</span>
+                  </div>
+                  
+                  <h1 className="font-display text-3xl sm:text-4xl tracking-wide mb-4" data-testid="text-product-name">
+                    {product.name}
+                  </h1>
+                  
+                  <div className="flex items-baseline gap-4">
+                    <span className="text-3xl sm:text-4xl font-bold" data-testid="text-price">
+                      {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                    </span>
+                    {price >= FREE_SHIPPING_THRESHOLD && (
+                      <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                        <Truck className="w-3.5 h-3.5" />
+                        Ücretsiz Kargo
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {product.description && (
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {product.description}
-                </p>
-              )}
+                {product.description && (
+                  <p className="text-muted-foreground leading-relaxed">
+                    {product.description}
+                  </p>
+                )}
 
-              <div className="space-y-4 pt-2">
+                {uniqueColors.length > 0 && (
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
+                      Renk: <span className="text-white">{uniqueColors[0]}</span>
+                    </span>
+                    <div className="flex gap-2">
+                      {uniqueColors.map((color) => (
+                        <div
+                          key={color}
+                          className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-sm"
+                        >
+                          {color}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {uniqueSizes.length > 0 && (
                   <div>
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
-                      Beden: {selectedSize || 'Seçiniz'}
-                    </span>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Beden: <span className="text-white">{selectedSize || 'Seçiniz'}</span>
+                      </span>
+                      <button 
+                        onClick={() => setShowSizeGuide(true)}
+                        className="text-xs text-white/60 hover:text-white flex items-center gap-1 transition-colors"
+                      >
+                        <Ruler className="w-3.5 h-3.5" />
+                        Beden Rehberi
+                      </button>
+                    </div>
                     <div className="grid grid-cols-4 gap-2">
                       {uniqueSizes.map((size) => (
                         <motion.button
                           key={size}
                           onClick={() => setSelectedSize(size)}
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                          className={`relative py-2.5 text-sm font-medium rounded overflow-hidden transition-colors ${
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`relative py-3 text-sm font-semibold rounded-lg overflow-hidden transition-all ${
                             selectedSize === size
-                              ? 'bg-white text-black'
-                              : 'bg-white/5 border border-white/10 hover:border-white/30'
+                              ? 'bg-white text-black shadow-lg shadow-white/20'
+                              : 'bg-white/5 border border-white/10 hover:border-white/30 hover:bg-white/10'
                           }`}
                           data-testid={`button-size-${size}`}
                         >
                           {size}
+                          {selectedSize === size && (
+                            <motion.div
+                              layoutId="sizeIndicator"
+                              className="absolute inset-0 bg-white -z-10"
+                            />
+                          )}
                         </motion.button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center border border-border rounded overflow-hidden">
+                <div className="flex items-center gap-4 pt-2">
+                  <div className="flex items-center bg-white/5 border border-white/10 rounded-lg overflow-hidden">
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 flex items-center justify-center hover:bg-white/5 transition-colors"
+                      className="w-12 h-12 flex items-center justify-center hover:bg-white/10 transition-colors"
                       data-testid="button-decrease-quantity"
                     >
                       <Minus className="w-4 h-4" />
                     </motion.button>
-                    <span className="w-10 text-center font-medium text-sm" data-testid="text-quantity">
+                    <span className="w-12 text-center font-semibold" data-testid="text-quantity">
                       {quantity}
                     </span>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 flex items-center justify-center hover:bg-white/5 transition-colors"
+                      className="w-12 h-12 flex items-center justify-center hover:bg-white/10 transition-colors"
                       data-testid="button-increase-quantity"
                     >
                       <Plus className="w-4 h-4" />
                     </motion.button>
                   </div>
-                </div>
-              </div>
 
-              <div className="flex gap-2 pt-2">
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={handleAddToCart}
-                  disabled={isAdding}
-                  className="relative flex-1 py-3.5 rounded font-bold text-sm tracking-wide uppercase overflow-hidden transition-all bg-white text-black hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] disabled:opacity-50 flex items-center justify-center gap-2"
-                  data-testid="button-add-to-cart"
-                >
-                  {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  {isAdding ? 'Ekleniyor...' : 'Sepete Ekle'}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsLiked(!isLiked)}
-                  className={`w-12 h-12 rounded flex items-center justify-center transition-colors ${
-                    isLiked ? 'bg-red-600 text-white' : 'border border-border hover:bg-white/5'
-                  }`}
-                  data-testid="button-like"
-                >
-                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                </motion.button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-4">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Truck className="w-4 h-4 shrink-0" />
-                  <span>2000 TL üzeri ücretsiz kargo</span>
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={handleAddToCart}
+                    disabled={isAdding}
+                    className="flex-1 py-4 rounded-lg font-bold text-sm tracking-wide uppercase overflow-hidden transition-all bg-white text-black hover:shadow-[0_0_40px_rgba(255,255,255,0.2)] disabled:opacity-50 flex items-center justify-center gap-2"
+                    data-testid="button-add-to-cart"
+                  >
+                    {isAdding ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                    {isAdding ? 'Ekleniyor...' : 'Sepete Ekle'}
+                  </motion.button>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <RotateCcw className="w-4 h-4 shrink-0" />
-                  <span>14 gün ücretsiz iade</span>
+
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <Truck className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Ücretsiz Kargo</p>
+                      <p className="text-xs text-muted-foreground">2.500₺ ve üzeri</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                      <RotateCcw className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Kolay İade</p>
+                      <p className="text-xs text-muted-foreground">14 gün içinde</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Güvenli Ödeme</p>
+                      <p className="text-xs text-muted-foreground">SSL korumalı</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Hızlı Teslimat</p>
+                      <p className="text-xs text-muted-foreground">2-4 iş günü</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/10">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      Stokta mevcut
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      Orijinal ürün
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>
           </div>
 
-          {relatedProducts.length > 0 && (
-            <section className="mt-20">
-              <h2 className="font-display text-2xl tracking-wide mb-8">
-                İLGİLİ ÜRÜNLER
-              </h2>
+          {moreProducts.length > 0 && (
+            <motion.section 
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="mt-24"
+            >
+              <div className="flex items-center justify-between mb-10">
+                <h2 className="font-display text-2xl sm:text-3xl tracking-wide">
+                  Beğenebileceğiniz Ürünler
+                </h2>
+                <Link href="/kategori/tshirt">
+                  <motion.span 
+                    whileHover={{ x: 4 }}
+                    className="text-sm text-muted-foreground hover:text-white flex items-center gap-1 transition-colors"
+                  >
+                    Tümünü Gör
+                    <ChevronRight className="w-4 h-4" />
+                  </motion.span>
+                </Link>
+              </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6 sm:gap-y-12">
-                {relatedProducts.map((p) => (
+                {moreProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
               </div>
-            </section>
+            </motion.section>
           )}
         </div>
       </main>

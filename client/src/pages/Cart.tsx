@@ -14,7 +14,7 @@ interface Product {
   images: string[];
 }
 
-const FREE_SHIPPING_THRESHOLD = 2000;
+const FREE_SHIPPING_THRESHOLD = 2500;
 
 export default function Cart() {
   const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal } = useCart();

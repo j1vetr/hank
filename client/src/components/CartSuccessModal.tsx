@@ -17,7 +17,7 @@ interface CartSuccessModalProps {
   cartItemCount: number;
 }
 
-const FREE_SHIPPING_THRESHOLD = 2000;
+const FREE_SHIPPING_THRESHOLD = 2500;
 
 export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItemCount }: CartSuccessModalProps) {
   if (!product) return null;

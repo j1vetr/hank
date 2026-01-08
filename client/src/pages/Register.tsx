@@ -88,7 +88,7 @@ export default function Register() {
 
   const features = [
     { icon: Shield, text: 'Güvenli Alışveriş' },
-    { icon: Truck, text: '2000 TL Üzeri Ücretsiz Kargo' },
+    { icon: Truck, text: '2.500₺ Üzeri Ücretsiz Kargo' },
     { icon: RotateCcw, text: '14 Gün Kolay İade' },
   ];
 

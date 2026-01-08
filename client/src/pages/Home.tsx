@@ -24,7 +24,7 @@ const defaultCategoryImages: Record<string, string> = {
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
 const features = [
-  { icon: Truck, title: 'Ücretsiz Kargo', desc: '2000₺ üzeri siparişlerde' },
+  { icon: Truck, title: 'Ücretsiz Kargo', desc: '2.500₺ üzeri siparişlerde' },
   { icon: RotateCcw, title: 'Kolay İade', desc: '14 gün içinde ücretsiz' },
   { icon: Shield, title: 'Güvenli Ödeme', desc: 'SSL ile korunan ödeme' },
   { icon: Zap, title: 'Hızlı Teslimat', desc: '2-4 iş günü içinde' },

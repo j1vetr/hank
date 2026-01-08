@@ -44,7 +44,7 @@ export function Header() {
                     </span>
                     <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-emerald-400 font-medium">2000₺ VE ÜZERİ ÜCRETSİZ KARGO</span>
+                      <span className="text-emerald-400 font-medium">2.500₺ VE ÜZERİ ÜCRETSİZ KARGO</span>
                     </span>
                   </div>
                 ))}
