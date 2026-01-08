@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { useAuth } from '@/hooks/useAuth';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -24,13 +24,16 @@ import {
   Calendar,
   ShoppingBag,
   CreditCard,
-  Loader2
+  Loader2,
+  Heart
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { useFavorites } from '@/hooks/useFavorites';
+import { ProductCard } from '@/components/ProductCard';
 
-type TabType = 'orders' | 'profile' | 'addresses';
+type TabType = 'orders' | 'profile' | 'addresses' | 'favorites';
 
 interface Order {
   id: string;
@@ -161,8 +164,11 @@ export default function Profile() {
     return null;
   }
 
+  const { data: favorites = [], isLoading: favoritesLoading } = useFavorites();
+
   const tabs = [
     { id: 'orders' as TabType, label: 'Siparişlerim', icon: Package, count: orders.length },
+    { id: 'favorites' as TabType, label: 'Favorilerim', icon: Heart, count: favorites.length },
     { id: 'profile' as TabType, label: 'Profil Bilgileri', icon: User },
     { id: 'addresses' as TabType, label: 'Adreslerim', icon: MapPin },
   ];
@@ -329,6 +335,42 @@ export default function Profile() {
                             </motion.div>
                           );
                         })}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {activeTab === 'favorites' && (
+                  <motion.div
+                    key="favorites"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                  >
+                    <h2 className="text-xl font-semibold text-white mb-6">Favorilerim</h2>
+                    
+                    {favoritesLoading ? (
+                      <div className="flex items-center justify-center py-20">
+                        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+                      </div>
+                    ) : favorites.length === 0 ? (
+                      <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800 flex items-center justify-center">
+                          <Heart className="w-8 h-8 text-zinc-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-white mb-2">Henüz favori ürününüz yok</h3>
+                        <p className="text-zinc-500 mb-6">Beğendiğiniz ürünleri favorilere ekleyin, daha sonra kolayca bulun.</p>
+                        <Link href="/">
+                          <button className="px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-zinc-200 transition-colors">
+                            Alışverişe Başla
+                          </button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {favorites.map((product) => (
+                          <ProductCard key={product.id} product={product} />
+                        ))}
                       </div>
                     )}
                   </motion.div>

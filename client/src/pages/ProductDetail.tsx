@@ -16,7 +16,9 @@ import {
   Ruler,
   Share2,
   ChevronLeft,
-  Copy
+  Copy,
+  Star,
+  Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProduct, useProducts, useCategories } from '@/hooks/useProducts';
@@ -24,8 +26,38 @@ import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
 import { useToast } from '@/hooks/use-toast';
 import { ProductCard } from '@/components/ProductCard';
+import { useProductReviews, useProductRating, useUserReview, useCreateReview } from '@/hooks/useReviews';
+import { useAuth } from '@/hooks/useAuth';
+import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 
 const FREE_SHIPPING_THRESHOLD = 2500;
+
+function StarRating({ rating, size = 16, interactive = false, onChange }: { rating: number; size?: number; interactive?: boolean; onChange?: (rating: number) => void }) {
+  const [hover, setHover] = useState(0);
+  
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          disabled={!interactive}
+          onClick={() => interactive && onChange?.(star)}
+          onMouseEnter={() => interactive && setHover(star)}
+          onMouseLeave={() => setHover(0)}
+          className={interactive ? 'cursor-pointer' : 'cursor-default'}
+        >
+          <Star
+            style={{ width: size, height: size }}
+            className={`${
+              star <= (hover || rating) ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-600'
+            } transition-colors`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function ProductDetail() {
   const params = useParams<{ slug: string }>();
@@ -35,18 +67,31 @@ export default function ProductDetail() {
   const { addToCart } = useCart();
   const { showModal } = useCartModal();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const { data: reviews = [] } = useProductReviews(product?.id || '');
+  const { data: ratingData } = useProductRating(product?.id || '');
+  const { data: userReview } = useUserReview(product?.id || '');
+  const createReviewMutation = useCreateReview();
+  
+  const { data: favoriteIds = [] } = useFavoriteIds();
+  const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
+  const isLiked = product ? favoriteIds.includes(product.id) : false;
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [isLiked, setIsLiked] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isZooming, setIsZooming] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewContent, setReviewContent] = useState('');
 
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +131,26 @@ export default function ProductDetail() {
       toast({ title: 'Hata', description: 'Sepete eklenemedi.', variant: 'destructive' });
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+    
+    try {
+      await createReviewMutation.mutateAsync({
+        productId: product.id,
+        rating: reviewRating,
+        title: reviewTitle || undefined,
+        content: reviewContent || undefined,
+      });
+      toast({ title: 'Başarılı', description: 'Değerlendirmeniz gönderildi.' });
+      setReviewTitle('');
+      setReviewContent('');
+      setReviewRating(5);
+    } catch (error: any) {
+      toast({ title: 'Hata', description: error.message || 'Değerlendirme gönderilemedi.', variant: 'destructive' });
     }
   };
 
@@ -456,13 +521,18 @@ export default function ProductDetail() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsLiked(!isLiked)}
+                    onClick={() => product && !isFavoriteLoading && toggleFavorite(product.id, isLiked)}
+                    disabled={isFavoriteLoading}
                     className={`w-12 h-12 border flex items-center justify-center transition-colors ${
                       isLiked ? 'bg-red-600 border-red-600 text-white' : 'border-zinc-700 hover:border-zinc-500'
-                    }`}
+                    } ${isFavoriteLoading ? 'opacity-50' : ''}`}
                     data-testid="button-like"
                   >
-                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                    {isFavoriteLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                    )}
                   </motion.button>
 
                   <div className="relative">
@@ -526,6 +596,127 @@ export default function ProductDetail() {
               </div>
             </motion.div>
           </div>
+
+          <motion.section 
+            initial={{ opacity: 0, y: 40 }} 
+            whileInView={{ opacity: 1, y: 0 }} 
+            viewport={{ once: true }} 
+            transition={{ duration: 0.6 }} 
+            className="mt-16"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="font-display text-xl tracking-wide uppercase">Değerlendirmeler</h2>
+              {ratingData && ratingData.count > 0 && (
+                <div className="flex items-center gap-2">
+                  <StarRating rating={Math.round(ratingData.average)} size={18} />
+                  <span className="text-sm text-muted-foreground">
+                    {ratingData.average.toFixed(1)} ({ratingData.count} değerlendirme)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {user && !userReview && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-8">
+                <h3 className="font-semibold mb-4">Değerlendirme Yaz</h3>
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">Puanınız</label>
+                    <StarRating rating={reviewRating} size={28} interactive onChange={setReviewRating} />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Başlık (isteğe bağlı)"
+                      value={reviewTitle}
+                      onChange={(e) => setReviewTitle(e.target.value)}
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-white transition-colors"
+                      data-testid="input-review-title"
+                    />
+                  </div>
+                  <div>
+                    <textarea
+                      placeholder="Yorumunuz (isteğe bağlı)"
+                      value={reviewContent}
+                      onChange={(e) => setReviewContent(e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-white transition-colors resize-none"
+                      data-testid="input-review-content"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={createReviewMutation.isPending}
+                    className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    data-testid="button-submit-review"
+                  >
+                    {createReviewMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    Gönder
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {!user && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-8 text-center">
+                <p className="text-muted-foreground mb-4">Değerlendirme yazmak için giriş yapın</p>
+                <Link href="/giris">
+                  <button className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-zinc-200 transition-colors">
+                    Giriş Yap
+                  </button>
+                </Link>
+              </div>
+            )}
+
+            {userReview && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <StarRating rating={userReview.rating} size={16} />
+                  <span className="text-sm text-green-400">Değerlendirmeniz</span>
+                </div>
+                {userReview.title && <h4 className="font-semibold">{userReview.title}</h4>}
+                {userReview.content && <p className="text-muted-foreground mt-1">{userReview.content}</p>}
+              </div>
+            )}
+
+            {reviews.length > 0 ? (
+              <div className="space-y-4">
+                {reviews.filter(r => r.id !== userReview?.id).map((review) => (
+                  <div key={review.id} className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-bold">
+                          {review.user.firstName?.charAt(0) || 'A'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {review.user.firstName} {review.user.lastName?.charAt(0)}.
+                          </p>
+                          <StarRating rating={review.rating} size={12} />
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(review.createdAt).toLocaleDateString('tr-TR')}
+                      </span>
+                    </div>
+                    {review.title && <h4 className="font-semibold text-sm mt-3">{review.title}</h4>}
+                    {review.content && <p className="text-muted-foreground text-sm mt-1">{review.content}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              !userReview && (
+                <div className="text-center py-10 text-muted-foreground">
+                  <Star className="w-10 h-10 mx-auto mb-3 text-zinc-700" />
+                  <p>Henüz değerlendirme yok. İlk değerlendirmeyi siz yapın!</p>
+                </div>
+              )
+            )}
+          </motion.section>
 
           {moreProducts.length > 0 && (
             <motion.section initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="mt-20">

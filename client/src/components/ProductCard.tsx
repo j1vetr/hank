@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
+import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 
 interface Product {
   id: string;
@@ -20,11 +21,14 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const { addToCart } = useCart();
   const { showModal } = useCartModal();
+  const { data: favoriteIds = [] } = useFavoriteIds();
+  const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
+  
+  const isLiked = favoriteIds.includes(product.id);
 
   const price = parseFloat(product.basePrice || '0') || 0;
   const mainImage = product.images && product.images.length > 0 
@@ -94,18 +98,29 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <motion.button
             data-testid={`button-like-${product.id}`}
-            onClick={(e) => { e.preventDefault(); setIsLiked(!isLiked); }}
+            onClick={(e) => { 
+              e.preventDefault(); 
+              e.stopPropagation();
+              if (!isFavoriteLoading) {
+                toggleFavorite(product.id, isLiked); 
+              }
+            }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ 
               opacity: isHovered || isLiked ? 1 : 0,
               scale: isHovered || isLiked ? 1 : 0.8
             }}
             whileTap={{ scale: 0.9 }}
+            disabled={isFavoriteLoading}
             className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
               isLiked ? 'bg-red-600 text-white' : 'bg-black/50 text-white hover:bg-black/70'
-            }`}
+            } ${isFavoriteLoading ? 'opacity-50' : ''}`}
           >
-            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+            {isFavoriteLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+            )}
           </motion.button>
 
           <motion.div

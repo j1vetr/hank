@@ -415,12 +415,15 @@ export async function registerRoutes(
   // Products API
   app.get("/api/products", async (req, res) => {
     try {
-      const { categoryId, isFeatured, isNew, search } = req.query;
+      const { categoryId, isFeatured, isNew, search, minPrice, maxPrice, sort } = req.query;
       const products = await storage.getProducts({
         categoryId: categoryId as string,
         isFeatured: isFeatured !== undefined ? isFeatured === 'true' : undefined,
         isNew: isNew !== undefined ? isNew === 'true' : undefined,
         search: search as string,
+        minPrice: minPrice ? parseFloat(minPrice as string) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice as string) : undefined,
+        sort: sort as 'price_asc' | 'price_desc' | 'newest' | 'popular' | undefined,
       });
       res.json(products);
     } catch (error) {
@@ -570,6 +573,135 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear cart" });
+    }
+  });
+
+  // Favorites API
+  app.get("/api/favorites", async (req: Request, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Please login to view favorites" });
+      }
+      const favoriteProducts = await storage.getFavoriteProducts(userId);
+      res.json(favoriteProducts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch favorites" });
+    }
+  });
+
+  app.get("/api/favorites/ids", async (req: Request, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.json([]);
+      }
+      const ids = await storage.getUserFavoriteProductIds(userId);
+      res.json(ids);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch favorite ids" });
+    }
+  });
+
+  app.get("/api/favorites/:productId/check", async (req: Request, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.json({ isFavorite: false });
+      }
+      const isFavorite = await storage.isFavorite(userId, req.params.productId);
+      res.json({ isFavorite });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check favorite status" });
+    }
+  });
+
+  app.post("/api/favorites/:productId", async (req: Request, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Please login to add favorites" });
+      }
+      const favorite = await storage.addFavorite({ userId, productId: req.params.productId });
+      res.status(201).json(favorite);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add favorite" });
+    }
+  });
+
+  app.delete("/api/favorites/:productId", async (req: Request, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Please login to remove favorites" });
+      }
+      await storage.removeFavorite(userId, req.params.productId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove favorite" });
+    }
+  });
+
+  // Reviews API
+  app.get("/api/products/:productId/reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getProductReviews(req.params.productId);
+      res.json(reviews);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  app.get("/api/products/:productId/rating", async (req, res) => {
+    try {
+      const rating = await storage.getProductAverageRating(req.params.productId);
+      res.json(rating);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rating" });
+    }
+  });
+
+  app.post("/api/products/:productId/reviews", async (req: Request, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Please login to write a review" });
+      }
+
+      // Check if user already reviewed this product
+      const existingReview = await storage.getUserReview(userId, req.params.productId);
+      if (existingReview) {
+        return res.status(400).json({ error: "You have already reviewed this product" });
+      }
+
+      const { rating, title, content } = req.body;
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Rating must be between 1 and 5" });
+      }
+
+      const review = await storage.createReview({
+        productId: req.params.productId,
+        userId,
+        rating,
+        title: title || null,
+        content: content || null,
+      });
+      res.status(201).json(review);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create review" });
+    }
+  });
+
+  app.get("/api/products/:productId/my-review", async (req: Request, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.json(null);
+      }
+      const review = await storage.getUserReview(userId, req.params.productId);
+      res.json(review || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch review" });
     }
   });
 

@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { Link, useParams } from 'wouter';
-import { ChevronRight, Filter, X, SlidersHorizontal } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useProducts, useCategories } from '@/hooks/useProducts';
+import { ChevronRight, X, SlidersHorizontal, Filter } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useProducts, useCategories, type ProductFilters } from '@/hooks/useProducts';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -23,9 +24,9 @@ import {
 
 const sortOptions = [
   { value: 'newest', label: 'En Yeni' },
-  { value: 'price-asc', label: 'Fiyat: Düşükten Yükseğe' },
-  { value: 'price-desc', label: 'Fiyat: Yüksekten Düşüğe' },
-  { value: 'name-asc', label: 'İsim: A-Z' },
+  { value: 'price_asc', label: 'Fiyat: Düşükten Yükseğe' },
+  { value: 'price_desc', label: 'Fiyat: Yüksekten Düşüğe' },
+  { value: 'popular', label: 'En Popüler' },
 ];
 
 const sizeFilters = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -37,39 +38,31 @@ export default function Category() {
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const category = categories.find(c => c.slug === slug);
   
-  const { data: allProducts = [], isLoading: productsLoading } = useProducts(
-    category?.id ? { categoryId: category.id } : {}
-  );
-  
-  const isLoading = categoriesLoading || (category && productsLoading);
-  
-  const categoryProducts = category?.id 
-    ? allProducts.filter(p => p.categoryId === category.id)
-    : allProducts;
-  
-  const [sortBy, setSortBy] = useState('newest');
+  const [sortBy, setSortBy] = useState<ProductFilters['sort']>('newest');
+  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const sortedProducts = useMemo(() => {
-    let sorted = [...categoryProducts];
-    
-    switch (sortBy) {
-      case 'price-asc':
-        sorted.sort((a, b) => parseFloat(a.basePrice || '0') - parseFloat(b.basePrice || '0'));
-        break;
-      case 'price-desc':
-        sorted.sort((a, b) => parseFloat(b.basePrice || '0') - parseFloat(a.basePrice || '0'));
-        break;
-      case 'name-asc':
-        sorted.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-        break;
-      default:
-        break;
-    }
-    
-    return sorted;
-  }, [categoryProducts, sortBy, selectedSizes]);
+  const filters: ProductFilters = {
+    categoryId: category?.id,
+    sort: sortBy,
+    minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+    maxPrice: priceRange[1] < 10000 ? priceRange[1] : undefined,
+  };
+
+  const { data: products = [], isLoading: productsLoading } = useProducts(filters);
+  
+  const isLoading = categoriesLoading || (category && productsLoading);
+  
+  // Client-side size filtering (since sizes are stored in product variants)
+  const filteredProducts = useMemo(() => {
+    if (selectedSizes.length === 0) return products;
+    return products.filter(p => 
+      p.availableSizes?.some(size => selectedSizes.includes(size))
+    );
+  }, [products, selectedSizes]);
 
   const toggleSize = (size: string) => {
     setSelectedSizes(prev => 
@@ -82,9 +75,10 @@ export default function Category() {
   const clearFilters = () => {
     setSelectedSizes([]);
     setSortBy('newest');
+    setPriceRange([0, 10000]);
   };
 
-  const hasActiveFilters = selectedSizes.length > 0;
+  const hasActiveFilters = selectedSizes.length > 0 || priceRange[0] > 0 || priceRange[1] < 10000;
 
   if (!category && !isLoading) {
     return (
@@ -158,7 +152,7 @@ export default function Category() {
               transition={{ delay: 0.4 }}
               className="text-white/70 mt-4 text-lg"
             >
-              {sortedProducts.length} ürün bulundu
+              {filteredProducts.length} ürün bulundu
             </motion.p>
           </div>
         </div>
@@ -184,7 +178,7 @@ export default function Category() {
                     Filtrele
                     {hasActiveFilters && (
                       <span className="w-5 h-5 bg-white text-black text-xs font-bold rounded-full flex items-center justify-center">
-                        {selectedSizes.length}
+                        {selectedSizes.length + (priceRange[0] > 0 || priceRange[1] < 10000 ? 1 : 0)}
                       </span>
                     )}
                   </Button>
@@ -195,6 +189,27 @@ export default function Category() {
                   </SheetHeader>
                   
                   <div className="mt-8 space-y-8">
+                    <div>
+                      <h4 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">
+                        Fiyat Aralığı
+                      </h4>
+                      <div className="space-y-4">
+                        <Slider
+                          value={priceRange}
+                          onValueChange={(value) => setPriceRange(value as [number, number])}
+                          min={0}
+                          max={10000}
+                          step={100}
+                          className="w-full"
+                          data-testid="slider-price-range"
+                        />
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{priceRange[0].toLocaleString('tr-TR')} TL</span>
+                          <span>{priceRange[1].toLocaleString('tr-TR')} TL</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div>
                       <h4 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">
                         Beden
@@ -249,7 +264,7 @@ export default function Category() {
               )}
             </div>
 
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as ProductFilters['sort'])}>
               <SelectTrigger className="w-[220px] border-white/20 bg-transparent" data-testid="select-sort">
                 <SelectValue placeholder="Sırala" />
               </SelectTrigger>
@@ -269,7 +284,7 @@ export default function Category() {
                 <div key={i} className="aspect-[3/4] bg-zinc-800/50 animate-pulse rounded-lg" />
               ))}
             </div>
-          ) : sortedProducts.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -295,7 +310,7 @@ export default function Category() {
               transition={{ delay: 0.6 }}
               className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
             >
-              {sortedProducts.map((product, index) => (
+              {filteredProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 20 }}

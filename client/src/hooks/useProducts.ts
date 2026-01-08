@@ -39,7 +39,17 @@ export interface Category {
   displayOrder: number;
 }
 
-export function useProducts(filters?: { categoryId?: string; isFeatured?: boolean; isNew?: boolean; search?: string }) {
+export interface ProductFilters {
+  categoryId?: string;
+  isFeatured?: boolean;
+  isNew?: boolean;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
+}
+
+export function useProducts(filters?: ProductFilters) {
   return useQuery({
     queryKey: ['products', filters],
     queryFn: async () => {
@@ -48,6 +58,9 @@ export function useProducts(filters?: { categoryId?: string; isFeatured?: boolea
       if (filters?.isFeatured !== undefined) params.append('isFeatured', String(filters.isFeatured));
       if (filters?.isNew !== undefined) params.append('isNew', String(filters.isNew));
       if (filters?.search) params.append('search', filters.search);
+      if (filters?.minPrice !== undefined) params.append('minPrice', String(filters.minPrice));
+      if (filters?.maxPrice !== undefined) params.append('maxPrice', String(filters.maxPrice));
+      if (filters?.sort) params.append('sort', filters.sort);
 
       const response = await fetch(`/api/products?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch products');
