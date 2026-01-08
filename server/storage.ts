@@ -27,6 +27,15 @@ import {
 } from "@shared/schema";
 import { eq, and, desc, sql, ilike } from "drizzle-orm";
 
+export interface AdminStats {
+  totalProducts: number;
+  totalCategories: number;
+  totalOrders: number;
+  totalUsers: number;
+  totalRevenue: number;
+  pendingOrders: number;
+}
+
 export interface IStorage {
   getAdminUser(id: string): Promise<AdminUser | undefined>;
   getAdminUserByUsername(username: string): Promise<AdminUser | undefined>;
@@ -35,6 +44,12 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getUsers(search?: string): Promise<User[]>;
+  updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
+
+  getAdminStats(): Promise<AdminStats>;
+  getAllProducts(): Promise<Product[]>;
 
   getCategories(): Promise<Category[]>;
   getCategory(id: string): Promise<Category | undefined>;
@@ -102,6 +117,46 @@ export class DbStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const [newUser] = await db.insert(users).values(user).returning();
     return newUser;
+  }
+
+  async getUsers(search?: string): Promise<User[]> {
+    if (search) {
+      return db.select().from(users).where(
+        sql`${users.email} ILIKE ${'%' + search + '%'} OR ${users.firstName} ILIKE ${'%' + search + '%'} OR ${users.lastName} ILIKE ${'%' + search + '%'}`
+      ).orderBy(desc(users.createdAt));
+    }
+    return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(user).where(eq(users.id, id)).returning();
+    return updated;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async getAdminStats(): Promise<AdminStats> {
+    const [productCount] = await db.select({ count: sql<number>`count(*)` }).from(products);
+    const [categoryCount] = await db.select({ count: sql<number>`count(*)` }).from(categories);
+    const [orderCount] = await db.select({ count: sql<number>`count(*)` }).from(orders);
+    const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const [pendingCount] = await db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.status, 'pending'));
+    const [revenue] = await db.select({ total: sql<number>`COALESCE(SUM(CAST(total AS DECIMAL)), 0)` }).from(orders);
+    
+    return {
+      totalProducts: Number(productCount.count),
+      totalCategories: Number(categoryCount.count),
+      totalOrders: Number(orderCount.count),
+      totalUsers: Number(userCount.count),
+      totalRevenue: Number(revenue.total),
+      pendingOrders: Number(pendingCount.count),
+    };
+  }
+
+  async getAllProducts(): Promise<Product[]> {
+    return db.select().from(products).orderBy(desc(products.createdAt));
   }
 
   async getCategories(): Promise<Category[]> {
