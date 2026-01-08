@@ -152,7 +152,7 @@ export default function Profile() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-32 flex items-center justify-center">
+        <main className="pt-36 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-white/50" />
         </main>
       </div>
@@ -177,7 +177,7 @@ export default function Profile() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-28 pb-20 px-4 sm:px-6">
+      <main className="pt-36 pb-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

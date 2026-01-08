@@ -41,7 +41,7 @@ export default function Cart() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-32 pb-20 px-6">
+        <main className="pt-36 pb-20 px-6">
           <div className="max-w-5xl mx-auto text-center">
             <motion.div 
               animate={{ opacity: [0.5, 1, 0.5] }}
@@ -65,7 +65,7 @@ export default function Cart() {
         <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
       </div>
 
-      <main className="pt-28 pb-20 px-6 relative z-10">
+      <main className="pt-36 pb-20 px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

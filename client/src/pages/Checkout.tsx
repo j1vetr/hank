@@ -192,7 +192,7 @@ export default function Checkout() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-32 pb-20 px-6">
+        <main className="pt-36 pb-20 px-6">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -268,7 +268,7 @@ export default function Checkout() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-32 pb-20 px-6">
+        <main className="pt-36 pb-20 px-6">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -304,7 +304,7 @@ export default function Checkout() {
         <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
       </div>
 
-      <main className="pt-28 pb-20 px-6 relative z-10">
+      <main className="pt-36 pb-20 px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
           <motion.nav 
             initial={{ opacity: 0, y: -10 }}
