@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, Menu, X, User } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, User, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const categories = [
   { href: '/kategori/esofman', label: 'Eşofman' },
@@ -12,9 +20,10 @@ const categories = [
 ];
 
 export function Header() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartCount] = useState(0);
+  const { totalItems } = useCart();
+  const { user, logout } = useAuth();
 
   return (
     <>
@@ -61,23 +70,51 @@ export function Header() {
               >
                 <Search className="w-5 h-5" />
               </button>
-              <button
-                data-testid="button-account"
-                className="hidden sm:flex p-2.5 hover:bg-accent rounded-full transition-colors"
-              >
-                <User className="w-5 h-5" />
-              </button>
-              <button
-                data-testid="button-cart"
-                className="p-2.5 hover:bg-accent rounded-full transition-colors relative"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-xs font-bold flex items-center justify-center rounded-full">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
+              
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      data-testid="button-account"
+                      className="hidden sm:flex p-2.5 hover:bg-accent rounded-full transition-colors"
+                    >
+                      <User className="w-5 h-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem disabled className="text-muted-foreground">
+                      {user.firstName || user.email}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { logout(); navigate('/'); }}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Çıkış Yap
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/giris">
+                  <button
+                    data-testid="button-account"
+                    className="hidden sm:flex p-2.5 hover:bg-accent rounded-full transition-colors"
+                  >
+                    <User className="w-5 h-5" />
+                  </button>
+                </Link>
+              )}
+
+              <Link href="/sepet">
+                <button
+                  data-testid="button-cart"
+                  className="p-2.5 hover:bg-accent rounded-full transition-colors relative"
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-xs font-bold flex items-center justify-center rounded-full">
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+              </Link>
             </div>
           </div>
         </div>

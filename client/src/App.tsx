@@ -3,8 +3,14 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/components/AuthProvider";
+import { CartProvider } from "@/components/CartProvider";
 import Home from "@/pages/Home";
 import ProductDetail from "@/pages/ProductDetail";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Cart from "@/pages/Cart";
+import Checkout from "@/pages/Checkout";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
@@ -14,6 +20,10 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/urun/:slug" component={ProductDetail} />
+      <Route path="/giris" component={Login} />
+      <Route path="/kayit" component={Register} />
+      <Route path="/sepet" component={Cart} />
+      <Route path="/odeme" component={Checkout} />
       <Route path="/toov-admin/login" component={AdminLogin} />
       <Route path="/toov-admin" component={AdminDashboard} />
       <Route component={NotFound} />
@@ -24,10 +34,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </CartProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
