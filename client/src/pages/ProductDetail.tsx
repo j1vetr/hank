@@ -12,7 +12,6 @@ import {
   Loader2,
   Shield,
   Package,
-  Star,
   Check,
   Ruler,
   Share2,
@@ -535,35 +534,30 @@ export default function ProductDetail() {
               transition={{ duration: 0.6 }}
               className="lg:sticky lg:top-32 lg:self-start"
             >
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div>
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
+                  {product.sku && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full mb-4" data-testid="text-sku">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">SKU</span>
+                      <span className="text-xs font-mono text-white">{product.sku}</span>
+                    </div>
+                  )}
                   
-                  <h1 className="font-display text-3xl sm:text-4xl tracking-wide mb-4" data-testid="text-product-name">
+                  <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl tracking-wide leading-tight mb-6" data-testid="text-product-name">
                     {product.name}
                   </h1>
                   
-                  <div className="flex items-baseline gap-4 mb-3">
-                    <span className="text-3xl sm:text-4xl font-bold" data-testid="text-price">
+                  <div className="flex items-center gap-4">
+                    <span className="text-4xl sm:text-5xl font-bold tracking-tight" data-testid="text-price">
                       {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                     </span>
                     {price >= FREE_SHIPPING_THRESHOLD && (
-                      <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                        <Truck className="w-3.5 h-3.5" />
+                      <span className="text-xs text-emerald-400 font-medium flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full">
+                        <Truck className="w-4 h-4" />
                         Ücretsiz Kargo
                       </span>
                     )}
                   </div>
-
-                  {product.sku && (
-                    <p className="text-xs text-muted-foreground" data-testid="text-sku">
-                      Stok Kodu: <span className="text-white/70 font-mono">{product.sku}</span>
-                    </p>
-                  )}
                 </div>
 
                 {product.description && (
@@ -574,35 +568,37 @@ export default function ProductDetail() {
 
                 {uniqueColors.length > 0 && (
                   <div>
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block">
-                      Renk: <span className="text-white">{selectedColor || uniqueColors[0]}</span>
-                    </span>
-                    <div className="flex gap-3">
-                      {uniqueColors.map((color) => {
-                        const colorHex = getColorHex(color);
-                        const isSelected = selectedColor === color || (!selectedColor && color === uniqueColors[0]);
-                        const isLight = colorHex === '#FFFFFF' || colorHex === '#D4C4A8';
-                        return (
-                          <motion.button
-                            key={color}
-                            onClick={() => setSelectedColor(color)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`relative w-10 h-10 rounded-full transition-all ${
-                              isSelected 
-                                ? 'ring-2 ring-white ring-offset-2 ring-offset-background' 
-                                : 'ring-1 ring-white/20 hover:ring-white/40'
-                            }`}
-                            style={{ backgroundColor: colorHex }}
-                            title={color}
-                            data-testid={`button-color-${color}`}
-                          >
-                            {isSelected && (
-                              <Check className={`w-4 h-4 absolute inset-0 m-auto ${isLight ? 'text-black' : 'text-white'}`} />
-                            )}
-                          </motion.button>
-                        );
-                      })}
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Renk:
+                      </span>
+                      <div className="flex items-center gap-3">
+                        {uniqueColors.map((color) => {
+                          const colorHex = getColorHex(color);
+                          const isSelected = selectedColor === color || (!selectedColor && color === uniqueColors[0]);
+                          const isLight = colorHex === '#FFFFFF' || colorHex === '#D4C4A8';
+                          return (
+                            <motion.button
+                              key={color}
+                              onClick={() => setSelectedColor(color)}
+                              whileHover={{ scale: 1.15 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`relative w-9 h-9 rounded-full transition-all shadow-lg ${
+                                isSelected 
+                                  ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110' 
+                                  : 'ring-1 ring-white/30 hover:ring-white/60'
+                              }`}
+                              style={{ backgroundColor: colorHex }}
+                              title={color}
+                              data-testid={`button-color-${color}`}
+                            >
+                              {isSelected && (
+                                <Check className={`w-4 h-4 absolute inset-0 m-auto ${isLight ? 'text-black' : 'text-white'}`} />
+                              )}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
