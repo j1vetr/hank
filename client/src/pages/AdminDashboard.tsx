@@ -21,7 +21,13 @@ import {
   Upload,
   ImageIcon,
   Loader2,
-  GripVertical
+  GripVertical,
+  Link2,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 
 interface Product {
@@ -88,7 +94,27 @@ interface ProductVariant {
   stock: number;
 }
 
-type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users';
+type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce';
+
+interface WooSettings {
+  id: string;
+  siteUrl: string;
+  consumerKey: string;
+  consumerSecret: string;
+  isActive: boolean;
+  lastSync: string | null;
+}
+
+interface WooSyncLog {
+  id: string;
+  status: string;
+  productsImported: number;
+  categoriesImported: number;
+  imagesDownloaded: number;
+  errors: string[];
+  startedAt: string;
+  completedAt: string | null;
+}
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -263,6 +289,7 @@ export default function AdminDashboard() {
     { id: 'categories' as TabType, icon: Grid3x3, label: 'Kategoriler' },
     { id: 'orders' as TabType, icon: ShoppingCart, label: 'Siparişler' },
     { id: 'users' as TabType, icon: Users, label: 'Kullanıcılar' },
+    { id: 'woocommerce' as TabType, icon: Link2, label: 'WooCommerce' },
   ];
 
   const filteredProducts = products.filter(p => 
@@ -741,6 +768,10 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+          )}
+
+          {activeTab === 'woocommerce' && (
+            <WooCommercePanel />
           )}
         </div>
       </main>
@@ -1559,6 +1590,324 @@ function UserDetailModal({ user, onClose }: { user: User; onClose: () => void })
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function WooCommercePanel() {
+  const queryClient = useQueryClient();
+  const [siteUrl, setSiteUrl] = useState('');
+  const [consumerKey, setConsumerKey] = useState('');
+  const [consumerSecret, setConsumerSecret] = useState('');
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; productCount?: number; categoryCount?: number } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const { data: settings, isLoading: settingsLoading } = useQuery<WooSettings | null>({
+    queryKey: ['admin', 'woocommerce', 'settings'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/woocommerce/settings');
+      return res.json();
+    },
+  });
+
+  const { data: logs = [], refetch: refetchLogs } = useQuery<WooSyncLog[]>({
+    queryKey: ['admin', 'woocommerce', 'logs'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/woocommerce/logs');
+      return res.json();
+    },
+    refetchInterval: importing ? 3000 : false,
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setSiteUrl(settings.siteUrl);
+      setConsumerKey(settings.consumerKey);
+    }
+  }, [settings]);
+
+  useEffect(() => {
+    const runningLog = logs.find(l => l.status === 'running');
+    if (runningLog) {
+      setImporting(true);
+    } else {
+      setImporting(false);
+    }
+  }, [logs]);
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/admin/woocommerce/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteUrl, consumerKey, consumerSecret }),
+      });
+      const data = await res.json();
+      setTestResult(data);
+    } catch (error) {
+      setTestResult({ success: false, message: 'Bağlantı hatası' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/woocommerce/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteUrl, consumerKey, consumerSecret, isActive: true }),
+      });
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ['admin', 'woocommerce', 'settings'] });
+        setTestResult({ success: true, message: 'Ayarlar kaydedildi!' });
+      }
+    } catch (error) {
+      setTestResult({ success: false, message: 'Kayıt hatası' });
+    }
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const res = await fetch('/api/admin/woocommerce/import', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        refetchLogs();
+      }
+    } catch (error) {
+      setImporting(false);
+    }
+  };
+
+  const runningLog = logs.find(l => l.status === 'running');
+  const lastCompletedLog = logs.find(l => l.status === 'completed' || l.status === 'failed');
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+            <Link2 className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-white">WooCommerce Entegrasyonu</h3>
+            <p className="text-sm text-zinc-400">Mevcut WooCommerce sitenizden ürünleri içe aktarın</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Site URL</label>
+            <input
+              type="text"
+              value={siteUrl}
+              onChange={(e) => setSiteUrl(e.target.value)}
+              placeholder="https://yoursite.com"
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+              data-testid="input-woo-site-url"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Consumer Key</label>
+              <input
+                type="text"
+                value={consumerKey}
+                onChange={(e) => setConsumerKey(e.target.value)}
+                placeholder="ck_xxxxxxxxxxxxxxxx"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+                data-testid="input-woo-consumer-key"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Consumer Secret</label>
+              <input
+                type="password"
+                value={consumerSecret}
+                onChange={(e) => setConsumerSecret(e.target.value)}
+                placeholder="cs_xxxxxxxxxxxxxxxx"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+                data-testid="input-woo-consumer-secret"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={handleTestConnection}
+              disabled={testing || !siteUrl || !consumerKey || !consumerSecret}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              data-testid="button-test-connection"
+            >
+              {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+              Bağlantıyı Test Et
+            </button>
+            <button
+              onClick={handleSaveSettings}
+              disabled={!siteUrl || !consumerKey || !consumerSecret}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg font-medium transition-colors disabled:opacity-50"
+              data-testid="button-save-settings"
+            >
+              Ayarları Kaydet
+            </button>
+          </div>
+
+          {testResult && (
+            <div className={`flex items-start gap-3 p-4 rounded-lg ${testResult.success ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+              {testResult.success ? (
+                <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-400 shrink-0" />
+              )}
+              <div>
+                <p className={`font-medium ${testResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                  {testResult.message}
+                </p>
+                {testResult.productCount !== undefined && (
+                  <p className="text-sm text-zinc-400 mt-1">
+                    {testResult.productCount} ürün, {testResult.categoryCount} kategori bulundu
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {settings && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                <RefreshCw className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Ürünleri İçe Aktar</h3>
+                <p className="text-sm text-zinc-400">
+                  {settings.lastSync 
+                    ? `Son senkronizasyon: ${new Date(settings.lastSync).toLocaleString('tr-TR')}`
+                    : 'Henüz senkronize edilmedi'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleImport}
+              disabled={importing}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium transition-all disabled:opacity-50"
+              data-testid="button-import-products"
+            >
+              {importing ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  İçe Aktarılıyor...
+                </>
+              ) : (
+                <>
+                  <Package className="w-5 h-5" />
+                  Tüm Ürünleri İçe Aktar
+                </>
+              )}
+            </button>
+          </div>
+
+          {runningLog && (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                <div>
+                  <p className="font-medium text-blue-400">İçe aktarma devam ediyor...</p>
+                  <p className="text-sm text-zinc-400 mt-1">
+                    {runningLog.productsImported} ürün, {runningLog.categoriesImported} kategori, {runningLog.imagesDownloaded} resim
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {logs.length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-zinc-400 mb-3">Son İşlemler</h4>
+              <div className="space-y-2">
+                {logs.slice(0, 5).map((log) => (
+                  <div key={log.id} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {log.status === 'completed' && <CheckCircle2 className="w-4 h-4 text-green-400" />}
+                      {log.status === 'failed' && <XCircle className="w-4 h-4 text-red-400" />}
+                      {log.status === 'running' && <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />}
+                      <div>
+                        <p className="text-sm text-white">
+                          {log.productsImported} ürün, {log.categoriesImported} kategori
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {new Date(log.startedAt).toLocaleString('tr-TR')}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      log.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                      log.status === 'failed' ? 'bg-red-500/20 text-red-400' :
+                      'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {log.status === 'completed' ? 'Tamamlandı' : log.status === 'failed' ? 'Başarısız' : 'Devam Ediyor'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {lastCompletedLog && lastCompletedLog.errors.length > 0 && (
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-400">Bazı hatalar oluştu ({lastCompletedLog.errors.length})</p>
+                      <ul className="mt-2 text-xs text-zinc-400 space-y-1">
+                        {lastCompletedLog.errors.slice(0, 3).map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                        {lastCompletedLog.errors.length > 3 && (
+                          <li className="text-zinc-500">... ve {lastCompletedLog.errors.length - 3} hata daha</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+        <h4 className="font-medium text-white mb-4">WooCommerce API Anahtarı Nasıl Alınır?</h4>
+        <ol className="space-y-2 text-sm text-zinc-400">
+          <li className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs shrink-0">1</span>
+            <span>WooCommerce yönetim panelinize gidin</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs shrink-0">2</span>
+            <span>WooCommerce → Ayarlar → Gelişmiş → REST API bölümüne gidin</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs shrink-0">3</span>
+            <span>"Anahtar Ekle" butonuna tıklayın</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs shrink-0">4</span>
+            <span>İzin olarak "Okuma" seçin ve oluşturun</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-xs shrink-0">5</span>
+            <span>Consumer Key ve Consumer Secret değerlerini kopyalayın</span>
+          </li>
+        </ol>
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ import {
   orders,
   orderItems,
   users,
+  woocommerceSettings,
+  woocommerceSyncLogs,
   type AdminUser,
   type InsertAdminUser,
   type Category,
@@ -23,7 +25,10 @@ import {
   type OrderItem,
   type InsertOrderItem,
   type User,
-  type InsertUser
+  type InsertUser,
+  type WoocommerceSettings,
+  type InsertWoocommerceSettings,
+  type WoocommerceSyncLog
 } from "@shared/schema";
 import { eq, and, desc, sql, ilike } from "drizzle-orm";
 
@@ -332,6 +337,62 @@ export class DbStorage implements IStorage {
   async createOrderItem(item: InsertOrderItem): Promise<OrderItem> {
     const [newItem] = await db.insert(orderItems).values(item).returning();
     return newItem;
+  }
+
+  // WooCommerce Settings
+  async getWoocommerceSettings(): Promise<WoocommerceSettings | undefined> {
+    const [settings] = await db.select().from(woocommerceSettings).limit(1);
+    return settings;
+  }
+
+  async saveWoocommerceSettings(settings: InsertWoocommerceSettings): Promise<WoocommerceSettings> {
+    const existing = await this.getWoocommerceSettings();
+    if (existing) {
+      const [updated] = await db.update(woocommerceSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(woocommerceSettings.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [newSettings] = await db.insert(woocommerceSettings).values(settings).returning();
+    return newSettings;
+  }
+
+  async updateWoocommerceLastSync(): Promise<void> {
+    const existing = await this.getWoocommerceSettings();
+    if (existing) {
+      await db.update(woocommerceSettings)
+        .set({ lastSync: new Date() })
+        .where(eq(woocommerceSettings.id, existing.id));
+    }
+  }
+
+  async deleteWoocommerceSettings(): Promise<void> {
+    await db.delete(woocommerceSettings);
+  }
+
+  // WooCommerce Sync Logs
+  async getWoocommerceSyncLogs(): Promise<WoocommerceSyncLog[]> {
+    return db.select().from(woocommerceSyncLogs).orderBy(desc(woocommerceSyncLogs.startedAt)).limit(10);
+  }
+
+  async createWoocommerceSyncLog(status: string): Promise<WoocommerceSyncLog> {
+    const [log] = await db.insert(woocommerceSyncLogs).values({ status }).returning();
+    return log;
+  }
+
+  async updateWoocommerceSyncLog(id: string, data: Partial<WoocommerceSyncLog>): Promise<void> {
+    await db.update(woocommerceSyncLogs).set(data).where(eq(woocommerceSyncLogs.id, id));
+  }
+
+  async getProductBySlugOrCreate(slug: string): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.slug, slug));
+    return product;
+  }
+
+  async getCategoryBySlugOrCreate(slug: string): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.slug, slug));
+    return category;
   }
 }
 

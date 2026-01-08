@@ -682,5 +682,296 @@ export async function registerRoutes(
     }
   });
 
+  // WooCommerce Integration API
+  app.get("/api/admin/woocommerce/settings", requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getWoocommerceSettings();
+      if (settings) {
+        // Mask the secret for security
+        res.json({
+          ...settings,
+          consumerSecret: settings.consumerSecret ? '••••••••' : '',
+        });
+      } else {
+        res.json(null);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch WooCommerce settings" });
+    }
+  });
+
+  app.post("/api/admin/woocommerce/settings", requireAdmin, async (req, res) => {
+    try {
+      const { siteUrl, consumerKey, consumerSecret, isActive } = req.body;
+      const settings = await storage.saveWoocommerceSettings({
+        siteUrl,
+        consumerKey,
+        consumerSecret,
+        isActive: isActive ?? true,
+      });
+      res.json({
+        ...settings,
+        consumerSecret: '••••••••',
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save WooCommerce settings" });
+    }
+  });
+
+  app.delete("/api/admin/woocommerce/settings", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteWoocommerceSettings();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete WooCommerce settings" });
+    }
+  });
+
+  app.post("/api/admin/woocommerce/test", requireAdmin, async (req, res) => {
+    try {
+      const { siteUrl, consumerKey, consumerSecret } = req.body;
+      
+      // Test connection to WooCommerce API
+      const url = new URL('/wp-json/wc/v3/products', siteUrl);
+      url.searchParams.set('per_page', '1');
+      
+      const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+      const response = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Basic ${auth}`,
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(400).json({ 
+          success: false, 
+          error: `WooCommerce API hatası: ${response.status}`,
+          details: errorText
+        });
+      }
+      
+      const products = await response.json();
+      
+      // Get total product count from headers
+      const totalProducts = response.headers.get('X-WP-Total') || '0';
+      const totalCategories = await fetch(new URL('/wp-json/wc/v3/products/categories?per_page=1', siteUrl).toString(), {
+        headers: { 'Authorization': `Basic ${auth}` },
+      }).then(r => r.headers.get('X-WP-Total') || '0').catch(() => '0');
+      
+      res.json({ 
+        success: true, 
+        productCount: parseInt(totalProducts),
+        categoryCount: parseInt(totalCategories),
+        message: 'Bağlantı başarılı!'
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || 'Bağlantı hatası'
+      });
+    }
+  });
+
+  app.get("/api/admin/woocommerce/logs", requireAdmin, async (req, res) => {
+    try {
+      const logs = await storage.getWoocommerceSyncLogs();
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sync logs" });
+    }
+  });
+
+  app.post("/api/admin/woocommerce/import", requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getWoocommerceSettings();
+      if (!settings) {
+        return res.status(400).json({ error: "WooCommerce ayarları bulunamadı" });
+      }
+
+      // Create sync log
+      const syncLog = await storage.createWoocommerceSyncLog('running');
+
+      // Start import in background
+      (async () => {
+        let productsImported = 0;
+        let categoriesImported = 0;
+        let imagesDownloaded = 0;
+        const errors: string[] = [];
+
+        try {
+          const auth = Buffer.from(`${settings.consumerKey}:${settings.consumerSecret}`).toString('base64');
+          
+          // Import categories first
+          const categoriesUrl = new URL('/wp-json/wc/v3/products/categories', settings.siteUrl);
+          categoriesUrl.searchParams.set('per_page', '100');
+          
+          const catResponse = await fetch(categoriesUrl.toString(), {
+            headers: { 'Authorization': `Basic ${auth}` },
+          });
+          
+          if (catResponse.ok) {
+            const wooCategories = await catResponse.json();
+            for (const wooCat of wooCategories) {
+              try {
+                const existingCat = await storage.getCategoryBySlugOrCreate(wooCat.slug);
+                if (!existingCat) {
+                  // Download category image if exists
+                  let categoryImage = '';
+                  if (wooCat.image?.src) {
+                    try {
+                      const imgRes = await fetch(wooCat.image.src);
+                      if (imgRes.ok) {
+                        const imgBuffer = await imgRes.arrayBuffer();
+                        const ext = wooCat.image.src.split('.').pop()?.split('?')[0] || 'jpg';
+                        const fileName = `${wooCat.slug}-${Date.now()}.${ext}`;
+                        const filePath = path.join(process.cwd(), 'client/public/uploads/categories', fileName);
+                        await fs.promises.writeFile(filePath, Buffer.from(imgBuffer));
+                        categoryImage = `/uploads/categories/${fileName}`;
+                        imagesDownloaded++;
+                      }
+                    } catch (imgError) {
+                      errors.push(`Kategori resmi indirilemedi: ${wooCat.name}`);
+                    }
+                  }
+                  
+                  await storage.createCategory({
+                    name: wooCat.name,
+                    slug: wooCat.slug,
+                    image: categoryImage,
+                    displayOrder: wooCat.menu_order || 0,
+                  });
+                  categoriesImported++;
+                }
+              } catch (catError: any) {
+                errors.push(`Kategori aktarılamadı: ${wooCat.name} - ${catError.message}`);
+              }
+            }
+          }
+
+          // Import products
+          let page = 1;
+          let hasMore = true;
+          
+          while (hasMore) {
+            const productsUrl = new URL('/wp-json/wc/v3/products', settings.siteUrl);
+            productsUrl.searchParams.set('per_page', '20');
+            productsUrl.searchParams.set('page', page.toString());
+            productsUrl.searchParams.set('status', 'publish');
+            
+            const prodResponse = await fetch(productsUrl.toString(), {
+              headers: { 'Authorization': `Basic ${auth}` },
+            });
+            
+            if (!prodResponse.ok) {
+              errors.push(`Ürünler alınamadı (sayfa ${page})`);
+              break;
+            }
+            
+            const wooProducts = await prodResponse.json();
+            
+            if (wooProducts.length === 0) {
+              hasMore = false;
+              break;
+            }
+            
+            for (const wooProd of wooProducts) {
+              try {
+                const existingProd = await storage.getProductBySlug(wooProd.slug);
+                if (!existingProd) {
+                  // Download product images
+                  const productImages: string[] = [];
+                  for (const img of (wooProd.images || [])) {
+                    try {
+                      const imgRes = await fetch(img.src);
+                      if (imgRes.ok) {
+                        const imgBuffer = await imgRes.arrayBuffer();
+                        const ext = img.src.split('.').pop()?.split('?')[0] || 'jpg';
+                        const fileName = `${wooProd.slug}-${Date.now()}-${productImages.length + 1}.${ext}`;
+                        const filePath = path.join(process.cwd(), 'client/public/uploads/products', fileName);
+                        await fs.promises.writeFile(filePath, Buffer.from(imgBuffer));
+                        productImages.push(`/uploads/products/${fileName}`);
+                        imagesDownloaded++;
+                      }
+                    } catch (imgError) {
+                      errors.push(`Ürün resmi indirilemedi: ${wooProd.name}`);
+                    }
+                  }
+                  
+                  // Get category ID
+                  let categoryId = null;
+                  if (wooProd.categories && wooProd.categories.length > 0) {
+                    const cat = await storage.getCategoryBySlugOrCreate(wooProd.categories[0].slug);
+                    categoryId = cat?.id || null;
+                  }
+                  
+                  // Extract sizes and colors from attributes
+                  const availableSizes: string[] = [];
+                  const availableColors: { name: string; hex: string }[] = [];
+                  
+                  for (const attr of (wooProd.attributes || [])) {
+                    if (attr.name.toLowerCase().includes('beden') || attr.name.toLowerCase().includes('size')) {
+                      availableSizes.push(...(attr.options || []));
+                    }
+                    if (attr.name.toLowerCase().includes('renk') || attr.name.toLowerCase().includes('color')) {
+                      for (const colorName of (attr.options || [])) {
+                        availableColors.push({ name: colorName, hex: '#000000' });
+                      }
+                    }
+                  }
+                  
+                  await storage.createProduct({
+                    name: wooProd.name,
+                    slug: wooProd.slug,
+                    description: wooProd.description?.replace(/<[^>]*>/g, '') || '',
+                    sku: wooProd.sku || null,
+                    categoryId,
+                    basePrice: wooProd.price || wooProd.regular_price || '0',
+                    images: productImages,
+                    availableSizes,
+                    availableColors,
+                    isActive: wooProd.status === 'publish',
+                    isFeatured: wooProd.featured || false,
+                    isNew: false,
+                  });
+                  productsImported++;
+                }
+              } catch (prodError: any) {
+                errors.push(`Ürün aktarılamadı: ${wooProd.name} - ${prodError.message}`);
+              }
+            }
+            
+            page++;
+            // Safety limit
+            if (page > 50) break;
+          }
+
+          await storage.updateWoocommerceLastSync();
+          await storage.updateWoocommerceSyncLog(syncLog.id, {
+            status: 'completed',
+            productsImported,
+            categoriesImported,
+            imagesDownloaded,
+            errors,
+            completedAt: new Date(),
+          });
+        } catch (syncError: any) {
+          await storage.updateWoocommerceSyncLog(syncLog.id, {
+            status: 'failed',
+            productsImported,
+            categoriesImported,
+            imagesDownloaded,
+            errors: [...errors, syncError.message],
+            completedAt: new Date(),
+          });
+        }
+      })();
+
+      res.json({ success: true, logId: syncLog.id, message: 'İçe aktarma başlatıldı' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "İçe aktarma başlatılamadı" });
+    }
+  });
+
   return httpServer;
 }

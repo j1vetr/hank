@@ -164,3 +164,38 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
 
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
+
+// WooCommerce Integration
+export const woocommerceSettings = pgTable("woocommerce_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteUrl: text("site_url").notNull(),
+  consumerKey: text("consumer_key").notNull(),
+  consumerSecret: text("consumer_secret").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSync: timestamp("last_sync"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWoocommerceSettingsSchema = createInsertSchema(woocommerceSettings).omit({
+  id: true,
+  lastSync: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWoocommerceSettings = z.infer<typeof insertWoocommerceSettingsSchema>;
+export type WoocommerceSettings = typeof woocommerceSettings.$inferSelect;
+
+export const woocommerceSyncLogs = pgTable("woocommerce_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  status: text("status").notNull(), // 'running', 'completed', 'failed'
+  productsImported: integer("products_imported").default(0).notNull(),
+  categoriesImported: integer("categories_imported").default(0).notNull(),
+  imagesDownloaded: integer("images_downloaded").default(0).notNull(),
+  errors: jsonb("errors").$type<string[]>().default([]).notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export type WoocommerceSyncLog = typeof woocommerceSyncLogs.$inferSelect;
