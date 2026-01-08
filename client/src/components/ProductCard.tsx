@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'wouter';
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
+  slug: string;
+  basePrice: string;
+  images: string[];
   isNew?: boolean;
-  colors?: string[];
+  variants?: Array<{ colorHex?: string }>;
 }
 
 interface ProductCardProps {
@@ -21,31 +21,37 @@ export function ProductCard({ product }: ProductCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const discount = product.originalPrice
-    ? Math.round((1 - product.price / product.originalPrice) * 100)
-    : 0;
+  const price = parseFloat(product.basePrice);
+  const mainImage = product.images && product.images.length > 0 
+    ? product.images[0] 
+    : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
+  
+  const uniqueColors = product.variants 
+    ? Array.from(new Set(product.variants.map(v => v.colorHex).filter(Boolean)))
+    : [];
 
   return (
-    <motion.div
-      data-testid={`card-product-${product.id}`}
-      className="group relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="relative">
-        <div className={`absolute -inset-[1px] rounded-sm bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isHovered ? 'animate-border-rotate' : ''}`} />
-        
-        <div className="relative aspect-[3/4] overflow-hidden bg-card rounded-sm">
-          <motion.img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover"
-            animate={{ scale: isHovered ? 1.08 : 1 }}
-            transition={{ duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
-            data-testid={`img-product-${product.id}`}
-          />
+    <Link href={`/urun/${product.slug}`}>
+      <motion.div
+        data-testid={`card-product-${product.id}`}
+        className="group relative cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        whileHover={{ y: -4 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="relative">
+          <div className={`absolute -inset-[1px] rounded-sm bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isHovered ? 'animate-border-rotate' : ''}`} />
+          
+          <div className="relative aspect-[3/4] overflow-hidden bg-card rounded-sm">
+            <motion.img
+              src={mainImage}
+              alt={product.name}
+              className="w-full h-full object-cover"
+              animate={{ scale: isHovered ? 1.08 : 1 }}
+              transition={{ duration: 0.6, ease: [0.33, 1, 0.68, 1] }}
+              data-testid={`img-product-${product.id}`}
+            />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -60,15 +66,6 @@ export function ProductCard({ product }: ProductCardProps) {
             >
               YENİ
             </motion.span>
-          )}
-
-          {discount > 0 && !product.isNew && (
-            <span
-              className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 tracking-wider"
-              data-testid={`badge-discount-${product.id}`}
-            >
-              -%{discount}
-            </span>
           )}
 
           <motion.button
@@ -109,36 +106,29 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       <div className="mt-3 space-y-1.5">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider" data-testid={`text-category-${product.id}`}>
-          {product.category}
-        </p>
         <h3 className="text-sm font-medium line-clamp-2 leading-snug" data-testid={`text-product-name-${product.id}`}>
           {product.name}
         </h3>
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold" data-testid={`text-price-${product.id}`}>
-            {product.price.toLocaleString('tr-TR')} ₺
+            {price.toLocaleString('tr-TR')} ₺
           </span>
-          {product.originalPrice && (
-            <span className="text-xs text-muted-foreground line-through" data-testid={`text-original-price-${product.id}`}>
-              {product.originalPrice.toLocaleString('tr-TR')} ₺
-            </span>
-          )}
         </div>
 
-        {product.colors && product.colors.length > 0 && (
+        {uniqueColors.length > 0 && (
           <div className="flex items-center gap-1.5 pt-1">
-            {product.colors.map((color, index) => (
+            {uniqueColors.slice(0, 5).map((color, index) => (
               <span
                 key={index}
                 className="w-3 h-3 rounded-full ring-1 ring-border"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: color as string }}
                 data-testid={`color-${product.id}-${index}`}
               />
             ))}
           </div>
         )}
       </div>
-    </motion.div>
+      </motion.div>
+    </Link>
   );
 }

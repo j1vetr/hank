@@ -5,6 +5,7 @@ import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
 import heroImage1 from '@assets/hero-1.jpg';
 import heroImage2 from '@assets/hero-2.jpg';
+import { useProducts, useCategories } from '@/hooks/useProducts';
 
 const categories = [
   {
@@ -122,6 +123,9 @@ const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ 
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const heroImages = [heroImage1, heroImage2];
+
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: featuredProducts = [], isLoading: productsLoading } = useProducts({ isFeatured: true });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -267,9 +271,6 @@ export default function Home() {
                     <h3 className="font-display text-2xl sm:text-3xl text-white tracking-wide">
                       {category.name.toUpperCase()}
                     </h3>
-                    <p className="text-white/60 text-sm mt-1">
-                      {category.count} Ürün
-                    </p>
                   </div>
                 </div>
               </Link>
