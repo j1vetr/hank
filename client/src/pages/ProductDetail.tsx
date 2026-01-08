@@ -247,6 +247,7 @@ export default function ProductDetail() {
               </div>
 
               <div className="flex-1">
+                <div className="conic-glow rounded">
                 <motion.div 
                   ref={imageRef}
                   className="relative aspect-[3/4] bg-card rounded overflow-hidden cursor-zoom-in group"
@@ -303,6 +304,7 @@ export default function ProductDetail() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                   </div>
                 </motion.div>
+                </div>
 
                 <div className="flex sm:hidden gap-2 mt-3 overflow-x-auto pb-2">
                   {productData.images.map((image, index) => (
