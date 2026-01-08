@@ -113,40 +113,63 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="relative z-10 h-full flex items-center">
-          <div className="max-w-[1400px] mx-auto px-6 w-full">
-            <div className="max-w-2xl animate-fade-up">
-              <span className="inline-block text-sm tracking-[0.3em] uppercase text-white/70 mb-6 animate-pulse">
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <div className="text-center px-6 w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="mb-8"
+            >
+              <span className="inline-flex items-center gap-3 px-6 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-sm tracking-[0.2em] uppercase text-white/90">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 2025 Yeni Sezon
               </span>
-              <h1 className="font-display text-6xl sm:text-7xl lg:text-[120px] text-white tracking-wide mb-6 leading-[0.9]">
-                GÜCÜNÜ<br />
-                <span className="text-stroke-white">GÖSTER</span>
-              </h1>
-              <p className="text-lg text-white/80 mb-10 max-w-md font-body">
-                Premium kalite fitness giyim. Antrenmanlarında fark yarat, 
-                tarzınla öne çık.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/kategori/tshirt">
-                  <button
-                    data-testid="button-shop-men"
-                    className="group px-10 py-5 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4"
-                  >
-                    Koleksiyonu Keşfet
-                    <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </Link>
-                <Link href="/kategori/esofman">
-                  <button
-                    data-testid="button-shop-all"
-                    className="px-10 py-5 bg-transparent border-2 border-white text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-colors"
-                  >
-                    Tüm Ürünler
-                  </button>
-                </Link>
-              </div>
-            </div>
+            </motion.div>
+            
+            <motion.h1 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="font-display text-5xl sm:text-7xl lg:text-[140px] xl:text-[180px] text-white tracking-wider mb-4 leading-[0.85]"
+            >
+              <span className="block">GÜCÜNÜ</span>
+              <span className="block text-stroke-white bg-gradient-to-r from-white/0 via-white/10 to-white/0">GÖSTER</span>
+            </motion.h1>
+            
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-lg sm:text-xl text-white/70 mb-10 max-w-lg mx-auto font-body"
+            >
+              Premium kalite fitness giyim
+            </motion.p>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              <Link href="/kategori/tshirt">
+                <button
+                  data-testid="button-shop-men"
+                  className="group px-10 py-5 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4"
+                >
+                  Koleksiyonu Keşfet
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                </button>
+              </Link>
+              <Link href="/kategori/esofman">
+                <button
+                  data-testid="button-shop-all"
+                  className="px-10 py-5 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all"
+                >
+                  Tüm Ürünler
+                </button>
+              </Link>
+            </motion.div>
           </div>
         </div>
 
