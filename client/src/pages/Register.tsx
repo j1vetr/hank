@@ -7,8 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, Check, Shield, Truck, RotateCcw } from 'lucide-react';
-import heroImage from '@assets/hero-2.jpg';
+import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, Check } from 'lucide-react';
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -79,91 +78,11 @@ export default function Register() {
   const strengthColors = ['', 'bg-red-500', 'bg-yellow-500', 'bg-green-500'];
   const strengthTexts = ['', 'Zayıf', 'Orta', 'Güçlü'];
 
-  const benefits = [
-    'Siparişlerinizi kolayca takip edin',
-    'Adreslerinizi kaydedin',
-    'Özel kampanyalardan haberdar olun',
-    'Hızlı ödeme yapın',
-  ];
-
-  const features = [
-    { icon: Shield, text: 'Güvenli Alışveriş' },
-    { icon: Truck, text: '2.500₺ Üzeri Ücretsiz Kargo' },
-    { icon: RotateCcw, text: '14 Gün Kolay İade' },
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="pt-20 min-h-screen flex">
-        <div className="hidden lg:block lg:w-1/2 relative">
-          <div className="absolute inset-0">
-            <img 
-              src={heroImage} 
-              alt="HANK Fitness" 
-              className="w-full h-full object-cover object-top"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
-          </div>
-          
-          <div className="relative z-10 h-full flex flex-col justify-between p-12">
-            <div>
-              <motion.h2 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="font-display text-5xl tracking-wide leading-tight"
-              >
-                HANK<br />
-                <span className="text-stroke-white">AİLESİNE KATIL</span>
-              </motion.h2>
-              <motion.p 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="mt-4 text-white/70 max-w-sm"
-              >
-                Üye ol, özel avantajlardan yararlan.
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="mt-8 space-y-3"
-              >
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
-                      <Check className="w-3 h-3 text-green-400" />
-                    </div>
-                    <span className="text-sm text-white/80">{benefit}</span>
-                  </div>
-                ))}
-              </motion.div>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="space-y-4"
-            >
-              {features.map((feature, index) => (
-                <div key={index} className="flex items-center gap-3 text-white/80">
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                    <feature.icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm">{feature.text}</span>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
-
-        <div className="flex-1 flex items-center justify-center p-6 lg:p-12 overflow-y-auto">
+      <main className="pt-20 min-h-screen flex items-center justify-center p-6 overflow-y-auto">
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -369,7 +288,6 @@ export default function Register() {
               <span className="underline">Gizlilik Politikası</span>'nı kabul etmiş olursunuz.
             </p>
           </motion.div>
-        </div>
       </main>
     </div>
   );
