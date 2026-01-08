@@ -153,6 +153,10 @@ export function Header() {
                         <DropdownMenuItem disabled className="text-muted-foreground">
                           {user.firstName || user.email}
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/hesabim')}>
+                          <User className="w-4 h-4 mr-2" />
+                          Hesabım
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => { logout(); navigate('/'); }}>
                           <LogOut className="w-4 h-4 mr-2" />
                           Çıkış Yap

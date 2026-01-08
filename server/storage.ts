@@ -301,6 +301,10 @@ export class DbStorage implements IStorage {
     return db.select().from(orders).orderBy(desc(orders.createdAt));
   }
 
+  async getOrdersByEmail(email: string): Promise<Order[]> {
+    return db.select().from(orders).where(eq(orders.customerEmail, email)).orderBy(desc(orders.createdAt));
+  }
+
   async getOrder(id: string): Promise<Order | undefined> {
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
     return order;

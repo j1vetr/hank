@@ -276,7 +276,62 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     }
 
-    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
+    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, createdAt: user.createdAt });
+  });
+
+  app.patch("/api/auth/profile", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const { firstName, lastName, phone } = req.body;
+      const updated = await storage.updateUser(req.session.userId, { firstName, lastName, phone });
+      if (!updated) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      res.json({ id: updated.id, email: updated.email, firstName: updated.firstName, lastName: updated.lastName, phone: updated.phone });
+    } catch (error) {
+      res.status(500).json({ error: "Profil güncellenemedi" });
+    }
+  });
+
+  app.get("/api/orders/my", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+      const orders = await storage.getOrdersByEmail(user.email);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Siparişler yüklenemedi" });
+    }
+  });
+
+  app.get("/api/orders/my/:id", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Sipariş bulunamadı" });
+      }
+      const user = await storage.getUser(req.session.userId);
+      if (!user || order.customerEmail !== user.email) {
+        return res.status(403).json({ error: "Bu siparişe erişim yetkiniz yok" });
+      }
+      const items = await storage.getOrderItems(order.id);
+      res.json({ ...order, items });
+    } catch (error) {
+      res.status(500).json({ error: "Sipariş yüklenemedi" });
+    }
   });
 
   // Categories API

@@ -13,6 +13,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
+import Profile from "@/pages/Profile";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/kayit" component={Register} />
       <Route path="/sepet" component={Cart} />
       <Route path="/odeme" component={Checkout} />
+      <Route path="/hesabim" component={Profile} />
       <Route path="/toov-admin/login" component={AdminLogin} />
       <Route path="/toov-admin" component={AdminDashboard} />
       <Route component={NotFound} />
