@@ -242,15 +242,15 @@
 
 .snake-border {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
 }
 
 .snake-border::before {
   content: '';
   position: absolute;
-  inset: -1px;
-  border-radius: 6px;
+  inset: -3px;
+  border-radius: 8px;
   background: conic-gradient(
     from var(--border-angle),
     transparent 0%,
@@ -271,7 +271,7 @@
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  padding: 1px;
+  padding: 3px;
   animation: rotate-border 10s linear infinite;
   pointer-events: none;
 }
