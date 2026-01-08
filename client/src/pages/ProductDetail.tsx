@@ -47,17 +47,25 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    if (uniqueSizes.length > 0 && !selectedSize) {
+      toast({ title: 'Uyarı', description: 'Lütfen bir beden seçiniz', variant: 'destructive' });
+      return;
+    }
     setIsAdding(true);
     try {
-      const variant = product.variants?.find(v => v.size === selectedSize);
-      await addToCart(product.id, variant?.id);
-      toast({ title: 'Sepete Eklendi', description: product.name });
+      const variant = selectedSize ? product.variants?.find(v => v.size === selectedSize) : undefined;
+      await addToCart(product.id, variant?.id, quantity);
+      toast({ title: 'Sepete Eklendi', description: `${quantity}x ${product.name}` });
     } catch (error) {
       toast({ title: 'Hata', description: 'Sepete eklenemedi', variant: 'destructive' });
     } finally {
       setIsAdding(false);
     }
   };
+
+  const uniqueSizes = product?.variants
+    ? [...new Set(product.variants.map(v => v.size).filter((s): s is string => Boolean(s)))]
+    : [];
 
   if (productLoading) {
     return (
@@ -93,8 +101,6 @@ export default function ProductDetail() {
     : ['https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop'];
 
   const price = parseFloat(product.basePrice || '0');
-  const sizes = product.variants?.map(v => v.size).filter(Boolean) as string[] || [];
-  const uniqueSizes = [...new Set(sizes)];
   const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, 4);
 
   return (
