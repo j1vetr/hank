@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { CartProvider } from "@/components/CartProvider";
 import { CartModalProvider } from "@/hooks/useCartModal";
 import Home from "@/pages/Home";
+import Category from "@/pages/Category";
 import ProductDetail from "@/pages/ProductDetail";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -20,6 +21,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/kategori/:slug" component={Category} />
       <Route path="/urun/:slug" component={ProductDetail} />
       <Route path="/giris" component={Login} />
       <Route path="/kayit" component={Register} />

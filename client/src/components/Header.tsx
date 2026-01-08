@@ -4,6 +4,8 @@ import { ShoppingBag, Search, Menu, X, User, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
+import { useCategories } from '@/hooks/useProducts';
+import { SearchOverlay } from '@/components/SearchOverlay';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,19 +13,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const categories = [
-  { href: '/kategori/esofman', label: 'Eşofman' },
-  { href: '/kategori/salvar-pantolon', label: 'Şalvar & Pantolon' },
-  { href: '/kategori/sifir-kol-atlet', label: 'Sıfır Kol & Atlet' },
-  { href: '/kategori/sort', label: 'Şort' },
-  { href: '/kategori/tshirt', label: 'T-Shirt' },
-];
-
 export function Header() {
   const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
+  const { data: apiCategories = [] } = useCategories();
+  
+  const categories = apiCategories.map(cat => ({
+    href: `/kategori/${cat.slug}`,
+    label: cat.name,
+  }));
 
   return (
     <>
@@ -67,6 +68,7 @@ export function Header() {
               <button
                 data-testid="button-search"
                 className="p-2.5 hover:bg-accent rounded-full transition-colors"
+                onClick={() => setSearchOpen(true)}
               >
                 <Search className="w-5 h-5" />
               </button>
@@ -178,6 +180,8 @@ export function Header() {
           </>
         )}
       </AnimatePresence>
+
+      <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }
