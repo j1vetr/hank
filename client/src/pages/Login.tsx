@@ -147,9 +147,9 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-sm font-medium">Şifre</Label>
-                  <button type="button" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href="/sifremi-unuttum" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Şifremi Unuttum
-                  </button>
+                  </Link>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

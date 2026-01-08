@@ -11,6 +11,7 @@ import Category from "@/pages/Category";
 import ProductDetail from "@/pages/ProductDetail";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import ForgotPassword from "@/pages/ForgotPassword";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import Profile from "@/pages/Profile";
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/urun/:slug" component={ProductDetail} />
       <Route path="/giris" component={Login} />
       <Route path="/kayit" component={Register} />
+      <Route path="/sifremi-unuttum" component={ForgotPassword} />
       <Route path="/sepet" component={Cart} />
       <Route path="/odeme" component={Checkout} />
       <Route path="/hesabim" component={Profile} />

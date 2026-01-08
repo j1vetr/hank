@@ -266,6 +266,31 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.post("/api/auth/forgot-password", async (req: Request, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "E-posta adresi gerekli" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      // For security, always return success even if email doesn't exist
+      // In a production app, you would send an email here with a reset link
+      if (user) {
+        // TODO: Implement actual email sending with reset token
+        // For now, just log the request
+        console.log(`Password reset requested for: ${email}`);
+      }
+      
+      res.json({ success: true, message: "Şifre sıfırlama bağlantısı gönderildi" });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: "İşlem başarısız" });
+    }
+  });
+
   app.get("/api/auth/me", async (req: Request, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
