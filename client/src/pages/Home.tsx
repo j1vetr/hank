@@ -46,11 +46,9 @@ export default function Home() {
 
   const categoriesRef = useRef(null);
   const productsRef = useRef(null);
-  const brandRef = useRef(null);
   
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
   const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
-  const brandInView = useInView(brandRef, { once: true, amount: 0.3 });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -267,52 +265,6 @@ export default function Home() {
               <p className="text-muted-foreground">Henüz ürün eklenmemiş.</p>
             </div>
           )}
-        </div>
-      </section>
-
-      <section ref={brandRef} className="py-32 lg:py-40 px-6 relative overflow-hidden" data-testid="section-brand">
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-800" />
-        <div className="absolute inset-0 noise-overlay opacity-50" />
-        
-        <div className="absolute top-1/4 -left-32 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-white/3 rounded-full blur-3xl" />
-        
-        <div className="max-w-[1000px] mx-auto text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={brandInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.8 }}
-          >
-            <span className="inline-block text-sm tracking-[0.4em] uppercase text-white/50 mb-8">
-              HANK Felsefesi
-            </span>
-            
-            <h2 className="font-display text-5xl sm:text-6xl lg:text-8xl mb-8 tracking-wide leading-tight">
-              <span className="block">GÜÇ.</span>
-              <span className="block text-stroke-white">STİL.</span>
-              <span className="block">PERFORMANS.</span>
-            </h2>
-            
-            <p className="text-lg lg:text-xl text-white/60 max-w-2xl mx-auto mb-12 font-body leading-relaxed">
-              HANK, fitness tutkunları için tasarlanmış premium spor giyim markasıdır. 
-              Her ürünümüz, en zorlu antrenmanlarınızda size eşlik etmek için 
-              en kaliteli malzemelerle üretilmiştir.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/kategori/esofman">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  data-testid="button-about"
-                  className="group px-10 py-5 bg-white text-black font-bold tracking-wider uppercase flex items-center gap-3 mx-auto hover:shadow-lg hover:shadow-white/20 transition-all"
-                >
-                  Koleksiyonu Keşfet
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </motion.button>
-              </Link>
-            </div>
-          </motion.div>
         </div>
       </section>
 
