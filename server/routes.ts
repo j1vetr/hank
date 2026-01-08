@@ -232,8 +232,8 @@ export async function registerRoutes(
       const { categoryId, isFeatured, isNew, search } = req.query;
       const products = await storage.getProducts({
         categoryId: categoryId as string,
-        isFeatured: isFeatured === 'true',
-        isNew: isNew === 'true',
+        isFeatured: isFeatured !== undefined ? isFeatured === 'true' : undefined,
+        isNew: isNew !== undefined ? isNew === 'true' : undefined,
         search: search as string,
       });
       res.json(products);
