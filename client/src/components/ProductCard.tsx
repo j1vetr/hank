@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
+import { useCart } from '@/hooks/useCart';
+import { useToast } from '@/hooks/use-toast';
 
 interface Product {
   id: string;
@@ -20,6 +22,9 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
 
   const price = parseFloat(product.basePrice || '0') || 0;
   const mainImage = product.images && product.images.length > 0 
@@ -29,6 +34,20 @@ export function ProductCard({ product }: ProductCardProps) {
   const uniqueColors = product.variants 
     ? Array.from(new Set(product.variants.map(v => v.colorHex).filter(Boolean)))
     : [];
+
+  const handleQuickAdd = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsAdding(true);
+    try {
+      await addToCart(product.id);
+      toast({ title: 'Sepete Eklendi', description: product.name });
+    } catch (error) {
+      toast({ title: 'Hata', description: 'Sepete eklenemedi', variant: 'destructive' });
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <Link href={`/urun/${product.slug}`}>
@@ -97,9 +116,12 @@ export function ProductCard({ product }: ProductCardProps) {
               data-testid={`button-quick-add-${product.id}`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-white text-black py-2.5 text-xs font-bold tracking-wider uppercase hover:bg-white/90 transition-colors"
+              onClick={handleQuickAdd}
+              disabled={isAdding}
+              className="w-full bg-white text-black py-2.5 text-xs font-bold tracking-wider uppercase hover:bg-white/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Hızlı Ekle
+              {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isAdding ? 'Ekleniyor...' : 'Hızlı Ekle'}
             </motion.button>
           </motion.div>
         </div>

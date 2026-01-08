@@ -7,116 +7,13 @@ import heroImage1 from '@assets/hero-1.jpg';
 import heroImage2 from '@assets/hero-2.jpg';
 import { useProducts, useCategories } from '@/hooks/useProducts';
 
-const categories = [
-  {
-    id: 1,
-    name: 'Eşofman',
-    slug: 'esofman',
-    image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop',
-    count: 42,
-  },
-  {
-    id: 2,
-    name: 'Şalvar & Pantolon',
-    slug: 'salvar-pantolon',
-    image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop',
-    count: 28,
-  },
-  {
-    id: 3,
-    name: 'Sıfır Kol & Atlet',
-    slug: 'sifir-kol-atlet',
-    image: 'https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&h=800&fit=crop',
-    count: 36,
-  },
-  {
-    id: 4,
-    name: 'Şort',
-    slug: 'sort',
-    image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=800&fit=crop',
-    count: 24,
-  },
-  {
-    id: 5,
-    name: 'T-Shirt',
-    slug: 'tshirt',
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
-    count: 58,
-  },
-];
-
-const featuredProducts = [
-  {
-    id: 1,
-    name: 'Performance Pro Tişört - Siyah',
-    price: 599,
-    originalPrice: 799,
-    image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop',
-    category: 'Tişört',
-    isNew: true,
-    colors: ['#000000', '#1a1a1a', '#333333'],
-  },
-  {
-    id: 2,
-    name: 'Muscle Fit Sweatshirt - Gri',
-    price: 899,
-    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&h=800&fit=crop',
-    category: 'Sweatshirt',
-    colors: ['#4a4a4a', '#1a1a1a'],
-  },
-  {
-    id: 3,
-    name: 'Training Şort - Siyah',
-    price: 449,
-    image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=800&fit=crop',
-    category: 'Şort',
-    isNew: true,
-    colors: ['#000000', '#2d2d2d'],
-  },
-  {
-    id: 4,
-    name: 'Essential Tank Top - Beyaz',
-    price: 399,
-    originalPrice: 499,
-    image: 'https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&h=800&fit=crop',
-    category: 'Tank Top',
-    colors: ['#ffffff', '#000000'],
-  },
-  {
-    id: 5,
-    name: 'Compression Tişört - Navy',
-    price: 649,
-    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=600&h=800&fit=crop',
-    category: 'Tişört',
-    colors: ['#1a1a2e', '#000000'],
-  },
-  {
-    id: 6,
-    name: 'Premium Eşofman Altı - Antrasit',
-    price: 749,
-    image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop',
-    category: 'Eşofman Altı',
-    isNew: true,
-    colors: ['#2d2d2d', '#1a1a1a', '#000000'],
-  },
-  {
-    id: 7,
-    name: 'Pro Series Hoodie - Siyah',
-    price: 999,
-    originalPrice: 1299,
-    image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600&h=800&fit=crop',
-    category: 'Hoodie',
-    colors: ['#000000', '#1a1a1a'],
-  },
-  {
-    id: 8,
-    name: 'Gym Stringers - Gri',
-    price: 349,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
-    category: 'Stringer',
-    colors: ['#4a4a4a', '#000000', '#ffffff'],
-  },
-];
+const defaultCategoryImages: Record<string, string> = {
+  'esofman': 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop',
+  'salvar-pantolon': 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop',
+  'sifir-kol-atlet': 'https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&h=800&fit=crop',
+  'sort': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=800&fit=crop',
+  'tshirt': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
+};
 
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
@@ -124,8 +21,15 @@ export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const heroImages = [heroImage1, heroImage2];
 
-  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
-  const { data: featuredProducts = [], isLoading: productsLoading } = useProducts({ isFeatured: true });
+  const { data: apiCategories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: allProducts = [], isLoading: productsLoading } = useProducts({});
+
+  const categories = apiCategories.map(cat => ({
+    ...cat,
+    image: cat.image || defaultCategoryImages[cat.slug] || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
+  }));
+
+  const featuredProducts = allProducts.slice(0, 8);
 
   useEffect(() => {
     const interval = setInterval(() => {
