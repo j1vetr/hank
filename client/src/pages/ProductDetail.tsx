@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
+import { useCartModal } from '@/hooks/useCartModal';
 import { useToast } from '@/hooks/use-toast';
 import { ProductCard } from '@/components/ProductCard';
 
@@ -22,6 +23,7 @@ export default function ProductDetail() {
   const { data: product, isLoading: productLoading } = useProduct(params.slug || '');
   const { data: allProducts = [] } = useProducts({});
   const { addToCart } = useCart();
+  const { showModal } = useCartModal();
   const { toast } = useToast();
 
   const [selectedImage, setSelectedImage] = useState(0);
@@ -47,15 +49,29 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    if (uniqueSizes.length > 0 && !selectedSize) {
+    
+    const hasVariants = product.variants && product.variants.length > 0;
+    const hasSizes = hasVariants && product.variants!.some(v => v.size);
+    
+    if (hasSizes && !selectedSize) {
       toast({ title: 'Uyarı', description: 'Lütfen bir beden seçiniz', variant: 'destructive' });
       return;
     }
+    
     setIsAdding(true);
     try {
       const variant = selectedSize ? product.variants?.find(v => v.size === selectedSize) : undefined;
       await addToCart(product.id, variant?.id, quantity);
-      toast({ title: 'Sepete Eklendi', description: `${quantity}x ${product.name}` });
+      const mainImage = product.images?.length > 0 
+        ? product.images[0] 
+        : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
+      showModal({
+        name: product.name,
+        image: mainImage,
+        price: parseFloat(product.basePrice || '0') * quantity,
+        size: selectedSize || undefined,
+        quantity: quantity,
+      });
     } catch (error) {
       toast({ title: 'Hata', description: 'Sepete eklenemedi', variant: 'destructive' });
     } finally {
@@ -64,7 +80,7 @@ export default function ProductDetail() {
   };
 
   const uniqueSizes = product?.variants
-    ? [...new Set(product.variants.map(v => v.size).filter((s): s is string => Boolean(s)))]
+    ? Array.from(new Set(product.variants.map(v => v.size).filter((s): s is string => Boolean(s))))
     : [];
 
   if (productLoading) {

@@ -3,7 +3,7 @@ import { Heart, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { useCart } from '@/hooks/useCart';
-import { useToast } from '@/hooks/use-toast';
+import { useCartModal } from '@/hooks/useCartModal';
 
 interface Product {
   id: string;
@@ -24,7 +24,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const { addToCart } = useCart();
-  const { toast } = useToast();
+  const { showModal } = useCartModal();
 
   const price = parseFloat(product.basePrice || '0') || 0;
   const mainImage = product.images && product.images.length > 0 
@@ -41,9 +41,14 @@ export function ProductCard({ product }: ProductCardProps) {
     setIsAdding(true);
     try {
       await addToCart(product.id);
-      toast({ title: 'Sepete Eklendi', description: product.name });
+      showModal({
+        name: product.name,
+        image: mainImage,
+        price: price,
+        quantity: 1,
+      });
     } catch (error) {
-      toast({ title: 'Hata', description: 'Sepete eklenemedi', variant: 'destructive' });
+      console.error('Failed to add to cart:', error);
     } finally {
       setIsAdding(false);
     }
