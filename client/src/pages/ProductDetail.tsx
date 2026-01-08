@@ -13,8 +13,7 @@ import {
   Plus,
   Check,
   X,
-  ZoomIn,
-  RotateCw
+  ZoomIn
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 
@@ -26,7 +25,7 @@ const productData = {
   discount: 11,
   sku: '2002',
   category: 'Sıfır Kol & Atlet',
-  description: 'Hank sıfır kol tişörtleri, kapalı yaka tasarımı ve kolsuz dizaynıyla hem günlük giyimde hem de spor aktivitelerinde ideal bir seçenek sunar, modern tasarımıyla stil ve konforu bir arada sunar. Siyah ve beyaz renk seçenekleriyle tarzınızı tamamlar. Nefes alan kumaş, terletmeden konfor sağlar. Hank ile şık bir görünüm elde edin; sade detaylarla gerçek tarzınızı öne çıkarın.',
+  description: 'Hank sıfır kol tişörtleri, kapalı yaka tasarımı ve kolsuz dizaynıyla hem günlük giyimde hem de spor aktivitelerinde ideal bir seçenek sunar, modern tasarımıyla stil ve konforu bir arada sunar.',
   modelInfo: {
     name: 'IFBB PRO FAITHFUL CUTTER',
     height: '1.71m',
@@ -106,18 +105,12 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
   const [showSizeChart, setShowSizeChart] = useState(false);
-  const [activeTab, setActiveTab] = useState<'description' | 'size'>('description');
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [isAddedToCart, setIsAddedToCart] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isZooming, setIsZooming] = useState(false);
-  const [rotation, setRotation] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState(0);
 
   const imageRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
 
@@ -129,44 +122,18 @@ export default function ProductDetail() {
     setMousePosition({ x, y });
   };
 
-  const handleDragStart = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart(e.clientX);
-  };
-
-  const handleDragMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const diff = e.clientX - dragStart;
-    const newRotation = rotation + diff * 0.5;
-    setRotation(newRotation);
-    setDragStart(e.clientX);
-    
-    const imageIndex = Math.abs(Math.floor(newRotation / 60)) % productData.images.length;
-    setSelectedImage(imageIndex);
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-  };
-
   const handleAddToCart = () => {
     if (!selectedSize) return;
     setIsAddedToCart(true);
     setTimeout(() => setIsAddedToCart(false), 2000);
   };
 
-  useEffect(() => {
-    const handleMouseUp = () => setIsDragging(false);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => window.removeEventListener('mouseup', handleMouseUp);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-background" ref={containerRef}>
+    <div className="min-h-screen bg-background">
       <Header />
 
       <motion.div 
-        className="fixed top-0 left-0 h-1 bg-gradient-to-r from-white/50 via-white to-white/50 z-[100]"
+        className="fixed top-0 left-0 h-0.5 bg-foreground z-[100]"
         style={{ width: progressWidth }}
       />
 
@@ -176,34 +143,34 @@ export default function ProductDetail() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center"
+            className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-8"
             onClick={() => setLightboxOpen(false)}
           >
             <button
-              className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+              className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
               onClick={() => setLightboxOpen(false)}
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
             <motion.img
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               src={productData.images[selectedImage]}
               alt={productData.name}
-              className="max-w-[90vw] max-h-[90vh] object-contain"
+              className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
-              {productData.images.map((_, index) => (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              {productData.images.map((img, index) => (
                 <button
                   key={index}
                   onClick={(e) => { e.stopPropagation(); setSelectedImage(index); }}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                    index === selectedImage ? 'border-white scale-110' : 'border-white/20 opacity-50 hover:opacity-100'
+                  className={`w-12 h-12 rounded overflow-hidden border transition-all ${
+                    index === selectedImage ? 'border-white' : 'border-transparent opacity-50 hover:opacity-100'
                   }`}
                 >
-                  <img src={productData.images[index]} alt="" className="w-full h-full object-cover" />
+                  <img src={img} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -212,85 +179,58 @@ export default function ProductDetail() {
       </AnimatePresence>
 
       <main className="pt-24 pb-20">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8" data-testid="breadcrumb">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <nav className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
             <Link href="/">Ana Sayfa</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link href="/erkek">Erkek</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link href="/kategori/sifir-kol">{productData.category}</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-foreground">{productData.name}</span>
+            <ChevronRight className="w-3 h-3" />
+            <Link href="/kategori/sifir-kol-atlet">{productData.category}</Link>
+            <ChevronRight className="w-3 h-3" />
+            <span className="text-foreground truncate max-w-[200px]">{productData.name}</span>
           </nav>
 
-          <div className="grid lg:grid-cols-[1fr,480px] gap-12 lg:gap-16">
-            <div className="flex gap-4">
-              <div className="hidden md:flex flex-col gap-3 w-20">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
+            <div className="flex gap-3">
+              <div className="hidden sm:flex flex-col gap-2 w-16 shrink-0">
                 {productData.images.map((image, index) => (
-                  <motion.button
+                  <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                    className={`aspect-[3/4] rounded overflow-hidden transition-all ${
                       index === selectedImage 
-                        ? 'ring-2 ring-white ring-offset-2 ring-offset-background' 
-                        : 'opacity-40 hover:opacity-80'
+                        ? 'ring-1 ring-foreground' 
+                        : 'opacity-50 hover:opacity-100'
                     }`}
-                    data-testid={`button-thumbnail-${index}`}
                   >
-                    <img
-                      src={image}
-                      alt={`${productData.name} - ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {index === selectedImage && (
-                      <motion.div
-                        layoutId="thumbnail-indicator"
-                        className="absolute inset-0 border-2 border-white rounded-lg"
-                      />
-                    )}
-                  </motion.button>
+                    <img src={image} alt="" className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
 
-              <div className="flex-1 space-y-4">
-                <motion.div 
+              <div className="flex-1">
+                <div 
                   ref={imageRef}
-                  className="relative aspect-[3/4] bg-gradient-to-br from-card to-card/50 rounded-2xl overflow-hidden group cursor-zoom-in"
+                  className="relative aspect-[3/4] bg-card rounded overflow-hidden cursor-zoom-in"
                   onMouseEnter={() => setIsZooming(true)}
                   onMouseLeave={() => setIsZooming(false)}
                   onMouseMove={handleMouseMove}
-                  onMouseDown={handleDragStart}
-                  onMouseUp={handleDragEnd}
-                  onMouseMoveCapture={handleDragMove}
-                  onClick={() => !isDragging && setLightboxOpen(true)}
-                  style={{
-                    perspective: '1000px',
-                  }}
-                  animate={{
-                    rotateY: isDragging ? rotation * 0.1 : 0,
-                  }}
-                  transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+                  onClick={() => setLightboxOpen(true)}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent z-10 pointer-events-none" />
-                  
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={selectedImage}
-                      initial={{ opacity: 0, scale: 1.1 }}
+                      initial={{ opacity: 0 }}
                       animate={{ 
-                        opacity: 1, 
-                        scale: isZooming ? 1.5 : 1,
-                        x: isZooming ? (50 - mousePosition.x) * 2 : 0,
-                        y: isZooming ? (50 - mousePosition.y) * 2 : 0,
+                        opacity: 1,
+                        scale: isZooming ? 1.8 : 1,
+                        x: isZooming ? (50 - mousePosition.x) * 3 : 0,
+                        y: isZooming ? (50 - mousePosition.y) * 3 : 0,
                       }}
-                      exit={{ opacity: 0, scale: 0.95 }}
+                      exit={{ opacity: 0 }}
                       transition={{ 
-                        opacity: { duration: 0.3 },
-                        scale: { duration: 0.4, ease: 'easeOut' },
-                        x: { duration: 0.1 },
-                        y: { duration: 0.1 },
+                        opacity: { duration: 0.2 },
+                        scale: { duration: 0.3 },
+                        x: { duration: 0 },
+                        y: { duration: 0 },
                       }}
                       className="w-full h-full"
                     >
@@ -304,52 +244,23 @@ export default function ProductDetail() {
                   </AnimatePresence>
 
                   {productData.discount > 0 && (
-                    <motion.span 
-                      initial={{ x: -100 }}
-                      animate={{ x: 0 }}
-                      className="absolute top-4 left-4 z-20"
-                    >
-                      <span className="relative">
-                        <span className="absolute inset-0 bg-red-500 blur-lg opacity-50" />
-                        <span className="relative bg-red-600 text-white text-sm font-bold px-4 py-2 tracking-wider">
-                          -%{productData.discount}
-                        </span>
-                      </span>
-                    </motion.span>
+                    <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1">
+                      -%{productData.discount}
+                    </span>
                   )}
 
-                  <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:bg-black/60 transition-colors"
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white/80 hover:text-white hover:bg-black/60 transition-colors"
-                    >
-                      <RotateCw className="w-4 h-4" />
-                    </motion.button>
-                  </div>
+                  <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-background/80 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                </div>
 
-                  <div className="absolute bottom-4 left-4 right-4 z-20">
-                    <div className="bg-black/40 backdrop-blur-md rounded-full px-4 py-2 flex items-center justify-center gap-2 text-white/60 text-xs">
-                      <RotateCw className="w-3 h-3" />
-                      <span>Sürükleyerek 360° görüntüle</span>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <div className="flex md:hidden gap-2 overflow-x-auto pb-2">
+                <div className="flex sm:hidden gap-2 mt-3 overflow-x-auto pb-2">
                   {productData.images.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
-                      className={`shrink-0 w-16 aspect-[3/4] rounded-lg overflow-hidden ${
-                        index === selectedImage ? 'ring-2 ring-white' : 'opacity-50'
+                      className={`shrink-0 w-14 aspect-[3/4] rounded overflow-hidden ${
+                        index === selectedImage ? 'ring-1 ring-foreground' : 'opacity-50'
                       }`}
                     >
                       <img src={image} alt="" className="w-full h-full object-cover" />
@@ -359,446 +270,255 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            <div className="lg:sticky lg:top-28 lg:self-start">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative"
-              >
-                <div className="absolute -inset-4 bg-gradient-to-br from-white/5 to-white/0 rounded-3xl blur-xl" />
-                
-                <div className="relative bg-card/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 space-y-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground uppercase tracking-[0.2em] mb-3" data-testid="text-category">
-                      {productData.category}
-                    </p>
-                    <h1 className="font-display text-3xl tracking-wide mb-4" data-testid="text-product-name">
-                      {productData.name}
-                    </h1>
-                    
-                    <div className="flex items-baseline gap-4">
-                      <motion.span 
-                        className="text-3xl font-bold"
-                        data-testid="text-price"
-                        animate={{ 
-                          textShadow: ['0 0 20px rgba(255,255,255,0)', '0 0 20px rgba(255,255,255,0.3)', '0 0 20px rgba(255,255,255,0)']
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        {productData.price.toLocaleString('tr-TR')} ₺
-                      </motion.span>
-                      {productData.originalPrice && (
-                        <span className="text-lg text-muted-foreground line-through" data-testid="text-original-price">
-                          {productData.originalPrice.toLocaleString('tr-TR')} ₺
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            <div className="lg:sticky lg:top-24 lg:self-start space-y-6">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+                  {productData.category}
+                </p>
+                <h1 className="font-display text-2xl sm:text-3xl tracking-wide mb-3">
+                  {productData.name}
+                </h1>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-2xl font-bold">
+                    {productData.price.toLocaleString('tr-TR')} ₺
+                  </span>
+                  {productData.originalPrice && (
+                    <span className="text-base text-muted-foreground line-through">
+                      {productData.originalPrice.toLocaleString('tr-TR')} ₺
+                    </span>
+                  )}
+                </div>
+              </div>
 
-                  <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {productData.description}
+              </p>
 
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-muted-foreground">Renk: <span className="text-foreground">{selectedColor.name}</span></span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {productData.colors.map((color) => (
-                        <motion.button
-                          key={color.slug}
-                          onClick={() => setSelectedColor(color)}
-                          whileHover={{ scale: 1.15 }}
-                          whileTap={{ scale: 0.95 }}
-                          className={`relative w-12 h-12 rounded-full transition-all flex items-center justify-center ${
-                            selectedColor.slug === color.slug
-                              ? 'ring-2 ring-white ring-offset-4 ring-offset-card'
-                              : 'ring-1 ring-white/20 hover:ring-white/50'
-                          }`}
-                          style={{ backgroundColor: color.value }}
-                          data-testid={`button-color-${color.slug}`}
-                        >
-                          <AnimatePresence>
-                            {selectedColor.slug === color.slug && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0 }}
-                              >
-                                <Check className={`w-5 h-5 ${color.value === '#ffffff' ? 'text-black' : 'text-white'}`} />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-muted-foreground">Beden: <span className="text-foreground">{selectedSize || 'Seçiniz'}</span></span>
+              <div className="space-y-5 pt-2">
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+                    Renk: {selectedColor.name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {productData.colors.map((color) => (
                       <button
-                        onClick={() => setShowSizeChart(!showSizeChart)}
-                        className="text-sm text-white/60 hover:text-white transition-colors underline underline-offset-4"
-                        data-testid="button-size-guide"
+                        key={color.slug}
+                        onClick={() => setSelectedColor(color)}
+                        className={`w-8 h-8 rounded-full transition-all flex items-center justify-center ${
+                          selectedColor.slug === color.slug
+                            ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background'
+                            : 'ring-1 ring-border hover:ring-muted-foreground'
+                        }`}
+                        style={{ backgroundColor: color.value }}
                       >
-                        Beden Tablosu
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {productData.sizes.map((size) => (
-                        <motion.button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          animate={selectedSize === size ? { 
-                            scale: [1, 1.05, 1],
-                          } : {}}
-                          transition={{ duration: 0.3 }}
-                          className={`relative py-3.5 text-sm font-semibold rounded-lg overflow-hidden transition-all ${
-                            selectedSize === size
-                              ? 'bg-white text-black'
-                              : 'bg-white/5 border border-white/10 hover:border-white/30 hover:bg-white/10'
-                          }`}
-                          data-testid={`button-size-${size}`}
-                        >
-                          {selectedSize === size && (
-                            <motion.div
-                              layoutId="size-bg"
-                              className="absolute inset-0 bg-white"
-                              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            />
-                          )}
-                          <span className="relative z-10">{size}</span>
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <AnimatePresence>
-                    {showSizeChart && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-5 space-y-4">
-                          <h3 className="font-display text-lg tracking-wide">BEDEN TABLOSU</h3>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b border-white/10">
-                                  <th className="text-left py-2 font-medium text-muted-foreground">Beden</th>
-                                  <th className="text-left py-2 font-medium text-muted-foreground">Boy</th>
-                                  <th className="text-left py-2 font-medium text-muted-foreground">Göğüs</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {productData.sizeChart.map((row) => (
-                                  <tr key={row.size} className="border-b border-white/5">
-                                    <td className="py-2 font-medium">{row.size}</td>
-                                    <td className="py-2 text-muted-foreground">{row.length}</td>
-                                    <td className="py-2 text-muted-foreground">{row.chest}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            <p><strong className="text-foreground">Model:</strong> {productData.modelInfo.name}</p>
-                            <p>Boy: {productData.modelInfo.height} | Kilo: {productData.modelInfo.weight} | Beden: {productData.modelInfo.size}</p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-12 h-12 flex items-center justify-center hover:bg-white/10 transition-colors"
-                        data-testid="button-quantity-decrease"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </motion.button>
-                      <motion.span 
-                        key={quantity}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="w-12 text-center font-semibold"
-                        data-testid="text-quantity"
-                      >
-                        {quantity}
-                      </motion.span>
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="w-12 h-12 flex items-center justify-center hover:bg-white/10 transition-colors"
-                        data-testid="button-quantity-increase"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                    <span className="text-xs text-muted-foreground">SKU: {productData.sku}</span>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleAddToCart}
-                      disabled={!selectedSize}
-                      className={`relative flex-1 py-4 rounded-xl font-bold tracking-wide uppercase overflow-hidden transition-all ${
-                        selectedSize 
-                          ? 'bg-white text-black hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]' 
-                          : 'bg-white/20 text-white/50 cursor-not-allowed'
-                      }`}
-                      data-testid="button-add-to-cart"
-                    >
-                      <AnimatePresence mode="wait">
-                        {isAddedToCart ? (
-                          <motion.span
-                            key="added"
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: -20, opacity: 0 }}
-                            className="flex items-center justify-center gap-2"
-                          >
-                            <Check className="w-5 h-5" />
-                            Sepete Eklendi
-                          </motion.span>
-                        ) : (
-                          <motion.span
-                            key="add"
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: -20, opacity: 0 }}
-                          >
-                            Sepete Ekle
-                          </motion.span>
+                        {selectedColor.slug === color.slug && (
+                          <Check className={`w-3 h-3 ${color.value === '#ffffff' ? 'text-black' : 'text-white'}`} />
                         )}
-                      </AnimatePresence>
-                      {isAddedToCart && (
-                        <motion.div
-                          initial={{ scale: 0, opacity: 1 }}
-                          animate={{ scale: 3, opacity: 0 }}
-                          className="absolute inset-0 bg-green-400 rounded-xl"
-                        />
-                      )}
-                    </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setIsLiked(!isLiked)}
-                      className={`w-14 h-14 flex items-center justify-center rounded-xl border transition-all ${
-                        isLiked 
-                          ? 'bg-red-500 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]' 
-                          : 'border-white/10 hover:border-white/30 bg-white/5'
-                      }`}
-                      data-testid="button-wishlist"
-                    >
-                      <motion.div
-                        animate={isLiked ? { scale: [1, 1.3, 1] } : {}}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                      </motion.div>
-                    </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-14 h-14 flex items-center justify-center rounded-xl border border-white/10 hover:border-white/30 bg-white/5 transition-all"
-                      data-testid="button-share"
-                    >
-                      <Share2 className="w-5 h-5" />
-                    </motion.button>
-                  </div>
-
-                  <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { icon: Truck, title: 'Ücretsiz Kargo', desc: '500₺ üzeri' },
-                      { icon: RotateCcw, title: 'Kolay İade', desc: '14 gün' },
-                      { icon: Shield, title: 'Güvenli', desc: 'SSL' },
-                    ].map((item, index) => (
-                      <motion.div
-                        key={index}
-                        whileHover={{ y: -2 }}
-                        className="text-center p-3 rounded-xl bg-white/5 border border-white/5"
-                      >
-                        <item.icon className="w-5 h-5 mx-auto mb-2 text-white/60" />
-                        <p className="text-xs font-medium">{item.title}</p>
-                        <p className="text-[10px] text-muted-foreground">{item.desc}</p>
-                      </motion.div>
+                      </button>
                     ))}
                   </div>
                 </div>
-              </motion.div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Beden: {selectedSize || 'Seçiniz'}
+                    </span>
+                    <button
+                      onClick={() => setShowSizeChart(!showSizeChart)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                    >
+                      Beden Tablosu
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {productData.sizes.map((size) => (
+                      <motion.button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        whileTap={{ scale: 0.95 }}
+                        className={`py-2.5 text-sm font-medium rounded transition-all ${
+                          selectedSize === size
+                            ? 'bg-foreground text-background'
+                            : 'bg-card border border-border hover:border-foreground'
+                        }`}
+                      >
+                        {size}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {showSizeChart && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="bg-card border border-border rounded p-4 text-sm">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-border text-left">
+                              <th className="pb-2 font-medium text-muted-foreground">Beden</th>
+                              <th className="pb-2 font-medium text-muted-foreground">Boy</th>
+                              <th className="pb-2 font-medium text-muted-foreground">Göğüs</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {productData.sizeChart.map((row) => (
+                              <tr key={row.size} className="border-b border-border/50 last:border-0">
+                                <td className="py-2 font-medium">{row.size}</td>
+                                <td className="py-2 text-muted-foreground">{row.length}</td>
+                                <td className="py-2 text-muted-foreground">{row.chest}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p className="text-xs text-muted-foreground mt-3">
+                          Model: {productData.modelInfo.name} | Boy: {productData.modelInfo.height} | Beden: {productData.modelInfo.size}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border border-border rounded">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-10 h-10 flex items-center justify-center hover:bg-accent transition-colors"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-10 text-center font-medium text-sm">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-10 h-10 flex items-center justify-center hover:bg-accent transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">SKU: {productData.sku}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleAddToCart}
+                  disabled={!selectedSize}
+                  className={`flex-1 py-3.5 rounded font-semibold text-sm tracking-wide uppercase transition-all ${
+                    selectedSize 
+                      ? 'bg-foreground text-background hover:opacity-90' 
+                      : 'bg-muted text-muted-foreground cursor-not-allowed'
+                  }`}
+                >
+                  <AnimatePresence mode="wait">
+                    {isAddedToCart ? (
+                      <motion.span
+                        key="added"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center justify-center gap-2"
+                      >
+                        <Check className="w-4 h-4" /> Eklendi
+                      </motion.span>
+                    ) : (
+                      <motion.span key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        Sepete Ekle
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+                
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsLiked(!isLiked)}
+                  className={`w-12 h-12 flex items-center justify-center rounded border transition-all ${
+                    isLiked ? 'bg-red-600 border-red-600 text-white' : 'border-border hover:border-foreground'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                </motion.button>
+                
+                <button className="w-12 h-12 flex items-center justify-center rounded border border-border hover:border-foreground transition-all">
+                  <Share2 className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border">
+                <div className="text-center">
+                  <Truck className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
+                  <p className="text-xs font-medium">Ücretsiz Kargo</p>
+                  <p className="text-[10px] text-muted-foreground">500₺ üzeri</p>
+                </div>
+                <div className="text-center">
+                  <RotateCcw className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
+                  <p className="text-xs font-medium">Kolay İade</p>
+                  <p className="text-[10px] text-muted-foreground">14 gün</p>
+                </div>
+                <div className="text-center">
+                  <Shield className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
+                  <p className="text-xs font-medium">Güvenli Ödeme</p>
+                  <p className="text-[10px] text-muted-foreground">SSL korumalı</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-24"
-          >
-            <div className="bg-card/30 backdrop-blur-sm border border-white/5 rounded-2xl p-8">
-              <div className="flex gap-8 mb-8">
-                {['description', 'size'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab as 'description' | 'size')}
-                    className={`relative pb-4 text-sm font-medium uppercase tracking-wider transition-colors ${
-                      activeTab === tab ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                    data-testid={`tab-${tab}`}
-                  >
-                    {tab === 'description' ? 'Açıklama' : 'Beden Bilgisi'}
-                    {activeTab === tab && (
-                      <motion.div
-                        layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-white/50 via-white to-white/50"
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <AnimatePresence mode="wait">
-                {activeTab === 'description' ? (
-                  <motion.div
-                    key="description"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="max-w-3xl"
-                  >
-                    <p className="text-muted-foreground leading-relaxed font-body mb-8">
-                      {productData.description}
-                    </p>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      {productData.features.map((feature, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center gap-3 p-4 rounded-xl bg-white/5"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                            <Check className="w-4 h-4" />
-                          </div>
-                          <span className="text-sm">{feature}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="size"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="max-w-xl"
-                  >
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-white/10">
-                          <th className="text-left py-3 font-medium text-muted-foreground">Beden</th>
-                          <th className="text-left py-3 font-medium text-muted-foreground">Boy</th>
-                          <th className="text-left py-3 font-medium text-muted-foreground">Göğüs</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {productData.sizeChart.map((row, index) => (
-                          <motion.tr 
-                            key={row.size} 
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="border-b border-white/5"
-                          >
-                            <td className="py-4 font-medium">{row.size}</td>
-                            <td className="py-4 text-muted-foreground">{row.length}</td>
-                            <td className="py-4 text-muted-foreground">{row.chest}</td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div className="mt-6 p-4 rounded-xl bg-white/5">
-                      <p className="text-sm text-muted-foreground">
-                        <strong className="text-foreground">Model:</strong> {productData.modelInfo.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Boy: {productData.modelInfo.height} | Kilo: {productData.modelInfo.weight} | Beden: {productData.modelInfo.size}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-
-          <motion.section 
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-24"
-            data-testid="section-related"
-          >
-            <h2 className="font-display text-3xl tracking-wide mb-10">BENZERİ ÜRÜNLER</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6">
-              {relatedProducts.map((product, index) => (
-                <motion.div
-                  key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <ProductCard product={product} />
-                </motion.div>
+          <div className="mt-16 pt-10 border-t border-border">
+            <h3 className="font-display text-xl tracking-wide mb-4">ÜRÜN ÖZELLİKLERİ</h3>
+            <div className="grid sm:grid-cols-2 gap-3 max-w-2xl">
+              {productData.features.map((feature, index) => (
+                <div key={index} className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Check className="w-4 h-4 text-foreground shrink-0" />
+                  {feature}
+                </div>
               ))}
             </div>
-          </motion.section>
+          </div>
+
+          <section className="mt-20" data-testid="section-related">
+            <h2 className="font-display text-2xl tracking-wide mb-8">BENZERİ ÜRÜNLER</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {relatedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </section>
         </div>
       </main>
 
-      <footer className="bg-card/50 backdrop-blur-sm border-t border-white/5 py-16 px-6">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
+      <footer className="bg-card border-t border-border py-12 px-6">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 lg:col-span-1">
               <img
                 src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
                 alt="HANK"
-                className="h-8 invert mb-6"
+                className="h-7 invert mb-4"
               />
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                Premium fitness ve bodybuilding giyim markası. 
-                Güç, performans ve stil bir arada.
+              <p className="text-muted-foreground text-sm">
+                Premium fitness ve bodybuilding giyim.
               </p>
             </div>
             
             <div>
-              <h4 className="font-display text-lg tracking-wide mb-4">ALIŞVERİŞ</h4>
-              <ul className="space-y-3 text-sm text-muted-foreground">
+              <h4 className="font-display text-base tracking-wide mb-3">ALIŞVERİŞ</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/kategori/esofman">Eşofman</Link></li>
                 <li><Link href="/kategori/salvar-pantolon">Şalvar & Pantolon</Link></li>
                 <li><Link href="/kategori/sifir-kol-atlet">Sıfır Kol & Atlet</Link></li>
-                <li><Link href="/kategori/sort">Şort</Link></li>
                 <li><Link href="/kategori/tshirt">T-Shirt</Link></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-display text-lg tracking-wide mb-4">DESTEK</h4>
-              <ul className="space-y-3 text-sm text-muted-foreground">
+              <h4 className="font-display text-base tracking-wide mb-3">DESTEK</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/iletisim">İletişim</Link></li>
                 <li><Link href="/sss">S.S.S.</Link></li>
                 <li><Link href="/kargo">Kargo Bilgileri</Link></li>
@@ -807,31 +527,17 @@ export default function ProductDetail() {
             </div>
             
             <div>
-              <h4 className="font-display text-lg tracking-wide mb-4">KURUMSAL</h4>
-              <ul className="space-y-3 text-sm text-muted-foreground">
+              <h4 className="font-display text-base tracking-wide mb-3">KURUMSAL</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link href="/hakkimizda">Hakkımızda</Link></li>
-                <li><Link href="/kariyer">Kariyer</Link></li>
                 <li><Link href="/gizlilik">Gizlilik Politikası</Link></li>
                 <li><Link href="/kvkk">KVKK</Link></li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              © 2024 HANK. Tüm hakları saklıdır.
-            </p>
-            <div className="flex items-center gap-6">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
-                Instagram
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
-                Facebook
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
-                Twitter
-              </a>
-            </div>
+          <div className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
+            © 2024 HANK. Tüm hakları saklıdır.
           </div>
         </div>
       </footer>
