@@ -5,14 +5,19 @@ import { Link } from 'wouter';
 import { useState, useEffect } from 'react';
 import heroImage1 from '@assets/hero-1.jpg';
 import heroImage2 from '@assets/hero-2.jpg';
+import categoryTshirt from '@assets/category-tshirt.jpg';
+import categorySort from '@assets/category-sort.jpg';
+import categoryAtlet from '@assets/category-atlet.jpg';
+import categorySalvar from '@assets/category-salvar.jpg';
+import categoryEsofman from '@assets/category-esofman.jpg';
 import { useProducts, useCategories } from '@/hooks/useProducts';
 
 const defaultCategoryImages: Record<string, string> = {
-  'esofman': 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=600&h=800&fit=crop',
-  'salvar-pantolon': 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop',
-  'sifir-kol-atlet': 'https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&h=800&fit=crop',
-  'sort': 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=600&h=800&fit=crop',
-  'tshirt': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
+  'esofman': categoryEsofman,
+  'salvar-pantolon': categorySalvar,
+  'sifir-kol-atlet': categoryAtlet,
+  'sort': categorySort,
+  'tshirt': categoryTshirt,
 };
 
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
