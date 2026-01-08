@@ -37,7 +37,7 @@ export function Header() {
             <div className="relative h-9 flex items-center">
               <div className="absolute inset-0 flex items-center animate-marquee-slow whitespace-nowrap">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-12 mx-8">
+                  <div key={i} className="flex items-center gap-16 mx-12">
                     <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                       <span className="text-white font-medium">WORLDWIDE SHIPPING</span>
@@ -45,10 +45,6 @@ export function Header() {
                     <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       <span className="text-emerald-400 font-medium">2000₺ VE ÜZERİ ÜCRETSİZ KARGO</span>
-                    </span>
-                    <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/60 animate-pulse" />
-                      <span className="text-white/80">KOLAY İADE</span>
                     </span>
                   </div>
                 ))}
