@@ -7,6 +7,7 @@ export interface Product {
   description?: string;
   categoryId?: string;
   basePrice: string;
+  sku?: string;
   images: string[];
   isActive: boolean;
   isFeatured: boolean;
