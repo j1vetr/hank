@@ -26,97 +26,163 @@ export function Header() {
     label: cat.name,
   }));
 
+  const leftCategories = categories.slice(0, Math.ceil(categories.length / 2));
+  const rightCategories = categories.slice(Math.ceil(categories.length / 2));
+
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border/50">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <div className="flex items-center h-20">
-            <button
-              data-testid="button-mobile-menu"
-              className="lg:hidden p-2 -ml-2 mr-4"
-              onClick={() => setMobileMenuOpen(true)}
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-
-            <Link href="/" data-testid="link-logo" className="shrink-0">
-              <img
-                src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
-                alt="HANK"
-                className="h-10 invert"
-                data-testid="img-logo"
-              />
-            </Link>
-
-            <nav className="hidden lg:flex items-center justify-center flex-1 gap-8 px-12">
-              {categories.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                >
-                  <span className={`text-[13px] tracking-wide uppercase font-medium transition-colors hover:text-foreground whitespace-nowrap ${
-                    location === link.href ? 'text-foreground' : 'text-muted-foreground'
-                  }`}>
-                    {link.label}
-                  </span>
-                </Link>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                data-testid="button-search"
-                className="p-2.5 hover:bg-accent rounded-full transition-colors"
-                onClick={() => setSearchOpen(true)}
-              >
-                <Search className="w-5 h-5" />
-              </button>
-              
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      data-testid="button-account"
-                      className="hidden sm:flex p-2.5 hover:bg-accent rounded-full transition-colors"
-                    >
-                      <User className="w-5 h-5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem disabled className="text-muted-foreground">
-                      {user.firstName || user.email}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { logout(); navigate('/'); }}>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Çıkış Yap
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Link href="/giris">
-                  <button
-                    data-testid="button-account"
-                    className="hidden sm:flex p-2.5 hover:bg-accent rounded-full transition-colors"
-                  >
-                    <User className="w-5 h-5" />
-                  </button>
-                </Link>
-              )}
-
-              <Link href="/sepet">
+      <header className="fixed top-0 left-0 right-0 z-50">
+        <div className="bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-xl border-b border-white/5">
+          <div className="hidden lg:block border-b border-white/5">
+            <div className="max-w-[1400px] mx-auto px-6">
+              <div className="flex items-center justify-between h-10 text-xs text-muted-foreground">
+                <span className="tracking-wider">PREMIUM FITNESS & BODYBUILDING WEAR</span>
+                <div className="flex items-center gap-6">
+                  <span>Ücretsiz Kargo: 2000₺ üzeri</span>
+                  <span>|</span>
+                  <span>Kolay İade</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="max-w-[1400px] mx-auto px-6">
+            <div className="flex items-center justify-between h-20 lg:h-24">
+              <div className="flex items-center gap-3 lg:hidden">
                 <button
-                  data-testid="button-cart"
-                  className="p-2.5 hover:bg-accent rounded-full transition-colors relative"
+                  data-testid="button-mobile-menu"
+                  className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors"
+                  onClick={() => setMobileMenuOpen(true)}
                 >
-                  <ShoppingBag className="w-5 h-5" />
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-foreground text-background text-xs font-bold flex items-center justify-center rounded-full">
-                      {totalItems}
-                    </span>
-                  )}
+                  <Menu className="w-6 h-6" />
                 </button>
+              </div>
+
+              <nav className="hidden lg:flex items-center gap-8">
+                {leftCategories.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                  >
+                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-foreground group ${
+                      location === link.href ? 'text-foreground' : 'text-muted-foreground'
+                    }`}>
+                      {link.label}
+                      <motion.span
+                        className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                        initial={{ scaleX: 0 }}
+                        whileHover={{ scaleX: 1 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      {location === link.href && (
+                        <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                      )}
+                    </span>
+                  </Link>
+                ))}
+              </nav>
+
+              <Link href="/" data-testid="link-logo" className="absolute left-1/2 -translate-x-1/2 lg:relative lg:left-auto lg:translate-x-0">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative"
+                >
+                  <img
+                    src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
+                    alt="HANK"
+                    className="h-10 lg:h-12 invert"
+                    data-testid="img-logo"
+                  />
+                </motion.div>
               </Link>
+
+              <nav className="hidden lg:flex items-center gap-8">
+                {rightCategories.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                  >
+                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-foreground group ${
+                      location === link.href ? 'text-foreground' : 'text-muted-foreground'
+                    }`}>
+                      {link.label}
+                      <motion.span
+                        className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                        initial={{ scaleX: 0 }}
+                        whileHover={{ scaleX: 1 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      {location === link.href && (
+                        <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                      )}
+                    </span>
+                  </Link>
+                ))}
+              </nav>
+
+              <div className="flex items-center">
+                <div className="flex items-center gap-1 p-1.5 bg-white/5 rounded-full border border-white/10">
+                  <button
+                    data-testid="button-search"
+                    className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                    onClick={() => setSearchOpen(true)}
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+                  
+                  {user ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          data-testid="button-account"
+                          className="hidden sm:flex p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                        >
+                          <User className="w-5 h-5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10">
+                        <DropdownMenuItem disabled className="text-muted-foreground">
+                          {user.firstName || user.email}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { logout(); navigate('/'); }}>
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Çıkış Yap
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Link href="/giris">
+                      <button
+                        data-testid="button-account"
+                        className="hidden sm:flex p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                      >
+                        <User className="w-5 h-5" />
+                      </button>
+                    </Link>
+                  )}
+
+                  <Link href="/sepet">
+                    <button
+                      data-testid="button-cart"
+                      className="p-2.5 hover:bg-white/10 rounded-full transition-colors relative"
+                    >
+                      <ShoppingBag className="w-5 h-5" />
+                      {totalItems > 0 && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-xs font-bold flex items-center justify-center rounded-full"
+                        >
+                          {totalItems}
+                        </motion.span>
+                      )}
+                    </button>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -129,7 +195,7 @@ export function Header() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-50 lg:hidden"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div
@@ -137,45 +203,81 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed top-0 left-0 bottom-0 w-80 bg-background z-50 lg:hidden"
+              className="fixed top-0 left-0 bottom-0 w-80 bg-gradient-to-b from-zinc-900 to-black z-50 lg:hidden overflow-y-auto"
             >
-              <div className="flex items-center justify-between p-6 border-b border-border">
-                <img
-                  src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
-                  alt="HANK"
-                  className="h-8 invert"
-                />
-                <button
-                  data-testid="button-close-menu"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-2"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <nav className="p-6 space-y-5">
-                <Link
-                  href="/"
-                  data-testid="link-mobile-nav-home"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <span className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors">
-                    ANA SAYFA
-                  </span>
-                </Link>
-                {categories.map((link) => (
+              <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
+              
+              <div className="relative">
+                <div className="flex items-center justify-between p-6 border-b border-white/10">
+                  <img
+                    src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
+                    alt="HANK"
+                    className="h-8 invert"
+                  />
+                  <button
+                    data-testid="button-close-menu"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <nav className="p-6">
                   <Link
-                    key={link.href}
-                    href={link.href}
-                    data-testid={`link-mobile-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                    href="/"
+                    data-testid="link-mobile-nav-home"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <span className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors">
-                      {link.label.toUpperCase()}
-                    </span>
+                    <motion.span 
+                      className="block font-display text-3xl tracking-wider hover:text-muted-foreground transition-colors mb-6"
+                      whileHover={{ x: 10 }}
+                    >
+                      ANA SAYFA
+                    </motion.span>
                   </Link>
-                ))}
-              </nav>
+                  
+                  <div className="h-px bg-gradient-to-r from-white/20 via-white/10 to-transparent mb-6" />
+                  
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-4">Kategoriler</p>
+                  
+                  {categories.map((link, index) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      data-testid={`link-mobile-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <motion.span
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors py-3 border-b border-white/5"
+                        whileHover={{ x: 10 }}
+                      >
+                        {link.label.toUpperCase()}
+                      </motion.span>
+                    </Link>
+                  ))}
+                </nav>
+                
+                <div className="p-6 border-t border-white/10 mt-6">
+                  {!user && (
+                    <Link href="/giris" onClick={() => setMobileMenuOpen(false)}>
+                      <button className="w-full py-3 bg-white text-black font-bold tracking-wider rounded-lg mb-3">
+                        GİRİŞ YAP
+                      </button>
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); setSearchOpen(true); }}
+                    className="w-full py-3 border border-white/20 font-medium tracking-wider rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <Search className="w-4 h-4" />
+                    Ürün Ara
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </>
         )}
