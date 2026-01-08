@@ -24,9 +24,13 @@ interface Product {
   id: string;
   name: string;
   slug: string;
+  description?: string;
+  sku?: string;
   basePrice: string;
   categoryId: string;
   images: string[];
+  availableSizes: string[];
+  availableColors: { name: string; hex: string }[];
   isActive: boolean;
   isFeatured: boolean;
   isNew: boolean;
@@ -773,6 +777,27 @@ export default function AdminDashboard() {
   );
 }
 
+const ALL_SIZES = ['S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL'];
+
+const COLOR_OPTIONS = [
+  { name: 'Siyah', hex: '#000000' },
+  { name: 'Beyaz', hex: '#FFFFFF' },
+  { name: 'Gri', hex: '#6B7280' },
+  { name: 'Lacivert', hex: '#1E3A5F' },
+  { name: 'Kırmızı', hex: '#EF4444' },
+  { name: 'Mavi', hex: '#3B82F6' },
+  { name: 'Yeşil', hex: '#22C55E' },
+  { name: 'Sarı', hex: '#EAB308' },
+  { name: 'Turuncu', hex: '#F97316' },
+  { name: 'Mor', hex: '#A855F7' },
+  { name: 'Pembe', hex: '#EC4899' },
+  { name: 'Kahverengi', hex: '#92400E' },
+  { name: 'Bej', hex: '#D4C4A8' },
+  { name: 'Bordo', hex: '#7C2D12' },
+  { name: 'Antrasit', hex: '#374151' },
+  { name: 'Haki', hex: '#6B8E23' },
+];
+
 function ProductModal({ 
   product, 
   categories, 
@@ -789,13 +814,35 @@ function ProductModal({
   const [formData, setFormData] = useState({
     name: product?.name || '',
     slug: product?.slug || '',
+    description: product?.description || '',
+    sku: product?.sku || '',
     basePrice: product?.basePrice || '',
     categoryId: product?.categoryId || '',
     images: product?.images?.join('\n') || '',
+    availableSizes: product?.availableSizes || [],
+    availableColors: product?.availableColors || [],
     isActive: product?.isActive ?? true,
     isFeatured: product?.isFeatured ?? false,
     isNew: product?.isNew ?? false,
   });
+
+  const toggleSize = (size: string) => {
+    setFormData(prev => ({
+      ...prev,
+      availableSizes: prev.availableSizes.includes(size)
+        ? prev.availableSizes.filter(s => s !== size)
+        : [...prev.availableSizes, size]
+    }));
+  };
+
+  const toggleColor = (color: { name: string; hex: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      availableColors: prev.availableColors.some(c => c.name === color.name)
+        ? prev.availableColors.filter(c => c.name !== color.name)
+        : [...prev.availableColors, color]
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -819,16 +866,29 @@ function ProductModal({
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Ürün Adı</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
-              required
-              data-testid="input-product-name"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Ürün Adı</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+                required
+                data-testid="input-product-name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Stok Kodu (SKU)</label>
+              <input
+                type="text"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+                placeholder="Örn: HNK-001"
+                data-testid="input-product-sku"
+              />
+            </div>
           </div>
           
           <div>
@@ -840,6 +900,18 @@ function ProductModal({
               className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
               required
               data-testid="input-product-slug"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Açıklama</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+              placeholder="Ürün açıklaması..."
+              data-testid="input-product-description"
             />
           </div>
           
@@ -869,6 +941,52 @@ function ProductModal({
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Bedenler</label>
+            <div className="flex flex-wrap gap-2">
+              {ALL_SIZES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => toggleSize(size)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    formData.availableSizes.includes(size)
+                      ? 'bg-white text-black'
+                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                  }`}
+                  data-testid={`button-size-${size}`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Renkler</label>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_OPTIONS.map((color) => (
+                <button
+                  key={color.name}
+                  type="button"
+                  onClick={() => toggleColor(color)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    formData.availableColors.some(c => c.name === color.name)
+                      ? 'bg-zinc-700 ring-2 ring-white'
+                      : 'bg-zinc-800 hover:bg-zinc-700'
+                  }`}
+                  data-testid={`button-color-${color.name}`}
+                >
+                  <span 
+                    className="w-4 h-4 rounded-full border border-zinc-600" 
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  <span className="text-zinc-300">{color.name}</span>
+                </button>
+              ))}
             </div>
           </div>
           

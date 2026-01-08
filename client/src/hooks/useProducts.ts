@@ -5,10 +5,12 @@ export interface Product {
   name: string;
   slug: string;
   description?: string;
+  sku?: string;
   categoryId?: string;
   basePrice: string;
-  sku?: string;
   images: string[];
+  availableSizes: string[];
+  availableColors: { name: string; hex: string }[];
   isActive: boolean;
   isFeatured: boolean;
   isNew: boolean;
