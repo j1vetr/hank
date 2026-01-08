@@ -840,21 +840,37 @@ function ProductModal({
   const [showPreview, setShowPreview] = useState(false);
 
   const toggleSize = (size: string) => {
-    setFormData(prev => ({
-      ...prev,
-      availableSizes: prev.availableSizes.includes(size)
+    setFormData(prev => {
+      const isRemoving = prev.availableSizes.includes(size);
+      const newSizes = isRemoving
         ? prev.availableSizes.filter(s => s !== size)
-        : [...prev.availableSizes, size]
-    }));
+        : [...prev.availableSizes, size];
+      
+      if (isRemoving && previewSize === size) {
+        setPreviewSize(newSizes[0] || null);
+      } else if (!isRemoving && newSizes.length === 1) {
+        setPreviewSize(size);
+      }
+      
+      return { ...prev, availableSizes: newSizes };
+    });
   };
 
   const toggleColor = (color: { name: string; hex: string }) => {
-    setFormData(prev => ({
-      ...prev,
-      availableColors: prev.availableColors.some(c => c.name === color.name)
+    setFormData(prev => {
+      const isRemoving = prev.availableColors.some(c => c.name === color.name);
+      const newColors = isRemoving
         ? prev.availableColors.filter(c => c.name !== color.name)
-        : [...prev.availableColors, color]
-    }));
+        : [...prev.availableColors, color];
+      
+      if (isRemoving && previewColor?.name === color.name) {
+        setPreviewColor(newColors[0] || null);
+      } else if (!isRemoving && newColors.length === 1) {
+        setPreviewColor(color);
+      }
+      
+      return { ...prev, availableColors: newColors };
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -928,17 +944,31 @@ function ProductModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-auto">
         <div className="flex items-center justify-between p-6 border-b border-zinc-800">
           <h3 className="text-xl font-semibold text-white">
             {product ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'}
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showPreview ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+              data-testid="button-toggle-preview"
+            >
+              <Eye className="w-4 h-4" />
+              Önizleme
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <div className={`flex ${showPreview ? 'flex-row' : 'flex-col'}`}>
+        <form onSubmit={handleSubmit} className={`p-6 space-y-4 ${showPreview ? 'w-1/2 border-r border-zinc-800' : 'w-full'}`}>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">Ürün Adı</label>
@@ -1193,6 +1223,149 @@ function ProductModal({
             </button>
           </div>
         </form>
+        
+        {showPreview && (
+          <div className="w-1/2 p-6 bg-zinc-950/50 max-h-[calc(90vh-80px)] overflow-y-auto">
+            <div className="sticky top-0 bg-zinc-950/80 backdrop-blur-sm py-2 mb-4 -mt-2 z-10">
+              <h4 className="text-sm font-medium text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                Müşteri Görünümü Önizlemesi
+              </h4>
+            </div>
+            
+            <div className="space-y-6">
+              {(formData.images.length > 0 || pendingFiles.length > 0) && (
+                <div className="space-y-3">
+                  <div className="aspect-[4/5] bg-zinc-800 rounded-xl overflow-hidden">
+                    {formData.images[previewImage] ? (
+                      <img 
+                        src={formData.images[previewImage]} 
+                        alt="Önizleme" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : pendingFiles[0] ? (
+                      <img 
+                        src={URL.createObjectURL(pendingFiles[0])} 
+                        alt="Yeni" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                        <Package className="w-16 h-16" />
+                      </div>
+                    )}
+                  </div>
+                  {formData.images.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {formData.images.map((img, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setPreviewImage(idx)}
+                          className={`w-16 h-20 rounded-lg overflow-hidden shrink-0 transition-all ${
+                            previewImage === idx ? 'ring-2 ring-white' : 'opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <img src={img} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <div>
+                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
+                  {formData.sku || 'SKU'}
+                </p>
+                <h3 className="text-xl font-bold text-white">
+                  {formData.name || 'Ürün Adı'}
+                </h3>
+                <p className="text-2xl font-bold text-white mt-2">
+                  {formData.basePrice ? `${parseFloat(formData.basePrice).toLocaleString('tr-TR')} ₺` : '0 ₺'}
+                </p>
+              </div>
+              
+              {formData.availableColors.length > 0 && (
+                <div>
+                  <p className="text-sm text-zinc-400 mb-2">
+                    Renk: <span className="text-white">{previewColor?.name || formData.availableColors[0]?.name}</span>
+                  </p>
+                  <div className="flex gap-2">
+                    {formData.availableColors.map((color) => {
+                      const isSelected = previewColor?.name === color.name || (!previewColor && color.name === formData.availableColors[0]?.name);
+                      const isLight = color.hex === '#FFFFFF' || color.hex === '#D4C4A8';
+                      return (
+                        <button
+                          key={color.name}
+                          type="button"
+                          onClick={() => setPreviewColor(color)}
+                          className={`w-8 h-8 rounded-full transition-all ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-900' : ''} ${isLight ? 'border border-zinc-600' : ''}`}
+                          style={{ backgroundColor: color.hex }}
+                          title={color.name}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {formData.availableSizes.length > 0 && (
+                <div>
+                  <p className="text-sm text-zinc-400 mb-2">
+                    Beden: <span className="text-white">{previewSize || formData.availableSizes[0]}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.availableSizes.map((size) => {
+                      const isSelected = previewSize === size || (!previewSize && size === formData.availableSizes[0]);
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setPreviewSize(size)}
+                          className={`min-w-[48px] h-10 px-3 rounded-lg text-sm font-medium transition-all ${
+                            isSelected 
+                              ? 'bg-white text-black' 
+                              : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {formData.description && (
+                <div>
+                  <p className="text-sm text-zinc-400 mb-2">Açıklama</p>
+                  <p className="text-sm text-zinc-300 leading-relaxed">
+                    {formData.description}
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  className="flex-1 h-12 bg-white text-black rounded-xl font-bold text-sm"
+                  disabled
+                >
+                  SEPETE EKLE
+                </button>
+              </div>
+              
+              <div className="mt-4 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                <p className="text-xs text-zinc-500">
+                  Bu önizleme, müşterilerin ürün sayfasında göreceği görünümü yansıtır. 
+                  Kaydet'e tıkladığınızda seçtiğiniz bedenler ve renkler ürün sayfasında görünecektir.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
       </div>
     </div>
   );
