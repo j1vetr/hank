@@ -2,8 +2,58 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema } from "@shared/schema";
 import "./types";
+
+// Configure multer for file uploads
+const uploadDir = path.join(process.cwd(), "client/public/uploads");
+
+// Ensure upload directories exist
+const ensureDir = (dir: string) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+};
+ensureDir(path.join(uploadDir, "products"));
+ensureDir(path.join(uploadDir, "categories"));
+ensureDir(path.join(uploadDir, "hero"));
+
+const VALID_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];
+
+const multerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const type = req.params.type || "products";
+    if (!VALID_UPLOAD_TYPES.includes(type)) {
+      return cb(new Error("Invalid upload type"), "");
+    }
+    const dest = path.join(uploadDir, type);
+    ensureDir(dest);
+    cb(null, dest);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `${uniqueSuffix}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage: multerStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -53,6 +103,62 @@ export async function registerRoutes(
     }
     next();
   };
+
+  // Allowed upload types for security
+  const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];
+
+  // File Upload Route with type validation
+  app.post("/api/admin/upload/:type", requireAdmin, upload.array("images", 10), (req, res) => {
+    try {
+      const type = req.params.type;
+      
+      if (!ALLOWED_UPLOAD_TYPES.includes(type)) {
+        return res.status(400).json({ error: "Invalid upload type" });
+      }
+      
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
+      }
+      
+      const urls = files.map((file) => `/uploads/${type}/${file.filename}`);
+      res.json({ urls });
+    } catch (error) {
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
+  // Delete uploaded file with path validation
+  app.delete("/api/admin/upload", requireAdmin, (req, res) => {
+    try {
+      const { path: filePath } = req.body;
+      
+      if (!filePath || typeof filePath !== 'string') {
+        return res.status(400).json({ error: "Invalid file path" });
+      }
+      
+      if (!filePath.startsWith("/uploads/")) {
+        return res.status(400).json({ error: "Invalid file path" });
+      }
+      
+      if (filePath.includes('..') || filePath.includes('//')) {
+        return res.status(400).json({ error: "Invalid file path" });
+      }
+      
+      const pathParts = filePath.split('/').filter(Boolean);
+      if (pathParts.length < 3 || pathParts[0] !== 'uploads' || !ALLOWED_UPLOAD_TYPES.includes(pathParts[1])) {
+        return res.status(400).json({ error: "Invalid file path" });
+      }
+      
+      const fullPath = path.join(process.cwd(), "client/public", filePath);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Delete failed" });
+    }
+  });
 
   // Admin Stats
   app.get("/api/admin/stats", requireAdmin, async (req, res) => {

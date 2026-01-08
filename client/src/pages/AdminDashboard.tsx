@@ -17,7 +17,11 @@ import {
   TrendingUp,
   DollarSign,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  ImageIcon,
+  Loader2,
+  GripVertical
 } from 'lucide-react';
 
 interface Product {
@@ -818,13 +822,17 @@ function ProductModal({
     sku: product?.sku || '',
     basePrice: product?.basePrice || '',
     categoryId: product?.categoryId || '',
-    images: product?.images?.join('\n') || '',
+    images: product?.images || [] as string[],
     availableSizes: product?.availableSizes || [],
     availableColors: product?.availableColors || [],
     isActive: product?.isActive ?? true,
     isFeatured: product?.isFeatured ?? false,
     isNew: product?.isNew ?? false,
   });
+
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const toggleSize = (size: string) => {
     setFormData(prev => ({
@@ -844,12 +852,72 @@ function ProductModal({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setPendingFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    setPendingFiles(prev => [...prev, ...files]);
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadError(null);
+    
+    let uploadedUrls: string[] = [];
+    
+    if (pendingFiles.length > 0) {
+      setIsUploading(true);
+      try {
+        const formDataUpload = new FormData();
+        pendingFiles.forEach(file => formDataUpload.append('images', file));
+        
+        const response = await fetch('/api/admin/upload/products', {
+          method: 'POST',
+          body: formDataUpload,
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          uploadedUrls = data.urls;
+          setPendingFiles([]);
+        } else {
+          setUploadError('Resim yüklenemedi. Lütfen tekrar deneyin.');
+          setIsUploading(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        setUploadError('Resim yüklenemedi. Lütfen tekrar deneyin.');
+        setIsUploading(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
+    
     onSave({
       ...product,
       ...formData,
-      images: formData.images.split('\n').filter(Boolean),
+      images: [...formData.images, ...uploadedUrls],
     });
   };
 
@@ -991,14 +1059,84 @@ function ProductModal({
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Resimler (her satıra bir URL)</label>
-            <textarea
-              value={formData.images}
-              onChange={(e) => setFormData({ ...formData, images: e.target.value })}
-              rows={4}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
-              data-testid="input-product-images"
-            />
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Ürün Resimleri</label>
+            
+            {uploadError && (
+              <div className="mb-3 p-3 bg-red-900/30 border border-red-600 rounded-lg text-red-400 text-sm">
+                {uploadError}
+              </div>
+            )}
+            
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                dragOver ? 'border-white bg-zinc-800' : 'border-zinc-700 hover:border-zinc-500'
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                id="image-upload"
+                data-testid="input-product-images"
+              />
+              <label htmlFor="image-upload" className="cursor-pointer">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-zinc-500" />
+                <p className="text-sm text-zinc-400">
+                  Resimleri sürükleyip bırakın veya <span className="text-white underline">seçin</span>
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">PNG, JPG, WEBP (max 10MB)</p>
+              </label>
+            </div>
+
+            {(formData.images.length > 0 || pendingFiles.length > 0) && (
+              <div className="mt-4 grid grid-cols-4 gap-3">
+                {formData.images.map((image, index) => (
+                  <div key={`existing-${index}`} className="relative group aspect-square">
+                    <img
+                      src={image}
+                      alt={`Ürün ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(index)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    {index === 0 && (
+                      <span className="absolute bottom-1 left-1 text-[10px] bg-white text-black px-1.5 py-0.5 rounded font-medium">
+                        Ana
+                      </span>
+                    )}
+                  </div>
+                ))}
+                {pendingFiles.map((file, index) => (
+                  <div key={`pending-${index}`} className="relative group aspect-square">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Yeni ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg ring-2 ring-green-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePendingFile(index)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <span className="absolute bottom-1 left-1 text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded font-medium">
+                      Yeni
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           <div className="flex gap-6">
@@ -1041,11 +1179,12 @@ function ProductModal({
             </button>
             <button
               type="submit"
-              disabled={isSaving}
-              className="px-6 py-2 bg-white text-black rounded-lg font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
+              disabled={isSaving || isUploading}
+              className="px-6 py-2 bg-white text-black rounded-lg font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center gap-2"
               data-testid="button-save-product"
             >
-              {isSaving ? 'Kaydediliyor...' : 'Kaydet'}
+              {(isSaving || isUploading) && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isUploading ? 'Yükleniyor...' : isSaving ? 'Kaydediliyor...' : 'Kaydet'}
             </button>
           </div>
         </form>

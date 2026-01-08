@@ -304,7 +304,7 @@ export default function Home() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 mb-16">
             <div className="col-span-2 lg:col-span-1">
               <img
-                src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
+                src="/uploads/branding/hank-logo.svg"
                 alt="HANK"
                 className="h-10 invert mb-6"
               />

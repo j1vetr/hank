@@ -96,7 +96,7 @@ export function Header() {
                   className="relative"
                 >
                   <img
-                    src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
+                    src="/uploads/branding/hank-logo.svg"
                     alt="HANK"
                     className="h-10 lg:h-12 invert"
                     data-testid="img-logo"
@@ -216,7 +216,7 @@ export function Header() {
               <div className="relative">
                 <div className="flex items-center justify-between p-6 border-b border-white/10">
                   <img
-                    src="https://hank.com.tr/wp-content/uploads/2024/10/hank-logo.svg"
+                    src="/uploads/branding/hank-logo.svg"
                     alt="HANK"
                     className="h-8 invert"
                   />
