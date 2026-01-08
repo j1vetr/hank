@@ -296,3 +296,12 @@
   animation: rotate-border 10s linear infinite;
   pointer-events: none;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

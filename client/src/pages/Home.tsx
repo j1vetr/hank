@@ -161,165 +161,47 @@ export default function Home() {
         </div>
       </section>
 
-      <section ref={categoriesRef} className="py-8 lg:py-12 px-4 lg:px-6 relative overflow-hidden" data-testid="section-categories">
-        <div className="max-w-[1600px] mx-auto relative z-10">
-          <div className="grid grid-cols-2 lg:grid-cols-12 gap-3 lg:gap-4">
-            {categories.length > 0 && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={categoriesInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5 }}
-                  className="col-span-2 lg:col-span-5 lg:row-span-2"
+      <section ref={categoriesRef} className="py-6 lg:py-10 px-4 lg:px-6" data-testid="section-categories">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.id}
+                initial={{ opacity: 0, x: 30 }}
+                animate={categoriesInView ? { opacity: 1, x: 0 } : {}}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+                className="snap-start shrink-0"
+              >
+                <Link
+                  href={`/kategori/${category.slug}`}
+                  data-testid={`link-category-${category.id}`}
                 >
-                  <Link
-                    href={`/kategori/${categories[0]?.slug}`}
-                    data-testid={`link-category-${categories[0]?.id}`}
-                  >
-                    <div className="group relative h-[400px] lg:h-full min-h-[500px] overflow-hidden cursor-pointer">
-                      <motion.img
-                        src={categories[0]?.image}
-                        alt={categories[0]?.name}
-                        className="w-full h-full object-cover"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ duration: 0.8 }}
-                        data-testid={`img-category-${categories[0]?.id}`}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
-                      
-                      <div className="absolute bottom-0 left-0 right-0 p-8 lg:p-10">
-                        <span className="inline-block px-3 py-1 bg-white/10 backdrop-blur-sm text-xs tracking-widest uppercase mb-4">
-                          Koleksiyon
-                        </span>
-                        <h3 className="font-display text-4xl lg:text-5xl text-white tracking-wide mb-4">
-                          {categories[0]?.name.toUpperCase()}
-                        </h3>
-                        <div className="flex items-center gap-3">
-                          <span className="text-white/80 text-sm tracking-wide">Koleksiyonu Keşfet</span>
-                          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <ArrowRight className="w-4 h-4 text-black" />
-                          </div>
-                        </div>
+                  <div className="group relative w-[160px] sm:w-[200px] lg:w-[260px] h-[220px] sm:h-[280px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
+                    <motion.img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.5 }}
+                      data-testid={`img-category-${category.id}`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 group-hover:from-black/95 transition-all" />
+                    
+                    <div className="absolute inset-0 flex flex-col justify-end p-4 lg:p-6">
+                      <h3 className="font-display text-lg sm:text-xl lg:text-2xl text-white tracking-wide leading-tight mb-2">
+                        {category.name.toUpperCase()}
+                      </h3>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                        <span className="text-white/80 text-xs lg:text-sm">Keşfet</span>
+                        <ArrowRight className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
                       </div>
                     </div>
-                  </Link>
-                </motion.div>
-
-                {categories.slice(1, 3).map((category, index) => (
-                  <motion.div
-                    key={category.id}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={categoriesInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.5, delay: 0.1 + index * 0.1 }}
-                    className="col-span-1 lg:col-span-4"
-                  >
-                    <Link
-                      href={`/kategori/${category.slug}`}
-                      data-testid={`link-category-${category.id}`}
-                    >
-                      <div className="group relative aspect-[4/5] overflow-hidden cursor-pointer">
-                        <motion.img
-                          src={category.image}
-                          alt={category.name}
-                          className="w-full h-full object-cover"
-                          whileHover={{ scale: 1.08 }}
-                          transition={{ duration: 0.6 }}
-                          data-testid={`img-category-${category.id}`}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                        
-                        <div className="absolute bottom-0 left-0 right-0 p-5 lg:p-6">
-                          <h3 className="font-display text-xl lg:text-2xl text-white tracking-wide mb-2">
-                            {category.name.toUpperCase()}
-                          </h3>
-                          <div className="flex items-center gap-2 text-white/60 text-xs tracking-wider uppercase group-hover:text-white transition-colors">
-                            <span>Alışverişe Başla</span>
-                            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-                          </div>
-                        </div>
-                        
-                        <div className="absolute inset-0 border border-white/0 group-hover:border-white/20 transition-colors" />
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
-
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={categoriesInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="col-span-1 lg:col-span-3"
-                >
-                  <Link
-                    href={`/kategori/${categories[3]?.slug}`}
-                    data-testid={`link-category-${categories[3]?.id}`}
-                  >
-                    <div className="group relative aspect-[4/5] overflow-hidden cursor-pointer bg-zinc-900">
-                      <motion.img
-                        src={categories[3]?.image}
-                        alt={categories[3]?.name}
-                        className="w-full h-full object-cover"
-                        whileHover={{ scale: 1.08 }}
-                        transition={{ duration: 0.6 }}
-                        data-testid={`img-category-${categories[3]?.id}`}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      
-                      <div className="absolute bottom-0 left-0 right-0 p-5 lg:p-6">
-                        <h3 className="font-display text-xl lg:text-2xl text-white tracking-wide mb-2">
-                          {categories[3]?.name.toUpperCase()}
-                        </h3>
-                        <div className="flex items-center gap-2 text-white/60 text-xs tracking-wider uppercase group-hover:text-white transition-colors">
-                          <span>Alışverişe Başla</span>
-                          <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-                        </div>
-                      </div>
-                      
-                      <div className="absolute inset-0 border border-white/0 group-hover:border-white/20 transition-colors" />
-                    </div>
-                  </Link>
-                </motion.div>
-
-                {categories.length > 4 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={categoriesInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    className="col-span-1 lg:col-span-4"
-                  >
-                    <Link
-                      href={`/kategori/${categories[4]?.slug}`}
-                      data-testid={`link-category-${categories[4]?.id}`}
-                    >
-                      <div className="group relative aspect-[4/5] overflow-hidden cursor-pointer bg-zinc-900">
-                        <motion.img
-                          src={categories[4]?.image}
-                          alt={categories[4]?.name}
-                          className="w-full h-full object-cover"
-                          whileHover={{ scale: 1.08 }}
-                          transition={{ duration: 0.6 }}
-                          data-testid={`img-category-${categories[4]?.id}`}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                        
-                        <div className="absolute bottom-0 left-0 right-0 p-5 lg:p-6">
-                          <h3 className="font-display text-xl lg:text-2xl text-white tracking-wide mb-2">
-                            {categories[4]?.name.toUpperCase()}
-                          </h3>
-                          <div className="flex items-center gap-2 text-white/60 text-xs tracking-wider uppercase group-hover:text-white transition-colors">
-                            <span>Alışverişe Başla</span>
-                            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-                          </div>
-                        </div>
-                        
-                        <div className="absolute inset-0 border border-white/0 group-hover:border-white/20 transition-colors" />
-                      </div>
-                    </Link>
-                  </motion.div>
-                )}
-              </>
-            )}
+                    
+                    <div className="absolute inset-0 rounded-xl ring-1 ring-white/10 group-hover:ring-white/30 transition-all" />
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
