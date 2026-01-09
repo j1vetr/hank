@@ -96,9 +96,15 @@ export function Header() {
                   className="relative"
                 >
                   <img
+                    src="/favicon.png"
+                    alt="HANK"
+                    className="h-9 w-9 lg:hidden"
+                    data-testid="img-logo-mobile"
+                  />
+                  <img
                     src="/uploads/branding/hank-logo.svg"
                     alt="HANK"
-                    className="h-10 lg:h-12 invert"
+                    className="hidden lg:block h-12 invert"
                     data-testid="img-logo"
                   />
                 </motion.div>
