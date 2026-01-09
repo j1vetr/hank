@@ -435,14 +435,20 @@ export default function ProductDetail() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <motion.div 
-                  ref={imageRef}
-                  className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in group w-full"
-                  onMouseEnter={() => setIsZooming(true)}
-                  onMouseLeave={() => setIsZooming(false)}
-                  onMouseMove={handleMouseMove}
-                  onClick={() => setLightboxOpen(true)}
-                >
+                <div className="relative">
+                  <div className="absolute -inset-[2px] rounded-xl overflow-hidden">
+                    <div className="absolute inset-0 animate-border-spin">
+                      <div className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0deg,transparent_60deg,white_120deg,transparent_180deg,transparent_360deg)]" />
+                    </div>
+                  </div>
+                  <motion.div 
+                    ref={imageRef}
+                    className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in group w-full"
+                    onMouseEnter={() => setIsZooming(true)}
+                    onMouseLeave={() => setIsZooming(false)}
+                    onMouseMove={handleMouseMove}
+                    onClick={() => setLightboxOpen(true)}
+                  >
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={selectedImage}
@@ -463,7 +469,8 @@ export default function ProductDetail() {
                   {product.isNew && (
                     <span className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">%YENİ</span>
                   )}
-                </motion.div>
+                  </motion.div>
+                </div>
 
                 <div className="sm:hidden mt-4">
                   {images.length <= 5 ? (
