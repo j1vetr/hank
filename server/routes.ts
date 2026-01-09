@@ -2,12 +2,22 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema } from "@shared/schema";
 import "./types";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
+import { 
+  sendWelcomeEmail, 
+  sendOrderConfirmationEmail, 
+  sendShippingNotificationEmail, 
+  sendAdminOrderNotificationEmail,
+  sendPasswordResetEmail,
+  sendReviewRequestEmail,
+  sendTestEmail 
+} from "./emailService";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "client/public/uploads");
@@ -236,6 +246,10 @@ export async function registerRoutes(
       });
 
       req.session.userId = user.id;
+      
+      // Send welcome email (don't wait)
+      sendWelcomeEmail(user).catch(err => console.error('[Email] Welcome email failed:', err));
+      
       res.status(201).json({ 
         success: true, 
         user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } 
@@ -774,6 +788,13 @@ export async function registerRoutes(
 
       // Clear cart
       await storage.clearCart(sessionId);
+      
+      // Get order items for email
+      const orderItems = await storage.getOrderItems(order.id);
+      
+      // Send order confirmation emails (don't wait)
+      sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
+      sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
 
       res.status(201).json(order);
     } catch (error) {
@@ -1364,6 +1385,171 @@ export async function registerRoutes(
       res.json(recipients);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch email recipients" });
+    }
+  });
+
+  // Site Settings Routes
+  app.get("/api/admin/settings", requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      // Mask password for security
+      if (settings.smtp_pass) {
+        settings.smtp_pass = '••••••••';
+      }
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/admin/settings", requireAdmin, async (req, res) => {
+    try {
+      const settings = req.body;
+      // Don't update password if it's masked
+      if (settings.smtp_pass === '••••••••') {
+        delete settings.smtp_pass;
+      }
+      await storage.setSiteSettings(settings);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save settings" });
+    }
+  });
+
+  app.post("/api/admin/settings/test-email", requireAdmin, async (req, res) => {
+    try {
+      const { email } = req.body;
+      const result = await sendTestEmail(email);
+      if (result.success) {
+        res.json({ success: true, message: "Test e-postası gönderildi" });
+      } else {
+        res.status(400).json({ success: false, error: result.error });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Test e-postası gönderilemedi" });
+    }
+  });
+
+  // Password Reset Routes
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Don't reveal if email exists
+        return res.json({ success: true, message: "Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi." });
+      }
+      
+      // Generate secure token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      
+      await storage.createPasswordResetToken(user.id, token, expiresAt);
+      await sendPasswordResetEmail(user, token);
+      
+      res.json({ success: true, message: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi." });
+    } catch (error) {
+      console.error('[Auth] Forgot password error:', error);
+      res.status(500).json({ error: "Şifre sıfırlama işlemi başarısız" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: "Token ve yeni şifre gerekli" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "Şifre en az 6 karakter olmalı" });
+      }
+      
+      const resetToken = await storage.getPasswordResetToken(token);
+      
+      if (!resetToken) {
+        return res.status(400).json({ error: "Geçersiz veya süresi dolmuş bağlantı" });
+      }
+      
+      if (resetToken.usedAt) {
+        return res.status(400).json({ error: "Bu bağlantı zaten kullanılmış" });
+      }
+      
+      if (new Date() > resetToken.expiresAt) {
+        return res.status(400).json({ error: "Bağlantının süresi dolmuş" });
+      }
+      
+      // Update password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(resetToken.userId, { password: hashedPassword });
+      
+      // Mark token as used
+      await storage.markPasswordResetTokenUsed(token);
+      
+      res.json({ success: true, message: "Şifreniz başarıyla güncellendi" });
+    } catch (error) {
+      console.error('[Auth] Reset password error:', error);
+      res.status(500).json({ error: "Şifre sıfırlama işlemi başarısız" });
+    }
+  });
+
+  app.get("/api/auth/verify-reset-token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const resetToken = await storage.getPasswordResetToken(token);
+      
+      if (!resetToken || resetToken.usedAt || new Date() > resetToken.expiresAt) {
+        return res.json({ valid: false });
+      }
+      
+      res.json({ valid: true });
+    } catch (error) {
+      res.json({ valid: false });
+    }
+  });
+
+  // Send shipping notification email when status changes to shipped
+  app.post("/api/admin/orders/:id/send-shipping-email", requireAdmin, async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+      
+      const result = await sendShippingNotificationEmail(order);
+      if (result.success) {
+        res.json({ success: true, message: "Kargo bildirimi gönderildi" });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "E-posta gönderilemedi" });
+    }
+  });
+
+  // Send review request email
+  app.post("/api/admin/orders/:id/send-review-request", requireAdmin, async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+      
+      const items = await storage.getOrderItems(order.id);
+      const productNames = items.map(item => item.productName);
+      
+      const result = await sendReviewRequestEmail(
+        order.customerEmail,
+        order.customerName,
+        order.orderNumber,
+        productNames
+      );
+      
+      if (result.success) {
+        res.json({ success: true, message: "Değerlendirme talebi gönderildi" });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "E-posta gönderilemedi" });
     }
   });
 
