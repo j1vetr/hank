@@ -217,7 +217,7 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0"
             >
-              <Link href="/kategori/tshirt" className="w-full sm:w-auto">
+              <Link href="/magaza" className="w-full sm:w-auto">
                 <button
                   data-testid="button-shop-men"
                   className="group w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4 text-sm sm:text-base"
@@ -226,7 +226,7 @@ export default function Home() {
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
                 </button>
               </Link>
-              <Link href="/kategori/esofman" className="w-full sm:w-auto">
+              <Link href="/magaza" className="w-full sm:w-auto">
                 <button
                   data-testid="button-shop-all"
                   className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all text-sm sm:text-base"
