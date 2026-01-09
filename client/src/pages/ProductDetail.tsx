@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { SEO } from '@/components/SEO';
+import { ShippingCountdown } from '@/components/ShippingCountdown';
 import { Link, useParams } from 'wouter';
 import { 
   ChevronRight, 
@@ -696,11 +697,8 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Same Day Shipping Notice */}
-                <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                  <p className="text-xs text-emerald-400 flex items-center gap-2">
-                    <Truck className="w-4 h-4" />
-                    Pazartesi ve Cuma günleri 16:00'a kadar verilen siparişler aynı gün kargoda!
-                  </p>
+                <div className="mt-4 p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+                  <ShippingCountdown />
                 </div>
               </div>
 

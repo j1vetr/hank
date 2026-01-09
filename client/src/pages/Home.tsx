@@ -1,6 +1,7 @@
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
+import { ShippingCountdownBanner } from '@/components/ShippingCountdown';
 import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Instagram } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
@@ -135,15 +136,7 @@ export default function Home() {
       />
       <Header />
 
-      {/* Announcement Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white text-black py-2 text-center">
-        <p className="text-xs sm:text-sm font-medium tracking-wide">
-          <span className="inline-flex items-center gap-2">
-            <Truck className="w-4 h-4" />
-            Pazartesi ve Cuma günleri 16:00'a kadar verilen siparişler aynı gün kargoda!
-          </span>
-        </p>
-      </div>
+      <ShippingCountdownBanner />
 
       <section className="relative h-screen overflow-hidden noise-overlay pt-8" data-testid="section-hero">
         {heroImages.map((img, index) => (
