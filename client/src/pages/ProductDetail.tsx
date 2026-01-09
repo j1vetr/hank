@@ -694,6 +694,14 @@ export default function ProductDetail() {
                     </AnimatePresence>
                   </div>
                 </div>
+
+                {/* Same Day Shipping Notice */}
+                <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  <p className="text-xs text-emerald-400 flex items-center gap-2">
+                    <Truck className="w-4 h-4" />
+                    Pazartesi ve Cuma günleri 16:00'a kadar verilen siparişler aynı gün kargoda!
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-zinc-800">
