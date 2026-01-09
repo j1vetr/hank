@@ -78,6 +78,15 @@ RESTful API endpoints under `/api/`:
 - **TanStack React Query**: Data fetching and caching
 - **Framer Motion**: Animation library
 - **Lucide React**: Icon library
+- **Sharp**: Image optimization and processing
+
+### Image Optimization
+- All product and category images are automatically optimized on upload
+- Converts images to WebP format for better compression
+- Resizes large images (max 1200x1200) while maintaining aspect ratio
+- Compresses with 85% quality for optimal file size vs quality balance
+- Works for both manual uploads and WooCommerce sync imports
+- Utility located at `server/imageOptimizer.ts`
 
 ### Environment Variables
 - `DATABASE_URL` - PostgreSQL connection string (required)

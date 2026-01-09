@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema } from "@shared/schema";
 import "./types";
+import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "client/public/uploads");
@@ -107,8 +108,8 @@ export async function registerRoutes(
   // Allowed upload types for security
   const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];
 
-  // File Upload Route with type validation
-  app.post("/api/admin/upload/:type", requireAdmin, upload.array("images", 10), (req, res) => {
+  // File Upload Route with type validation and image optimization
+  app.post("/api/admin/upload/:type", requireAdmin, upload.array("images", 10), async (req, res) => {
     try {
       const type = req.params.type;
       
@@ -121,9 +122,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No files uploaded" });
       }
       
-      const urls = files.map((file) => `/uploads/${type}/${file.filename}`);
+      // Optimize uploaded images
+      const urls = await optimizeUploadedFiles(files);
+      console.log(`[Upload] Optimized ${urls.length} images for ${type}`);
       res.json({ urls });
     } catch (error) {
+      console.error('[Upload] Error:', error);
       res.status(500).json({ error: "Upload failed" });
     }
   });
@@ -948,18 +952,21 @@ export async function registerRoutes(
               try {
                 const existingCat = await storage.getCategoryBySlugOrCreate(wooCat.slug);
                 if (!existingCat) {
-                  // Download category image if exists
+                  // Download and optimize category image if exists
                   let categoryImage = '';
                   if (wooCat.image?.src) {
                     try {
                       const imgRes = await fetch(wooCat.image.src);
                       if (imgRes.ok) {
                         const imgBuffer = await imgRes.arrayBuffer();
-                        const ext = wooCat.image.src.split('.').pop()?.split('?')[0] || 'jpg';
-                        const fileName = `${wooCat.slug}-${Date.now()}.${ext}`;
-                        const filePath = path.join(process.cwd(), 'client/public/uploads/categories', fileName);
-                        await fs.promises.writeFile(filePath, Buffer.from(imgBuffer));
-                        categoryImage = `/uploads/categories/${fileName}`;
+                        const fileName = `${wooCat.slug}-${Date.now()}`;
+                        const tempFilePath = path.join(process.cwd(), 'client/public/uploads/categories', `${fileName}.tmp`);
+                        const optimizedPath = await optimizeImageBuffer(
+                          Buffer.from(imgBuffer),
+                          tempFilePath
+                        );
+                        const relativePath = optimizedPath.replace(process.cwd() + '/client/public', '');
+                        categoryImage = relativePath;
                         imagesDownloaded++;
                       }
                     } catch (imgError) {
@@ -1011,18 +1018,21 @@ export async function registerRoutes(
               try {
                 const existingProd = await storage.getProductBySlug(wooProd.slug);
                 if (!existingProd) {
-                  // Download product images
+                  // Download and optimize product images
                   const productImages: string[] = [];
                   for (const img of (wooProd.images || [])) {
                     try {
                       const imgRes = await fetch(img.src);
                       if (imgRes.ok) {
                         const imgBuffer = await imgRes.arrayBuffer();
-                        const ext = img.src.split('.').pop()?.split('?')[0] || 'jpg';
-                        const fileName = `${wooProd.slug}-${Date.now()}-${productImages.length + 1}.${ext}`;
-                        const filePath = path.join(process.cwd(), 'client/public/uploads/products', fileName);
-                        await fs.promises.writeFile(filePath, Buffer.from(imgBuffer));
-                        productImages.push(`/uploads/products/${fileName}`);
+                        const fileName = `${wooProd.slug}-${Date.now()}-${productImages.length + 1}`;
+                        const tempFilePath = path.join(process.cwd(), 'client/public/uploads/products', `${fileName}.tmp`);
+                        const optimizedPath = await optimizeImageBuffer(
+                          Buffer.from(imgBuffer),
+                          tempFilePath
+                        );
+                        const relativePath = optimizedPath.replace(process.cwd() + '/client/public', '');
+                        productImages.push(relativePath);
                         imagesDownloaded++;
                       }
                     } catch (imgError) {
