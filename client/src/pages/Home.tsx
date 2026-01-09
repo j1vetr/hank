@@ -212,7 +212,7 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="relative z-10 h-full flex flex-col justify-center items-center pt-28 lg:pt-32">
+        <div className="relative z-10 h-full flex flex-col justify-center items-center">
           <div className="text-center px-6 w-full">
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
@@ -264,12 +264,15 @@ export default function Home() {
             </motion.div>
           </div>
 
+          </div>
+
+        <div className="absolute bottom-0 left-0 right-0 z-20">
           {allProducts.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="mt-auto pb-6 lg:pb-10"
+              className="pb-6 lg:pb-8"
             >
               <HeroProductSlider products={allProducts} />
             </motion.div>
