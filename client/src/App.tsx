@@ -19,6 +19,11 @@ import Profile from "@/pages/Profile";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
+import About from "@/pages/About";
+import DeliveryTerms from "@/pages/DeliveryTerms";
+import DistanceSalesAgreement from "@/pages/DistanceSalesAgreement";
+import CancellationPolicy from "@/pages/CancellationPolicy";
+import KVKK from "@/pages/KVKK";
 
 function Router() {
   return (
@@ -33,6 +38,11 @@ function Router() {
       <Route path="/sepet" component={Cart} />
       <Route path="/odeme" component={Checkout} />
       <Route path="/hesabim" component={Profile} />
+      <Route path="/hakkimizda" component={About} />
+      <Route path="/teslimat-kosullari" component={DeliveryTerms} />
+      <Route path="/mesafeli-satis-sozlesmesi" component={DistanceSalesAgreement} />
+      <Route path="/iptal-ve-iade" component={CancellationPolicy} />
+      <Route path="/kvkk" component={KVKK} />
       <Route path="/toov-admin/login" component={AdminLogin} />
       <Route path="/toov-admin" component={AdminDashboard} />
       <Route component={NotFound} />
