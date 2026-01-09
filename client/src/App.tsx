@@ -6,47 +6,61 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/AuthProvider";
 import { CartProvider } from "@/components/CartProvider";
 import { CartModalProvider } from "@/hooks/useCartModal";
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
+
 import Home from "@/pages/Home";
 import Category from "@/pages/Category";
 import ProductDetail from "@/pages/ProductDetail";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import Cart from "@/pages/Cart";
-import Checkout from "@/pages/Checkout";
-import Profile from "@/pages/Profile";
-import AdminLogin from "@/pages/AdminLogin";
-import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
-import About from "@/pages/About";
-import DeliveryTerms from "@/pages/DeliveryTerms";
-import DistanceSalesAgreement from "@/pages/DistanceSalesAgreement";
-import CancellationPolicy from "@/pages/CancellationPolicy";
-import KVKK from "@/pages/KVKK";
+
+const Login = lazy(() => import("@/pages/Login"));
+const Register = lazy(() => import("@/pages/Register"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Cart = lazy(() => import("@/pages/Cart"));
+const Checkout = lazy(() => import("@/pages/Checkout"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const AdminLogin = lazy(() => import("@/pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("@/pages/AdminDashboard"));
+const About = lazy(() => import("@/pages/About"));
+const DeliveryTerms = lazy(() => import("@/pages/DeliveryTerms"));
+const DistanceSalesAgreement = lazy(() => import("@/pages/DistanceSalesAgreement"));
+const CancellationPolicy = lazy(() => import("@/pages/CancellationPolicy"));
+const KVKK = lazy(() => import("@/pages/KVKK"));
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/kategori/:slug" component={Category} />
-      <Route path="/urun/:slug" component={ProductDetail} />
-      <Route path="/giris" component={Login} />
-      <Route path="/kayit" component={Register} />
-      <Route path="/sifremi-unuttum" component={ForgotPassword} />
-      <Route path="/sifre-sifirla" component={ResetPassword} />
-      <Route path="/sepet" component={Cart} />
-      <Route path="/odeme" component={Checkout} />
-      <Route path="/hesabim" component={Profile} />
-      <Route path="/hakkimizda" component={About} />
-      <Route path="/teslimat-kosullari" component={DeliveryTerms} />
-      <Route path="/mesafeli-satis-sozlesmesi" component={DistanceSalesAgreement} />
-      <Route path="/iptal-ve-iade" component={CancellationPolicy} />
-      <Route path="/kvkk" component={KVKK} />
-      <Route path="/toov-admin/login" component={AdminLogin} />
-      <Route path="/toov-admin" component={AdminDashboard} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageLoader />}>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/kategori/:slug" component={Category} />
+        <Route path="/urun/:slug" component={ProductDetail} />
+        <Route path="/giris" component={Login} />
+        <Route path="/kayit" component={Register} />
+        <Route path="/sifremi-unuttum" component={ForgotPassword} />
+        <Route path="/sifre-sifirla" component={ResetPassword} />
+        <Route path="/sepet" component={Cart} />
+        <Route path="/odeme" component={Checkout} />
+        <Route path="/hesabim" component={Profile} />
+        <Route path="/hakkimizda" component={About} />
+        <Route path="/teslimat-kosullari" component={DeliveryTerms} />
+        <Route path="/mesafeli-satis-sozlesmesi" component={DistanceSalesAgreement} />
+        <Route path="/iptal-ve-iade" component={CancellationPolicy} />
+        <Route path="/kvkk" component={KVKK} />
+        <Route path="/toov-admin/login" component={AdminLogin} />
+        <Route path="/toov-admin" component={AdminDashboard} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

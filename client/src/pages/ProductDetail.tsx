@@ -396,7 +396,7 @@ export default function ProductDetail() {
                         }`}
                         data-testid={`button-thumbnail-${index}`}
                       >
-                        <img src={image} alt="" className="w-full h-full object-cover" />
+                        <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
                       </motion.button>
                     ))
                   ) : (
@@ -416,7 +416,7 @@ export default function ProductDetail() {
                           }`}
                           data-testid={`button-thumbnail-${actualIndex}`}
                         >
-                          <img src={image} alt="" className="w-full h-full object-cover" />
+                          <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
                         </motion.button>
                       );
                     })
@@ -475,7 +475,7 @@ export default function ProductDetail() {
                             index === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-50'
                           }`}
                         >
-                          <img src={image} alt="" className="w-full h-full object-cover" />
+                          <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
                         </button>
                       ))}
                     </div>
@@ -495,7 +495,7 @@ export default function ProductDetail() {
                                 actualIndex === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-50'
                               }`}
                             >
-                              <img src={image} alt="" className="w-full h-full object-cover" />
+                              <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
                             </button>
                           );
                         })}

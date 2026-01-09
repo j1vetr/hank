@@ -7,11 +7,11 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import heroImage1 from '@assets/hero-1.webp';
 import heroImage2 from '@assets/hero-2.webp';
-import categoryTshirt from '@assets/category-tshirt.jpg';
-import categorySort from '@assets/category-sort.jpg';
-import categoryAtlet from '@assets/category-atlet.jpg';
-import categorySalvar from '@assets/category-salvar.jpg';
-import categoryEsofman from '@assets/category-esofman.jpg';
+import categoryTshirt from '@assets/category-tshirt.webp';
+import categorySort from '@assets/category-sort.webp';
+import categoryAtlet from '@assets/category-atlet.webp';
+import categorySalvar from '@assets/category-salvar.webp';
+import categoryEsofman from '@assets/category-esofman.webp';
 import { useProducts, useCategories } from '@/hooks/useProducts';
 
 const defaultCategoryImages: Record<string, string> = {
@@ -389,6 +389,7 @@ export default function Home() {
                 src="/uploads/branding/hank-logo.svg"
                 alt="HANK"
                 className="h-10 invert mb-6"
+                loading="lazy"
               />
               <p className="text-white/50 text-sm leading-relaxed mb-4">
                 Premium fitness ve bodybuilding giyim markası. 
@@ -465,6 +466,7 @@ export default function Home() {
                   src="https://toov.com.tr/assets/toov_logo-DODYNPrj.png" 
                   alt="TOOV" 
                   className="h-5"
+                  loading="lazy"
                 />
               </a>
             </div>
