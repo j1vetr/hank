@@ -580,22 +580,34 @@ export default function ProductDetail() {
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {sizes.map((size) => (
-                        <motion.button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className={`min-w-[56px] py-2.5 px-4 text-sm font-medium border transition-all ${
-                            selectedSize === size
-                              ? 'bg-white text-black border-white'
-                              : 'bg-transparent border-zinc-700 text-white hover:border-zinc-500'
-                          }`}
-                          data-testid={`button-size-${size}`}
-                        >
-                          {size}
-                        </motion.button>
-                      ))}
+                      {sizes.map((size) => {
+                        const variant = product.variants?.find(v => v.size === size);
+                        const isOutOfStock = variant ? (variant.stock || 0) <= 0 : false;
+                        return (
+                          <motion.button
+                            key={size}
+                            onClick={() => !isOutOfStock && setSelectedSize(size)}
+                            whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
+                            whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
+                            disabled={isOutOfStock}
+                            className={`relative min-w-[56px] py-2.5 px-4 text-sm font-medium border transition-all ${
+                              isOutOfStock
+                                ? 'bg-transparent border-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'
+                                : selectedSize === size
+                                  ? 'bg-white text-black border-white'
+                                  : 'bg-transparent border-zinc-700 text-white hover:border-zinc-500'
+                            }`}
+                            data-testid={`button-size-${size}`}
+                          >
+                            <span className={isOutOfStock ? 'line-through' : ''}>{size}</span>
+                            {isOutOfStock && (
+                              <span className="absolute -top-2 -right-2 text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">
+                                Tükendi
+                              </span>
+                            )}
+                          </motion.button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
