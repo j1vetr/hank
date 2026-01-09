@@ -899,6 +899,7 @@ export async function registerRoutes(
   app.post("/api/orders", async (req: Request, res) => {
     try {
       const sessionId = req.sessionID;
+      const userId = (req.session as any).userId || null;
       const cartItems = await storage.getCartItems(sessionId);
       
       if (cartItems.length === 0) {
@@ -908,12 +909,90 @@ export async function registerRoutes(
       // Generate order number
       const orderNumber = `HNK${Date.now()}`;
       
+      // Calculate actual subtotal from cart items (server-side verification)
+      let serverSubtotal = 0;
+      for (const cartItem of cartItems) {
+        const product = await storage.getProduct(cartItem.productId);
+        const variant = cartItem.variantId 
+          ? await storage.getProductVariant(cartItem.variantId)
+          : null;
+        if (product) {
+          const itemPrice = parseFloat(variant?.price || product.basePrice);
+          serverSubtotal += itemPrice * cartItem.quantity;
+        }
+      }
+      
+      // Handle coupon validation and redemption - recalculate discount on server
+      let validatedCoupon = null;
+      let discountAmount = 0;
+      
+      if (req.body.couponCode) {
+        const couponResult = await storage.validateCoupon(
+          req.body.couponCode,
+          serverSubtotal,
+          userId
+        );
+        
+        if (couponResult.valid && couponResult.coupon) {
+          validatedCoupon = couponResult.coupon;
+          
+          // Recalculate discount on server to prevent tampering
+          if (validatedCoupon.discountType === 'percentage') {
+            discountAmount = (serverSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
+          } else {
+            discountAmount = parseFloat(validatedCoupon.discountValue);
+          }
+          // Clamp discount to subtotal
+          discountAmount = Math.min(discountAmount, serverSubtotal);
+        }
+      }
+      
+      // Calculate shipping and total on server
+      const FREE_SHIPPING_THRESHOLD = 2500;
+      const shippingCost = serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 49.90;
+      const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
+      
       const validated = insertOrderSchema.parse({
         ...req.body,
         orderNumber,
+        subtotal: serverSubtotal.toFixed(2),
+        shippingCost: shippingCost.toFixed(2),
+        couponCode: validatedCoupon?.code || null,
+        discountAmount: discountAmount.toFixed(2),
+        total: serverTotal.toFixed(2),
       });
 
       const order = await storage.createOrder(validated);
+      
+      // Record coupon redemption and update influencer commission
+      if (validatedCoupon) {
+        await storage.redeemCoupon(validatedCoupon.id, order.id, userId, discountAmount);
+        
+        // If it's an influencer code, update their commission
+        if (validatedCoupon.isInfluencerCode) {
+          let commission = 0;
+          
+          switch (validatedCoupon.commissionType) {
+            case 'percentage':
+              // Commission based on order total (after discount and shipping)
+              commission = (serverTotal * parseFloat(validatedCoupon.commissionValue || '0')) / 100;
+              break;
+            case 'per_use':
+              commission = parseFloat(validatedCoupon.commissionValue || '0');
+              break;
+            case 'fixed_total':
+              // Fixed total is a one-time payment, tracked separately
+              break;
+          }
+          
+          if (commission > 0) {
+            const currentCommission = parseFloat(validatedCoupon.totalCommissionEarned || '0');
+            await storage.updateCoupon(validatedCoupon.id, {
+              totalCommissionEarned: (currentCommission + commission).toFixed(2),
+            });
+          }
+        }
+      }
 
       // Create order items and reduce stock
       for (const cartItem of cartItems) {

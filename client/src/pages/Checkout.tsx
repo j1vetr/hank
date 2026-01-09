@@ -13,7 +13,7 @@ import {
   User, Mail, Phone, MapPin, CreditCard, Truck, Shield, 
   RotateCcw, Check, ArrowRight, ShoppingBag, ChevronRight,
   Package, Lock, ClipboardCheck, Edit3, AlertCircle, Loader2,
-  CheckCircle2, UserPlus
+  CheckCircle2, UserPlus, Tag, X, Instagram
 } from 'lucide-react';
 
 interface Product {
@@ -47,6 +47,19 @@ export default function Checkout() {
   const [accountPassword, setAccountPassword] = useState('');
   const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({});
   const [savedOrderTotal, setSavedOrderTotal] = useState<number | null>(null);
+  
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    id: string;
+    code: string;
+    discountType: string;
+    discountValue: string;
+    isInfluencerCode?: boolean;
+    influencerInstagram?: string;
+  } | null>(null);
+  const [couponError, setCouponError] = useState('');
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -86,7 +99,67 @@ export default function Checkout() {
   }, [user]);
 
   const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 49.90;
-  const total = subtotal + shippingCost;
+  
+  // Calculate discount based on coupon
+  const calculateDiscount = () => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === 'percentage') {
+      return (subtotal * parseFloat(appliedCoupon.discountValue)) / 100;
+    }
+    return parseFloat(appliedCoupon.discountValue);
+  };
+  
+  const discount = calculateDiscount();
+  const total = subtotal - discount + shippingCost;
+
+  // Coupon validation handler
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('Kupon kodu girin');
+      return;
+    }
+    
+    setCouponLoading(true);
+    setCouponError('');
+    
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode, orderTotal: subtotal }),
+        credentials: 'include',
+      });
+      
+      const data = await res.json();
+      
+      if (data.valid && data.coupon) {
+        setAppliedCoupon({
+          id: data.coupon.id,
+          code: data.coupon.code,
+          discountType: data.coupon.discountType,
+          discountValue: data.coupon.discountValue,
+          isInfluencerCode: data.coupon.isInfluencerCode,
+          influencerInstagram: data.coupon.influencerInstagram,
+        });
+        setCouponCode('');
+        toast({
+          title: 'Kupon Uygulandı',
+          description: `${data.coupon.code} kodu başarıyla uygulandı!`,
+        });
+      } else {
+        setCouponError(data.error || 'Geçersiz kupon kodu');
+      }
+    } catch (error) {
+      setCouponError('Kupon doğrulanamadı');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -166,7 +239,9 @@ export default function Checkout() {
           },
           subtotal: subtotal.toFixed(2),
           shippingCost: shippingCost.toFixed(2),
+          discount: discount.toFixed(2),
           total: total.toFixed(2),
+          couponCode: appliedCoupon?.code || null,
           paymentMethod: paymentMethod === 'cash_on_delivery' ? 'Kapıda Ödeme' : 'Kredi Kartı',
           createAccount: createAccount && !user,
           accountPassword: createAccount && !user ? accountPassword : undefined,
@@ -918,11 +993,93 @@ export default function Checkout() {
                   ))}
                 </div>
 
+                {/* Coupon Input Section */}
+                <div className="py-4 border-b border-white/5 relative">
+                  {appliedCoupon ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Tag className="w-4 h-4 text-green-400" />
+                          <span className="text-sm font-medium text-green-400">{appliedCoupon.code}</span>
+                        </div>
+                        <button
+                          onClick={handleRemoveCoupon}
+                          className="text-muted-foreground hover:text-white transition-colors"
+                          data-testid="button-remove-coupon"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {appliedCoupon.isInfluencerCode && appliedCoupon.influencerInstagram && (
+                        <div className="flex items-center gap-2 text-xs text-pink-400">
+                          <Instagram className="w-4 h-4" />
+                          <a 
+                            href={`https://instagram.com/${appliedCoupon.influencerInstagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                            data-testid="link-influencer-instagram"
+                          >
+                            {appliedCoupon.influencerInstagram}
+                          </a>
+                          <span className="text-muted-foreground">influencer koduyla alışveriş yapıyorsunuz</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            value={couponCode}
+                            onChange={(e) => {
+                              setCouponCode(e.target.value.toUpperCase());
+                              setCouponError('');
+                            }}
+                            placeholder="Kupon kodu"
+                            className="pl-10 bg-zinc-800/50 border-zinc-700 h-10 uppercase"
+                            data-testid="input-coupon-code"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          disabled={couponLoading || !couponCode.trim()}
+                          className="h-10 px-4 bg-white text-black hover:bg-white/90 font-bold"
+                          data-testid="button-apply-coupon"
+                        >
+                          {couponLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            'Uygula'
+                          )}
+                        </Button>
+                      </div>
+                      {couponError && (
+                        <p className="text-xs text-red-400 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {couponError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-3 text-sm py-4 relative">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ara Toplam</span>
                     <span data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-400">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        İndirim ({appliedCoupon?.code})
+                      </span>
+                      <span data-testid="text-discount">-{discount.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Kargo</span>
                     <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-green-400 font-medium' : ''}>
