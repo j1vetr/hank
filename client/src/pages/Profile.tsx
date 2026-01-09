@@ -99,6 +99,8 @@ export default function Profile() {
     enabled: !!user,
   });
 
+  const { data: favorites = [], isLoading: favoritesLoading } = useFavorites();
+
   const { data: orderDetail, isLoading: orderDetailLoading } = useQuery<Order>({
     queryKey: ['my-order', selectedOrder?.id],
     queryFn: async () => {
@@ -163,8 +165,6 @@ export default function Profile() {
     navigate('/giris');
     return null;
   }
-
-  const { data: favorites = [], isLoading: favoritesLoading } = useFavorites();
 
   const tabs = [
     { id: 'orders' as TabType, label: 'Siparişlerim', icon: Package, count: orders.length },

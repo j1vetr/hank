@@ -12,6 +12,13 @@ import {
   woocommerceSyncLogs,
   favorites,
   productReviews,
+  coupons,
+  couponRedemptions,
+  orderNotes,
+  stockAdjustments,
+  lowStockAlerts,
+  campaigns,
+  emailJobs,
   type AdminUser,
   type InsertAdminUser,
   type Category,
@@ -34,9 +41,19 @@ import {
   type Favorite,
   type InsertFavorite,
   type ProductReview,
-  type InsertProductReview
+  type InsertProductReview,
+  type Coupon,
+  type InsertCoupon,
+  type CouponRedemption,
+  type OrderNote,
+  type InsertOrderNote,
+  type StockAdjustment,
+  type LowStockAlert,
+  type Campaign,
+  type InsertCampaign,
+  type EmailJob
 } from "@shared/schema";
-import { eq, and, desc, asc, sql, ilike, gte, lte } from "drizzle-orm";
+import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
 
 export interface AdminStats {
   totalProducts: number;
@@ -475,7 +492,7 @@ export class DbStorage implements IStorage {
     const result = await db.select().from(products).where(
       and(
         eq(products.isActive, true),
-        sql`${products.id} = ANY(${productIds})`
+        inArray(products.id, productIds)
       )
     );
     return result;
@@ -575,6 +592,348 @@ export class DbStorage implements IStorage {
       and(eq(productReviews.userId, userId), eq(productReviews.productId, productId))
     );
     return review;
+  }
+
+  // Analytics methods
+  async getSalesAnalytics(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<{
+    labels: string[];
+    revenue: number[];
+    orders: number[];
+  }> {
+    let interval: string;
+    let format: string;
+    let limit: number;
+    
+    switch (period) {
+      case 'day':
+        interval = '1 day';
+        format = 'HH24:00';
+        limit = 24;
+        break;
+      case 'week':
+        interval = '7 days';
+        format = 'Dy';
+        limit = 7;
+        break;
+      case 'month':
+        interval = '30 days';
+        format = 'DD Mon';
+        limit = 30;
+        break;
+      case 'year':
+        interval = '365 days';
+        format = 'Mon';
+        limit = 12;
+        break;
+    }
+
+    const result = await db.execute(sql`
+      SELECT 
+        TO_CHAR(created_at, ${format}) as label,
+        COALESCE(SUM(CAST(total AS DECIMAL)), 0) as revenue,
+        COUNT(*) as order_count
+      FROM orders
+      WHERE created_at >= NOW() - INTERVAL ${interval}
+      GROUP BY TO_CHAR(created_at, ${format}), DATE_TRUNC('day', created_at)
+      ORDER BY DATE_TRUNC('day', created_at) DESC
+      LIMIT ${limit}
+    `);
+
+    const rows = (result.rows || []) as any[];
+    return {
+      labels: rows.map(r => r.label).reverse(),
+      revenue: rows.map(r => Number(r.revenue)).reverse(),
+      orders: rows.map(r => Number(r.order_count)).reverse(),
+    };
+  }
+
+  async getBestSellingProducts(limit: number = 10): Promise<{
+    product: Product;
+    totalSold: number;
+    revenue: number;
+  }[]> {
+    const result = await db.execute(sql`
+      SELECT 
+        p.*,
+        COALESCE(SUM(oi.quantity), 0) as total_sold,
+        COALESCE(SUM(CAST(oi.subtotal AS DECIMAL)), 0) as revenue
+      FROM products p
+      LEFT JOIN order_items oi ON p.id = oi.product_id
+      LEFT JOIN orders o ON oi.order_id = o.id
+      GROUP BY p.id
+      ORDER BY total_sold DESC
+      LIMIT ${limit}
+    `);
+
+    return (result.rows || []).map((r: any) => ({
+      product: {
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        description: r.description,
+        sku: r.sku,
+        categoryId: r.category_id,
+        basePrice: r.base_price,
+        images: r.images || [],
+        availableSizes: r.available_sizes || [],
+        availableColors: r.available_colors || [],
+        isActive: r.is_active,
+        isFeatured: r.is_featured,
+        isNew: r.is_new,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      },
+      totalSold: Number(r.total_sold),
+      revenue: Number(r.revenue),
+    }));
+  }
+
+  async getRevenueByPeriod(startDate: Date, endDate: Date): Promise<{
+    total: number;
+    orderCount: number;
+    averageOrderValue: number;
+  }> {
+    const result = await db.execute(sql`
+      SELECT 
+        COALESCE(SUM(CAST(total AS DECIMAL)), 0) as total_revenue,
+        COUNT(*) as order_count
+      FROM orders
+      WHERE created_at BETWEEN ${startDate} AND ${endDate}
+    `);
+
+    const row = (result.rows || [])[0] as any;
+    const total = Number(row?.total_revenue || 0);
+    const orderCount = Number(row?.order_count || 0);
+    return {
+      total,
+      orderCount,
+      averageOrderValue: orderCount > 0 ? total / orderCount : 0,
+    };
+  }
+
+  async getPeriodComparison(currentStart: Date, currentEnd: Date, previousStart: Date, previousEnd: Date): Promise<{
+    current: { revenue: number; orders: number };
+    previous: { revenue: number; orders: number };
+    revenueChange: number;
+    ordersChange: number;
+  }> {
+    const current = await this.getRevenueByPeriod(currentStart, currentEnd);
+    const previous = await this.getRevenueByPeriod(previousStart, previousEnd);
+
+    return {
+      current: { revenue: current.total, orders: current.orderCount },
+      previous: { revenue: previous.total, orders: previous.orderCount },
+      revenueChange: previous.total > 0 ? ((current.total - previous.total) / previous.total) * 100 : 0,
+      ordersChange: previous.orderCount > 0 ? ((current.orderCount - previous.orderCount) / previous.orderCount) * 100 : 0,
+    };
+  }
+
+  // Coupon methods
+  async getCoupons(): Promise<Coupon[]> {
+    return db.select().from(coupons).orderBy(desc(coupons.createdAt));
+  }
+
+  async getCoupon(id: string): Promise<Coupon | undefined> {
+    const [coupon] = await db.select().from(coupons).where(eq(coupons.id, id));
+    return coupon;
+  }
+
+  async getCouponByCode(code: string): Promise<Coupon | undefined> {
+    const [coupon] = await db.select().from(coupons).where(eq(coupons.code, code.toUpperCase()));
+    return coupon;
+  }
+
+  async createCoupon(coupon: InsertCoupon): Promise<Coupon> {
+    const [newCoupon] = await db.insert(coupons).values({
+      ...coupon,
+      code: coupon.code.toUpperCase(),
+    }).returning();
+    return newCoupon;
+  }
+
+  async updateCoupon(id: string, coupon: Partial<InsertCoupon>): Promise<Coupon | undefined> {
+    const updateData = coupon.code ? { ...coupon, code: coupon.code.toUpperCase(), updatedAt: new Date() } : { ...coupon, updatedAt: new Date() };
+    const [updated] = await db.update(coupons).set(updateData).where(eq(coupons.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCoupon(id: string): Promise<void> {
+    await db.delete(coupons).where(eq(coupons.id, id));
+  }
+
+  async incrementCouponUsage(id: string): Promise<void> {
+    await db.execute(sql`UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ${id}`);
+  }
+
+  async validateCoupon(code: string, orderTotal: number, userId?: string): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> {
+    const coupon = await this.getCouponByCode(code);
+    if (!coupon) return { valid: false, error: 'Kupon kodu bulunamadı' };
+    if (!coupon.isActive) return { valid: false, error: 'Bu kupon aktif değil' };
+    if (coupon.startsAt && new Date(coupon.startsAt) > new Date()) return { valid: false, error: 'Kupon henüz geçerli değil' };
+    if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return { valid: false, error: 'Kuponun süresi dolmuş' };
+    if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) return { valid: false, error: 'Kupon kullanım limiti dolmuş' };
+    if (coupon.minOrderAmount && orderTotal < parseFloat(coupon.minOrderAmount)) {
+      return { valid: false, error: `Minimum sipariş tutarı: ${coupon.minOrderAmount} TL` };
+    }
+
+    if (userId && coupon.perUserLimit) {
+      const userRedemptions = await db.select().from(couponRedemptions).where(
+        and(eq(couponRedemptions.couponId, coupon.id), eq(couponRedemptions.userId, userId))
+      );
+      if (userRedemptions.length >= coupon.perUserLimit) {
+        return { valid: false, error: 'Bu kuponu daha fazla kullanamazsınız' };
+      }
+    }
+
+    return { valid: true, coupon };
+  }
+
+  async redeemCoupon(couponId: string, orderId: string, userId: string | null, discountAmount: number): Promise<void> {
+    await db.insert(couponRedemptions).values({
+      couponId,
+      orderId,
+      userId,
+      discountAmount: String(discountAmount),
+    });
+    await this.incrementCouponUsage(couponId);
+  }
+
+  // Order notes methods
+  async getOrderNotes(orderId: string): Promise<OrderNote[]> {
+    return db.select().from(orderNotes).where(eq(orderNotes.orderId, orderId)).orderBy(desc(orderNotes.createdAt));
+  }
+
+  async createOrderNote(note: InsertOrderNote): Promise<OrderNote> {
+    const [newNote] = await db.insert(orderNotes).values(note).returning();
+    return newNote;
+  }
+
+  // Order tracking methods
+  async updateOrderTracking(id: string, data: { trackingNumber?: string; trackingUrl?: string; shippingCarrier?: string }): Promise<Order | undefined> {
+    const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+    return updated;
+  }
+
+  async updateOrder(id: string, data: Partial<Order>): Promise<Order | undefined> {
+    const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+    return updated;
+  }
+
+  // Stock management methods
+  async getAllVariantsWithProducts(): Promise<(ProductVariant & { product: Product })[]> {
+    const result = await db
+      .select()
+      .from(productVariants)
+      .leftJoin(products, eq(productVariants.productId, products.id))
+      .orderBy(products.name, productVariants.size);
+
+    return result.map(r => ({
+      ...r.product_variants,
+      product: r.products!,
+    }));
+  }
+
+  async getLowStockVariants(threshold: number = 5): Promise<(ProductVariant & { product: Product })[]> {
+    const result = await db
+      .select()
+      .from(productVariants)
+      .leftJoin(products, eq(productVariants.productId, products.id))
+      .where(lte(productVariants.stock, threshold))
+      .orderBy(asc(productVariants.stock));
+
+    return result.map(r => ({
+      ...r.product_variants,
+      product: r.products!,
+    }));
+  }
+
+  async bulkUpdateStock(updates: { variantId: string; stock: number; reason?: string; authorId?: string }[]): Promise<void> {
+    for (const update of updates) {
+      const variant = await this.getProductVariant(update.variantId);
+      if (variant) {
+        await db.insert(stockAdjustments).values({
+          variantId: update.variantId,
+          previousStock: variant.stock,
+          newStock: update.stock,
+          adjustmentType: 'manual',
+          reason: update.reason || 'Toplu stok güncellemesi',
+          authorId: update.authorId,
+        });
+        await db.update(productVariants).set({ stock: update.stock }).where(eq(productVariants.id, update.variantId));
+      }
+    }
+  }
+
+  async getStockAdjustments(variantId?: string): Promise<StockAdjustment[]> {
+    if (variantId) {
+      return db.select().from(stockAdjustments).where(eq(stockAdjustments.variantId, variantId)).orderBy(desc(stockAdjustments.createdAt));
+    }
+    return db.select().from(stockAdjustments).orderBy(desc(stockAdjustments.createdAt)).limit(100);
+  }
+
+  // Campaign methods
+  async getCampaigns(): Promise<Campaign[]> {
+    return db.select().from(campaigns).orderBy(desc(campaigns.createdAt));
+  }
+
+  async getCampaign(id: string): Promise<Campaign | undefined> {
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
+    return campaign;
+  }
+
+  async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
+    const [newCampaign] = await db.insert(campaigns).values(campaign).returning();
+    return newCampaign;
+  }
+
+  async updateCampaign(id: string, campaign: Partial<InsertCampaign>): Promise<Campaign | undefined> {
+    const [updated] = await db.update(campaigns).set({ ...campaign, updatedAt: new Date() }).where(eq(campaigns.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCampaign(id: string): Promise<void> {
+    await db.delete(campaigns).where(eq(campaigns.id, id));
+  }
+
+  // Email job methods
+  async createEmailJobs(jobs: { campaignId: string; recipientEmail: string; recipientName?: string }[]): Promise<void> {
+    if (jobs.length > 0) {
+      await db.insert(emailJobs).values(jobs);
+    }
+  }
+
+  async getEmailJobsByCampaign(campaignId: string): Promise<EmailJob[]> {
+    return db.select().from(emailJobs).where(eq(emailJobs.campaignId, campaignId)).orderBy(desc(emailJobs.createdAt));
+  }
+
+  async updateEmailJob(id: string, data: Partial<EmailJob>): Promise<void> {
+    await db.update(emailJobs).set(data).where(eq(emailJobs.id, id));
+  }
+
+  async getEmailsForBulkSend(segment: 'all' | 'active' | 'new'): Promise<{ email: string; name: string }[]> {
+    let query;
+    switch (segment) {
+      case 'new':
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        query = db.select({ email: users.email, firstName: users.firstName, lastName: users.lastName })
+          .from(users)
+          .where(gte(users.createdAt, thirtyDaysAgo));
+        break;
+      case 'active':
+        query = db.select({ email: orders.customerEmail, name: orders.customerName })
+          .from(orders)
+          .groupBy(orders.customerEmail, orders.customerName);
+        break;
+      default:
+        query = db.select({ email: users.email, firstName: users.firstName, lastName: users.lastName }).from(users);
+    }
+
+    const result = await query;
+    return result.map((r: any) => ({
+      email: r.email,
+      name: r.name || `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'Müşteri',
+    }));
   }
 }
 

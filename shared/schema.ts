@@ -128,11 +128,17 @@ export const orders = pgTable("orders", {
   }>().notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0").notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
+  couponCode: text("coupon_code"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").default("pending").notNull(),
   paymentMethod: text("payment_method"),
   paymentStatus: text("payment_status").default("pending").notNull(),
   notes: text("notes"),
+  trackingNumber: text("tracking_number"),
+  trackingUrl: text("tracking_url"),
+  shippingCarrier: text("shipping_carrier"),
+  invoiceUrl: text("invoice_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -236,3 +242,141 @@ export const insertProductReviewSchema = createInsertSchema(productReviews).omit
 
 export type InsertProductReview = z.infer<typeof insertProductReviewSchema>;
 export type ProductReview = typeof productReviews.$inferSelect;
+
+// Coupons / Discount Codes
+export const coupons = pgTable("coupons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  description: text("description"),
+  discountType: text("discount_type").notNull(), // 'percentage' | 'fixed'
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  minOrderAmount: decimal("min_order_amount", { precision: 10, scale: 2 }),
+  maxDiscountAmount: decimal("max_discount_amount", { precision: 10, scale: 2 }),
+  usageLimit: integer("usage_limit"),
+  usageCount: integer("usage_count").default(0).notNull(),
+  perUserLimit: integer("per_user_limit").default(1),
+  isActive: boolean("is_active").default(true).notNull(),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCouponSchema = createInsertSchema(coupons).omit({
+  id: true,
+  usageCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCoupon = z.infer<typeof insertCouponSchema>;
+export type Coupon = typeof coupons.$inferSelect;
+
+// Coupon Redemptions
+export const couponRedemptions = pgTable("coupon_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  couponId: varchar("coupon_id").references(() => coupons.id, { onDelete: "cascade" }).notNull(),
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type CouponRedemption = typeof couponRedemptions.$inferSelect;
+
+// Order Notes / History
+export const orderNotes = pgTable("order_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
+  authorId: varchar("author_id"),
+  authorType: text("author_type").default("admin").notNull(), // 'admin' | 'system' | 'customer'
+  noteType: text("note_type").default("general").notNull(), // 'general' | 'status_change' | 'shipping' | 'payment' | 'customer_service'
+  content: text("content").notNull(),
+  isPrivate: boolean("is_private").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertOrderNoteSchema = createInsertSchema(orderNotes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOrderNote = z.infer<typeof insertOrderNoteSchema>;
+export type OrderNote = typeof orderNotes.$inferSelect;
+
+// Stock Adjustments Log
+export const stockAdjustments = pgTable("stock_adjustments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "cascade" }).notNull(),
+  previousStock: integer("previous_stock").notNull(),
+  newStock: integer("new_stock").notNull(),
+  adjustmentType: text("adjustment_type").notNull(), // 'manual' | 'sale' | 'return' | 'restock' | 'correction'
+  reason: text("reason"),
+  authorId: varchar("author_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type StockAdjustment = typeof stockAdjustments.$inferSelect;
+
+// Low Stock Alerts Configuration
+export const lowStockAlerts = pgTable("low_stock_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "cascade" }).notNull().unique(),
+  threshold: integer("threshold").default(5).notNull(),
+  isEnabled: boolean("is_enabled").default(true).notNull(),
+  lastNotifiedAt: timestamp("last_notified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type LowStockAlert = typeof lowStockAlerts.$inferSelect;
+
+// Marketing Campaigns
+export const campaigns = pgTable("campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  campaignType: text("campaign_type").notNull(), // 'email' | 'discount' | 'banner'
+  status: text("status").default("draft").notNull(), // 'draft' | 'scheduled' | 'active' | 'paused' | 'completed'
+  targetAudience: jsonb("target_audience").$type<{
+    type: 'all' | 'segment';
+    filters?: { field: string; operator: string; value: any }[];
+  }>(),
+  couponId: varchar("coupon_id").references(() => coupons.id, { onDelete: "set null" }),
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  emailSubject: text("email_subject"),
+  emailContent: text("email_content"),
+  sentCount: integer("sent_count").default(0).notNull(),
+  openCount: integer("open_count").default(0).notNull(),
+  clickCount: integer("click_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCampaignSchema = createInsertSchema(campaigns).omit({
+  id: true,
+  sentCount: true,
+  openCount: true,
+  clickCount: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+export type Campaign = typeof campaigns.$inferSelect;
+
+// Email Jobs for bulk email tracking
+export const emailJobs = pgTable("email_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: varchar("campaign_id").references(() => campaigns.id, { onDelete: "cascade" }),
+  recipientEmail: text("recipient_email").notNull(),
+  recipientName: text("recipient_name"),
+  status: text("status").default("pending").notNull(), // 'pending' | 'sent' | 'failed' | 'bounced'
+  sentAt: timestamp("sent_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type EmailJob = typeof emailJobs.$inferSelect;

@@ -27,7 +27,19 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  BarChart3,
+  Warehouse,
+  Megaphone,
+  Tag,
+  Mail,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Truck,
+  FileText,
+  MessageSquare,
+  Calendar
 } from 'lucide-react';
 
 interface Product {
@@ -94,7 +106,7 @@ interface ProductVariant {
   stock: number;
 }
 
-type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce';
+type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing';
 
 interface WooSettings {
   id: string;
@@ -285,9 +297,12 @@ export default function AdminDashboard() {
 
   const sidebarItems = [
     { id: 'dashboard' as TabType, icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'analytics' as TabType, icon: BarChart3, label: 'Analitik' },
     { id: 'products' as TabType, icon: Package, label: 'Ürünler' },
     { id: 'categories' as TabType, icon: Grid3x3, label: 'Kategoriler' },
+    { id: 'inventory' as TabType, icon: Warehouse, label: 'Stok Yönetimi' },
     { id: 'orders' as TabType, icon: ShoppingCart, label: 'Siparişler' },
+    { id: 'marketing' as TabType, icon: Megaphone, label: 'Pazarlama' },
     { id: 'users' as TabType, icon: Users, label: 'Kullanıcılar' },
     { id: 'woocommerce' as TabType, icon: Link2, label: 'WooCommerce' },
   ];
@@ -772,6 +787,18 @@ export default function AdminDashboard() {
 
           {activeTab === 'woocommerce' && (
             <WooCommercePanel />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsPanel />
+          )}
+
+          {activeTab === 'inventory' && (
+            <InventoryPanel />
+          )}
+
+          {activeTab === 'marketing' && (
+            <MarketingPanel />
           )}
         </div>
       </main>
@@ -1908,6 +1935,801 @@ function WooCommercePanel() {
             <span>Consumer Key ve Consumer Secret değerlerini kopyalayın</span>
           </li>
         </ol>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsPanel() {
+  const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
+
+  const { data: salesData, isLoading: salesLoading } = useQuery({
+    queryKey: ['admin-sales', period],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/analytics/sales?period=${period}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch sales data');
+      return res.json();
+    },
+  });
+
+  const { data: bestSellers, isLoading: bestSellersLoading } = useQuery({
+    queryKey: ['admin-best-sellers'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/analytics/best-sellers?limit=10', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch best sellers');
+      return res.json();
+    },
+  });
+
+  const { data: comparison, isLoading: comparisonLoading } = useQuery({
+    queryKey: ['admin-comparison'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/analytics/comparison', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch comparison');
+      return res.json();
+    },
+  });
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(price);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-400">Bu Dönem Gelir</p>
+              <p className="text-2xl font-bold text-white mt-1">
+                {comparisonLoading ? '...' : formatPrice(comparison?.current?.revenue || 0)}
+              </p>
+            </div>
+            <div className={`flex items-center gap-1 ${comparison?.revenueChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {comparison?.revenueChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+              <span className="text-sm font-medium">{Math.abs(comparison?.revenueChange || 0).toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-400">Bu Dönem Sipariş</p>
+              <p className="text-2xl font-bold text-white mt-1">
+                {comparisonLoading ? '...' : comparison?.current?.orders || 0}
+              </p>
+            </div>
+            <div className={`flex items-center gap-1 ${comparison?.ordersChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {comparison?.ordersChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+              <span className="text-sm font-medium">{Math.abs(comparison?.ordersChange || 0).toFixed(1)}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div>
+            <p className="text-sm text-zinc-400">Önceki Dönem Gelir</p>
+            <p className="text-2xl font-bold text-zinc-500 mt-1">
+              {comparisonLoading ? '...' : formatPrice(comparison?.previous?.revenue || 0)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div>
+            <p className="text-sm text-zinc-400">Önceki Dönem Sipariş</p>
+            <p className="text-2xl font-bold text-zinc-500 mt-1">
+              {comparisonLoading ? '...' : comparison?.previous?.orders || 0}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-white">Satış Grafiği</h3>
+          <div className="flex gap-2">
+            {(['day', 'week', 'month', 'year'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  period === p ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                {p === 'day' ? 'Gün' : p === 'week' ? 'Hafta' : p === 'month' ? 'Ay' : 'Yıl'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {salesLoading ? (
+          <div className="h-64 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+          </div>
+        ) : salesData?.labels?.length > 0 ? (
+          <div className="h-64 flex items-end gap-2">
+            {salesData.revenue.map((rev: number, i: number) => {
+              const maxRev = Math.max(...salesData.revenue, 1);
+              const height = (rev / maxRev) * 100;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full bg-zinc-800 rounded-t relative" style={{ height: `${height}%`, minHeight: '4px' }}>
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-zinc-500 whitespace-nowrap">
+                      {formatPrice(rev)}
+                    </div>
+                  </div>
+                  <span className="text-xs text-zinc-500 truncate max-w-full">{salesData.labels[i]}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="h-64 flex items-center justify-center text-zinc-500">
+            Bu dönem için veri bulunamadı
+          </div>
+        )}
+      </div>
+
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-zinc-800">
+          <h3 className="text-lg font-semibold text-white">En Çok Satan Ürünler</h3>
+        </div>
+        <div className="divide-y divide-zinc-800">
+          {bestSellersLoading ? (
+            <div className="p-8 flex justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+            </div>
+          ) : bestSellers?.length > 0 ? (
+            bestSellers.map((item: any, index: number) => (
+              <div key={item.product.id} className="flex items-center gap-4 p-4">
+                <span className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-400">
+                  {index + 1}
+                </span>
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800">
+                  {item.product.images?.[0] && (
+                    <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">{item.product.name}</p>
+                  <p className="text-xs text-zinc-500">{item.totalSold} adet satıldı</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-white">{formatPrice(item.revenue)}</p>
+                  <p className="text-xs text-zinc-500">toplam gelir</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-zinc-500">
+              Henüz satış verisi yok
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InventoryPanel() {
+  const queryClient = useQueryClient();
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [selectedVariants, setSelectedVariants] = useState<{ id: string; stock: number }[]>([]);
+
+  const { data: allVariants = [], isLoading: variantsLoading } = useQuery({
+    queryKey: ['admin-inventory'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/inventory', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch inventory');
+      return res.json();
+    },
+  });
+
+  const { data: lowStockVariants = [], isLoading: lowStockLoading } = useQuery({
+    queryKey: ['admin-low-stock', lowStockThreshold],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/inventory/low-stock?threshold=${lowStockThreshold}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch low stock');
+      return res.json();
+    },
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async (updates: { variantId: string; stock: number; reason?: string }[]) => {
+      const res = await fetch('/api/admin/inventory/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ updates }),
+      });
+      if (!res.ok) throw new Error('Failed to update stock');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
+      setSelectedVariants([]);
+    },
+  });
+
+  const handleStockChange = (variantId: string, newStock: number) => {
+    setSelectedVariants(prev => {
+      const existing = prev.find(v => v.id === variantId);
+      if (existing) {
+        return prev.map(v => v.id === variantId ? { ...v, stock: newStock } : v);
+      }
+      return [...prev, { id: variantId, stock: newStock }];
+    });
+  };
+
+  const applyBulkUpdate = () => {
+    if (selectedVariants.length === 0) return;
+    bulkUpdateMutation.mutate(selectedVariants.map(v => ({
+      variantId: v.id,
+      stock: v.stock,
+      reason: 'Admin panel toplu güncelleme',
+    })));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center gap-3">
+            <Warehouse className="w-8 h-8 text-blue-400" />
+            <div>
+              <p className="text-sm text-zinc-400">Toplam Varyant</p>
+              <p className="text-2xl font-bold text-white">{allVariants.length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-8 h-8 text-yellow-400" />
+            <div>
+              <p className="text-sm text-zinc-400">Düşük Stok</p>
+              <p className="text-2xl font-bold text-yellow-400">{lowStockVariants.length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center gap-3">
+            <Package className="w-8 h-8 text-green-400" />
+            <div>
+              <p className="text-sm text-zinc-400">Toplam Stok</p>
+              <p className="text-2xl font-bold text-white">
+                {allVariants.reduce((sum: number, v: any) => sum + (v.stock || 0), 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {lowStockVariants.length > 0 && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-yellow-400">Düşük Stok Uyarısı</h3>
+              <p className="text-sm text-zinc-400 mt-1">
+                {lowStockVariants.length} varyantın stoğu {lowStockThreshold} adetten az.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {lowStockVariants.slice(0, 5).map((v: any) => (
+                  <span key={v.id} className="px-3 py-1 bg-zinc-800 rounded-lg text-sm text-white">
+                    {v.product?.name} - {v.size} ({v.stock} adet)
+                  </span>
+                ))}
+                {lowStockVariants.length > 5 && (
+                  <span className="px-3 py-1 bg-zinc-700 rounded-lg text-sm text-zinc-400">
+                    +{lowStockVariants.length - 5} daha
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">Stok Yönetimi</h3>
+          {selectedVariants.length > 0 && (
+            <button
+              onClick={applyBulkUpdate}
+              disabled={bulkUpdateMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
+            >
+              {bulkUpdateMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {selectedVariants.length} Değişikliği Kaydet
+            </button>
+          )}
+        </div>
+
+        {variantsLoading ? (
+          <div className="p-8 flex justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+          </div>
+        ) : allVariants.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-zinc-800/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Ürün</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Beden</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Renk</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Fiyat</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Stok</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {allVariants.map((v: any) => {
+                  const pendingChange = selectedVariants.find(sv => sv.id === v.id);
+                  const currentStock = pendingChange?.stock ?? v.stock;
+                  return (
+                    <tr key={v.id} className={pendingChange ? 'bg-blue-500/5' : ''}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800">
+                            {v.product?.images?.[0] && (
+                              <img src={v.product.images[0]} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                          <span className="text-sm text-white">{v.product?.name || 'Bilinmeyen'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-zinc-400">{v.size || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-zinc-400">{v.color || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-white">{v.price} TL</td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="number"
+                          value={currentStock}
+                          onChange={(e) => handleStockChange(v.id, parseInt(e.target.value) || 0)}
+                          className={`w-20 px-2 py-1 rounded-lg text-sm ${
+                            currentStock <= lowStockThreshold
+                              ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+                              : 'bg-zinc-800 border-zinc-700 text-white'
+                          } border`}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-zinc-500">
+            Henüz ürün varyantı yok
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MarketingPanel() {
+  const queryClient = useQueryClient();
+  const [activeSubTab, setActiveSubTab] = useState<'coupons' | 'campaigns'>('coupons');
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<any>(null);
+
+  const { data: coupons = [], isLoading: couponsLoading } = useQuery({
+    queryKey: ['admin-coupons'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/coupons', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch coupons');
+      return res.json();
+    },
+  });
+
+  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
+    queryKey: ['admin-campaigns'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/campaigns', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch campaigns');
+      return res.json();
+    },
+  });
+
+  const deleteCouponMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/coupons/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete coupon');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+    },
+  });
+
+  const saveCouponMutation = useMutation({
+    mutationFn: async (coupon: any) => {
+      const isEdit = !!coupon.id;
+      const res = await fetch(`/api/admin/coupons${isEdit ? `/${coupon.id}` : ''}`, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(coupon),
+      });
+      if (!res.ok) throw new Error('Failed to save coupon');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      setShowCouponModal(false);
+      setEditingCoupon(null);
+    },
+  });
+
+  const formatPrice = (price: string | number) => {
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(price) || 0);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveSubTab('coupons')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            activeSubTab === 'coupons' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Tag className="w-4 h-4" />
+          Kuponlar
+        </button>
+        <button
+          onClick={() => setActiveSubTab('campaigns')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            activeSubTab === 'campaigns' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Mail className="w-4 h-4" />
+          Kampanyalar
+        </button>
+      </div>
+
+      {activeSubTab === 'coupons' && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">İndirim Kuponları</h3>
+            <button
+              onClick={() => { setEditingCoupon(null); setShowCouponModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Yeni Kupon
+            </button>
+          </div>
+
+          {couponsLoading ? (
+            <div className="p-8 flex justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+            </div>
+          ) : coupons.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-zinc-800/50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kod</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">İndirim</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kullanım</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Durum</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Geçerlilik</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {coupons.map((coupon: any) => (
+                    <tr key={coupon.id}>
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-sm bg-zinc-800 px-2 py-1 rounded text-white">{coupon.code}</span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-white">
+                        {coupon.discountType === 'percentage' 
+                          ? `%${coupon.discountValue}` 
+                          : formatPrice(coupon.discountValue)
+                        }
+                      </td>
+                      <td className="px-6 py-4 text-sm text-zinc-400">
+                        {coupon.usageCount || 0} / {coupon.usageLimit || '∞'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 text-xs rounded ${
+                          coupon.isActive ? 'bg-green-500/20 text-green-400' : 'bg-zinc-700 text-zinc-400'
+                        }`}>
+                          {coupon.isActive ? 'Aktif' : 'Pasif'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-zinc-400">
+                        {coupon.expiresAt 
+                          ? new Date(coupon.expiresAt).toLocaleDateString('tr-TR')
+                          : 'Süresiz'
+                        }
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => { setEditingCoupon(coupon); setShowCouponModal(true); }}
+                            className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => { if (confirm('Bu kuponu silmek istediğinize emin misiniz?')) deleteCouponMutation.mutate(coupon.id); }}
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-zinc-500">
+              Henüz kupon oluşturulmamış
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeSubTab === 'campaigns' && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">E-posta Kampanyaları</h3>
+            <div className="text-sm text-zinc-500">
+              E-posta gönderimi için SendGrid veya Resend entegrasyonu gereklidir
+            </div>
+          </div>
+
+          {campaignsLoading ? (
+            <div className="p-8 flex justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+            </div>
+          ) : campaigns.length > 0 ? (
+            <div className="divide-y divide-zinc-800">
+              {campaigns.map((campaign: any) => (
+                <div key={campaign.id} className="p-6 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-white">{campaign.name}</h4>
+                    <p className="text-sm text-zinc-400 mt-1">{campaign.description}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-zinc-500">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(campaign.createdAt).toLocaleDateString('tr-TR')}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded ${
+                        campaign.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                        campaign.status === 'completed' ? 'bg-blue-500/20 text-blue-400' :
+                        'bg-zinc-700 text-zinc-400'
+                      }`}>
+                        {campaign.status === 'active' ? 'Aktif' :
+                         campaign.status === 'completed' ? 'Tamamlandı' : 'Taslak'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-zinc-500">
+              <Mail className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Henüz kampanya oluşturulmamış</p>
+              <p className="text-xs mt-2">E-posta kampanyaları için önce bir e-posta servisi entegrasyonu yapmanız gerekiyor</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showCouponModal && (
+        <CouponModal
+          coupon={editingCoupon}
+          onClose={() => { setShowCouponModal(false); setEditingCoupon(null); }}
+          onSave={(coupon) => saveCouponMutation.mutate(coupon)}
+          isSaving={saveCouponMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function CouponModal({ 
+  coupon, 
+  onClose, 
+  onSave, 
+  isSaving 
+}: { 
+  coupon: any; 
+  onClose: () => void; 
+  onSave: (coupon: any) => void;
+  isSaving: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    code: coupon?.code || '',
+    discountType: coupon?.discountType || 'percentage',
+    discountValue: coupon?.discountValue || '',
+    minOrderAmount: coupon?.minOrderAmount || '',
+    maxDiscount: coupon?.maxDiscount || '',
+    usageLimit: coupon?.usageLimit || '',
+    perUserLimit: coupon?.perUserLimit || '',
+    startsAt: coupon?.startsAt ? new Date(coupon.startsAt).toISOString().split('T')[0] : '',
+    expiresAt: coupon?.expiresAt ? new Date(coupon.expiresAt).toISOString().split('T')[0] : '',
+    isActive: coupon?.isActive ?? true,
+  });
+
+  const handleSubmit = () => {
+    onSave({
+      ...(coupon?.id && { id: coupon.id }),
+      ...formData,
+      discountValue: formData.discountValue,
+      minOrderAmount: formData.minOrderAmount || null,
+      maxDiscount: formData.maxDiscount || null,
+      usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : null,
+      perUserLimit: formData.perUserLimit ? parseInt(formData.perUserLimit) : null,
+      startsAt: formData.startsAt ? new Date(formData.startsAt) : null,
+      expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">
+            {coupon ? 'Kuponu Düzenle' : 'Yeni Kupon Oluştur'}
+          </h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Kupon Kodu *</label>
+            <input
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+              placeholder="SUMMER20"
+              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-mono uppercase"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">İndirim Tipi *</label>
+              <select
+                value={formData.discountType}
+                onChange={(e) => setFormData(p => ({ ...p, discountType: e.target.value }))}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              >
+                <option value="percentage">Yüzde (%)</option>
+                <option value="fixed">Sabit Tutar (TL)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">İndirim Değeri *</label>
+              <input
+                type="number"
+                value={formData.discountValue}
+                onChange={(e) => setFormData(p => ({ ...p, discountValue: e.target.value }))}
+                placeholder={formData.discountType === 'percentage' ? '20' : '100'}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Min. Sipariş Tutarı</label>
+              <input
+                type="number"
+                value={formData.minOrderAmount}
+                onChange={(e) => setFormData(p => ({ ...p, minOrderAmount: e.target.value }))}
+                placeholder="500"
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Max. İndirim (TL)</label>
+              <input
+                type="number"
+                value={formData.maxDiscount}
+                onChange={(e) => setFormData(p => ({ ...p, maxDiscount: e.target.value }))}
+                placeholder="200"
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Kullanım Limiti</label>
+              <input
+                type="number"
+                value={formData.usageLimit}
+                onChange={(e) => setFormData(p => ({ ...p, usageLimit: e.target.value }))}
+                placeholder="100"
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Kişi Başı Limit</label>
+              <input
+                type="number"
+                value={formData.perUserLimit}
+                onChange={(e) => setFormData(p => ({ ...p, perUserLimit: e.target.value }))}
+                placeholder="1"
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Başlangıç Tarihi</label>
+              <input
+                type="date"
+                value={formData.startsAt}
+                onChange={(e) => setFormData(p => ({ ...p, startsAt: e.target.value }))}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Bitiş Tarihi</label>
+              <input
+                type="date"
+                value={formData.expiresAt}
+                onChange={(e) => setFormData(p => ({ ...p, expiresAt: e.target.value }))}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(e) => setFormData(p => ({ ...p, isActive: e.target.checked }))}
+              className="w-5 h-5 rounded bg-zinc-800 border-zinc-700 text-white"
+            />
+            <span className="text-sm text-white">Kupon Aktif</span>
+          </label>
+        </div>
+
+        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSaving || !formData.code || !formData.discountValue}
+            className="flex items-center gap-2 px-6 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
+          >
+            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {coupon ? 'Güncelle' : 'Oluştur'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1105,5 +1105,257 @@ export async function registerRoutes(
     }
   });
 
+  // Analytics Routes
+  app.get("/api/admin/analytics/sales", requireAdmin, async (req, res) => {
+    try {
+      const period = (req.query.period as 'day' | 'week' | 'month' | 'year') || 'month';
+      const data = await storage.getSalesAnalytics(period);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sales analytics" });
+    }
+  });
+
+  app.get("/api/admin/analytics/best-sellers", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const data = await storage.getBestSellingProducts(limit);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch best sellers" });
+    }
+  });
+
+  app.get("/api/admin/analytics/comparison", requireAdmin, async (req, res) => {
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+      const data = await storage.getPeriodComparison(thirtyDaysAgo, now, sixtyDaysAgo, thirtyDaysAgo);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch comparison data" });
+    }
+  });
+
+  // Coupon Routes
+  app.get("/api/admin/coupons", requireAdmin, async (req, res) => {
+    try {
+      const coupons = await storage.getCoupons();
+      res.json(coupons);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch coupons" });
+    }
+  });
+
+  app.get("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
+    try {
+      const coupon = await storage.getCoupon(req.params.id);
+      if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+      res.json(coupon);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch coupon" });
+    }
+  });
+
+  app.post("/api/admin/coupons", requireAdmin, async (req, res) => {
+    try {
+      const coupon = await storage.createCoupon(req.body);
+      res.status(201).json(coupon);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to create coupon" });
+    }
+  });
+
+  app.put("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
+    try {
+      const coupon = await storage.updateCoupon(req.params.id, req.body);
+      if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+      res.json(coupon);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update coupon" });
+    }
+  });
+
+  app.delete("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteCoupon(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete coupon" });
+    }
+  });
+
+  // Public coupon validation
+  app.post("/api/coupons/validate", async (req, res) => {
+    try {
+      const { code, orderTotal } = req.body;
+      const userId = (req.session as any).userId || null;
+      const result = await storage.validateCoupon(code, orderTotal, userId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to validate coupon" });
+    }
+  });
+
+  // Stock Management Routes
+  app.get("/api/admin/inventory", requireAdmin, async (req, res) => {
+    try {
+      const variants = await storage.getAllVariantsWithProducts();
+      res.json(variants);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch inventory" });
+    }
+  });
+
+  app.get("/api/admin/inventory/low-stock", requireAdmin, async (req, res) => {
+    try {
+      const threshold = parseInt(req.query.threshold as string) || 5;
+      const variants = await storage.getLowStockVariants(threshold);
+      res.json(variants);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch low stock items" });
+    }
+  });
+
+  app.post("/api/admin/inventory/bulk-update", requireAdmin, async (req, res) => {
+    try {
+      const { updates } = req.body;
+      await storage.bulkUpdateStock(updates.map((u: any) => ({
+        ...u,
+        authorId: req.session.adminId,
+      })));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to bulk update stock" });
+    }
+  });
+
+  app.get("/api/admin/inventory/adjustments", requireAdmin, async (req, res) => {
+    try {
+      const variantId = req.query.variantId as string | undefined;
+      const adjustments = await storage.getStockAdjustments(variantId);
+      res.json(adjustments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stock adjustments" });
+    }
+  });
+
+  // Order Management Routes (enhanced)
+  app.get("/api/admin/orders/:id/notes", requireAdmin, async (req, res) => {
+    try {
+      const notes = await storage.getOrderNotes(req.params.id);
+      res.json(notes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch order notes" });
+    }
+  });
+
+  app.post("/api/admin/orders/:id/notes", requireAdmin, async (req, res) => {
+    try {
+      const note = await storage.createOrderNote({
+        orderId: req.params.id,
+        authorId: req.session.adminId,
+        content: req.body.content,
+        isInternal: req.body.isInternal !== false,
+      });
+      res.status(201).json(note);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create order note" });
+    }
+  });
+
+  app.put("/api/admin/orders/:id/tracking", requireAdmin, async (req, res) => {
+    try {
+      const { trackingNumber, trackingUrl, shippingCarrier } = req.body;
+      const order = await storage.updateOrderTracking(req.params.id, {
+        trackingNumber,
+        trackingUrl,
+        shippingCarrier,
+      });
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update tracking" });
+    }
+  });
+
+  app.put("/api/admin/orders/:id", requireAdmin, async (req, res) => {
+    try {
+      const order = await storage.updateOrder(req.params.id, req.body);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update order" });
+    }
+  });
+
+  // Campaign Routes
+  app.get("/api/admin/campaigns", requireAdmin, async (req, res) => {
+    try {
+      const campaigns = await storage.getCampaigns();
+      res.json(campaigns);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  app.get("/api/admin/campaigns/:id", requireAdmin, async (req, res) => {
+    try {
+      const campaign = await storage.getCampaign(req.params.id);
+      if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+      res.json(campaign);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch campaign" });
+    }
+  });
+
+  app.post("/api/admin/campaigns", requireAdmin, async (req, res) => {
+    try {
+      const campaign = await storage.createCampaign(req.body);
+      res.status(201).json(campaign);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to create campaign" });
+    }
+  });
+
+  app.put("/api/admin/campaigns/:id", requireAdmin, async (req, res) => {
+    try {
+      const campaign = await storage.updateCampaign(req.params.id, req.body);
+      if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+      res.json(campaign);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update campaign" });
+    }
+  });
+
+  app.delete("/api/admin/campaigns/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteCampaign(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete campaign" });
+    }
+  });
+
+  app.get("/api/admin/campaigns/:id/emails", requireAdmin, async (req, res) => {
+    try {
+      const emails = await storage.getEmailJobsByCampaign(req.params.id);
+      res.json(emails);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch campaign emails" });
+    }
+  });
+
+  app.get("/api/admin/email-recipients", requireAdmin, async (req, res) => {
+    try {
+      const segment = (req.query.segment as 'all' | 'active' | 'new') || 'all';
+      const recipients = await storage.getEmailsForBulkSend(segment);
+      res.json(recipients);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch email recipients" });
+    }
+  });
+
   return httpServer;
 }
