@@ -327,15 +327,15 @@ export default function Checkout() {
               ÖDEME
             </h1>
             
-            <div className="flex items-center justify-center gap-2 sm:gap-4 max-w-xl mx-auto overflow-x-auto pb-2">
+            <div className="flex items-center justify-center gap-1 sm:gap-2 max-w-2xl mx-auto px-2">
               {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center shrink-0">
+                <div key={step.id} className="flex items-center flex-1 sm:flex-none">
                   <motion.button 
                     type="button"
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.02 }}
                     onClick={() => goToStep(step.id)}
                     disabled={step.id > currentStep + 1}
-                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full transition-all ${
+                    className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-full transition-all w-full sm:w-auto ${
                       currentStep === step.id 
                         ? 'bg-white text-black' 
                         : currentStep > step.id
@@ -345,15 +345,14 @@ export default function Checkout() {
                     data-testid={`step-${step.id}`}
                   >
                     {currentStep > step.id ? (
-                      <Check className="w-4 h-4" />
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                     ) : (
-                      <step.icon className="w-4 h-4" />
+                      <step.icon className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                     )}
-                    <span className="text-xs font-medium hidden sm:block">{step.title}</span>
-                    <span className="text-xs font-medium sm:hidden">{step.id}</span>
+                    <span className="text-[10px] sm:text-xs font-medium truncate">{step.title}</span>
                   </motion.button>
                   {index < steps.length - 1 && (
-                    <div className={`w-4 sm:w-8 h-px mx-1 sm:mx-2 ${currentStep > step.id ? 'bg-green-500' : 'bg-white/10'}`} />
+                    <div className={`w-2 sm:w-6 h-px mx-0.5 sm:mx-1 shrink-0 ${currentStep > step.id ? 'bg-green-500' : 'bg-white/10'}`} />
                   )}
                 </div>
               ))}

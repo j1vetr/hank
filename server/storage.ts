@@ -342,8 +342,33 @@ export class DbStorage implements IStorage {
     await db.delete(productVariants).where(eq(productVariants.id, id));
   }
 
-  async getCartItems(sessionId: string): Promise<CartItem[]> {
-    return db.select().from(cartItems).where(eq(cartItems.sessionId, sessionId));
+  async getCartItems(sessionId: string): Promise<any[]> {
+    const items = await db.select().from(cartItems).where(eq(cartItems.sessionId, sessionId));
+    
+    const itemsWithDetails = await Promise.all(items.map(async (item) => {
+      const [product] = await db.select({
+        id: products.id,
+        name: products.name,
+        slug: products.slug,
+        basePrice: products.basePrice,
+        images: products.images,
+      }).from(products).where(eq(products.id, item.productId));
+      
+      let variant = null;
+      if (item.variantId) {
+        const [v] = await db.select({
+          id: productVariants.id,
+          size: productVariants.size,
+          color: productVariants.color,
+          price: productVariants.price,
+        }).from(productVariants).where(eq(productVariants.id, item.variantId));
+        variant = v || null;
+      }
+      
+      return { ...item, product, variant };
+    }));
+    
+    return itemsWithDetails;
   }
 
   async getCartItem(id: string): Promise<CartItem | undefined> {

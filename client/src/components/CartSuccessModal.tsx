@@ -172,13 +172,31 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                   >
                     Alışverişe Devam Et
                   </Button>
-                  <Link href="/sepet" className="flex-1">
+                  <Link href="/sepet" onClick={onClose} className="flex-1">
                     <Button
                       className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide group"
                       data-testid="button-go-to-cart"
                     >
                       Sepete Git
                       <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="mt-3"
+                >
+                  <Link href="/odeme" onClick={onClose} className="block">
+                    <Button
+                      variant="ghost"
+                      className="w-full h-10 text-sm text-muted-foreground hover:text-white"
+                      data-testid="button-go-to-checkout"
+                    >
+                      ÖDEMEYE GEÇ
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </Link>
                 </motion.div>
