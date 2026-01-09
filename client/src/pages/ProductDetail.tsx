@@ -809,29 +809,37 @@ export default function ProductDetail() {
             )}
 
             {reviews.length > 0 ? (
-              <div className="space-y-4">
-                {reviews.filter(r => r.id !== userReview?.id).map((review) => (
-                  <div key={review.id} className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-bold">
-                          {review.user.firstName?.charAt(0) || 'A'}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">
-                            {review.user.firstName} {review.user.lastName?.charAt(0)}.
-                          </p>
-                          <StarRating rating={review.rating} size={12} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {reviews.filter(r => r.id !== userReview?.id).map((review) => {
+                  const maskName = (name: string | null | undefined) => {
+                    if (!name) return '***';
+                    return name.slice(0, 2) + '***';
+                  };
+                  return (
+                    <div key={review.id} className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 flex items-center justify-center text-sm font-bold text-white">
+                            {review.user.firstName?.charAt(0)?.toUpperCase() || 'A'}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-white">
+                              {maskName(review.user.firstName)} {maskName(review.user.lastName)}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <StarRating rating={review.rating} size={12} />
+                              <span className="text-xs text-zinc-500">
+                                {new Date(review.createdAt).toLocaleDateString('tr-TR')}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(review.createdAt).toLocaleDateString('tr-TR')}
-                      </span>
+                      {review.title && <h4 className="font-semibold text-sm text-white">{review.title}</h4>}
+                      {review.content && <p className="text-muted-foreground text-sm mt-2 leading-relaxed">{review.content}</p>}
                     </div>
-                    {review.title && <h4 className="font-semibold text-sm mt-3">{review.title}</h4>}
-                    {review.content && <p className="text-muted-foreground text-sm mt-1">{review.content}</p>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               !userReview && (
