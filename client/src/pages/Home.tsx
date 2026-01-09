@@ -5,8 +5,8 @@ import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Instagram } fr
 import { Link } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
-import heroImage1 from '@assets/hero-1.jpg';
-import heroImage2 from '@assets/hero-2.jpg';
+import heroImage1 from '@assets/hero-1.webp';
+import heroImage2 from '@assets/hero-2.webp';
 import categoryTshirt from '@assets/category-tshirt.jpg';
 import categorySort from '@assets/category-sort.jpg';
 import categoryAtlet from '@assets/category-atlet.jpg';
