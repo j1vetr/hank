@@ -76,7 +76,12 @@ interface Order {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  shippingAddress: string;
+  shippingAddress: {
+    address: string;
+    city: string;
+    district: string;
+    postalCode: string;
+  };
   total: string;
   status: string;
   createdAt: string;
@@ -1577,7 +1582,8 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
           
           <div>
             <p className="text-sm text-zinc-500 mb-1">Teslimat Adresi</p>
-            <p className="text-zinc-300">{order.shippingAddress}</p>
+            <p className="text-zinc-300">{order.shippingAddress?.address}</p>
+            <p className="text-zinc-400">{order.shippingAddress?.district}, {order.shippingAddress?.city} {order.shippingAddress?.postalCode}</p>
           </div>
           
           <div className="pt-4 border-t border-zinc-800">
