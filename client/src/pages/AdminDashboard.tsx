@@ -344,8 +344,12 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-zinc-950 flex">
       <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
         <div className="p-6 border-b border-zinc-800">
-          <h1 className="font-display text-2xl tracking-wide text-white">HANK</h1>
-          <p className="text-xs text-zinc-500 mt-1">Admin Panel</p>
+          <img 
+            src="https://toov.com.tr/assets/toov_logo-DODYNPrj.png" 
+            alt="TOOV" 
+            className="h-8 mb-2"
+          />
+          <p className="text-xs text-zinc-500">Admin Panel</p>
         </div>
         
         <nav className="flex-1 p-4">

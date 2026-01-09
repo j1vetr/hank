@@ -40,7 +40,11 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="font-display text-5xl tracking-wide mb-2">HANK</h1>
+          <img 
+            src="https://toov.com.tr/assets/toov_logo-DODYNPrj.png" 
+            alt="TOOV" 
+            className="h-12 mx-auto mb-4"
+          />
           <p className="text-muted-foreground">Admin Panel Girişi</p>
         </div>
 
