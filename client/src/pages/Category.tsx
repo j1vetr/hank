@@ -314,23 +314,23 @@ export default function Category() {
               </Link>
             </motion.div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
-            >
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {filteredProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * Math.min(index, 8) }}
+                  initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ 
+                    duration: 0.5, 
+                    delay: (index % 4) * 0.1,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                  }}
                 >
                   <ProductCard product={product} />
                 </motion.div>
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
       </section>
@@ -338,20 +338,35 @@ export default function Category() {
       {categories.length > 1 && (
         <section className="py-16 px-6 border-t border-border/30">
           <div className="max-w-[1400px] mx-auto">
-            <h2 className="font-display text-2xl tracking-wide mb-8">DİĞER KATEGORİLER</h2>
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="font-display text-2xl tracking-wide mb-8"
+            >
+              DİĞER KATEGORİLER
+            </motion.h2>
             <div className="flex flex-wrap gap-3">
               {categories
                 .filter(c => c.slug !== slug)
-                .map(cat => (
-                  <Link key={cat.id} href={`/kategori/${cat.slug}`}>
-                    <Button
-                      variant="outline"
-                      className="border-white/20 hover:bg-white hover:text-black transition-all"
-                      data-testid={`button-other-category-${cat.slug}`}
-                    >
-                      {cat.name}
-                    </Button>
-                  </Link>
+                .map((cat, index) => (
+                  <motion.div
+                    key={cat.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Link href={`/kategori/${cat.slug}`}>
+                      <Button
+                        variant="outline"
+                        className="border-white/20 hover:bg-white hover:text-black transition-all"
+                        data-testid={`button-other-category-${cat.slug}`}
+                      >
+                        {cat.name}
+                      </Button>
+                    </Link>
+                  </motion.div>
                 ))}
             </div>
           </div>

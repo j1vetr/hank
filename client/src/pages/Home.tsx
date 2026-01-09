@@ -311,17 +311,30 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
-            animate={productsInView ? { opacity: 1, y: 0 } : {}}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 mb-12 lg:mb-16"
           >
             <div>
-              <span className="inline-block text-sm tracking-[0.3em] uppercase text-muted-foreground mb-4">
+              <motion.span 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="inline-block text-sm tracking-[0.3em] uppercase text-muted-foreground mb-4"
+              >
                 En Çok Tercih Edilenler
-              </span>
-              <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wide">
+              </motion.span>
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wide"
+              >
                 POPÜLER ÜRÜNLER
-              </h2>
+              </motion.h2>
             </div>
             <Link href="/kategori/tshirt" className="group flex items-center gap-3 px-6 py-3 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all">
               <span className="text-sm font-medium tracking-wider uppercase">Tümünü Gör</span>
@@ -333,9 +346,14 @@ export default function Home() {
             {featuredProducts.map((product, index) => (
               <motion.div
                 key={product.id}
-                initial={{ opacity: 0, y: 40 }}
-                animate={productsInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: index * 0.08 }}
+                initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ 
+                  duration: 0.6, 
+                  delay: (index % 4) * 0.1,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }}
               >
                 <ProductCard product={product} />
               </motion.div>
@@ -359,16 +377,25 @@ export default function Home() {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ 
+                  duration: 0.5, 
+                  delay: index * 0.1,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }}
                 className="group text-center p-6 lg:p-8 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all"
                 data-testid={`feature-${index}`}
               >
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
+                <motion.div 
+                  className="w-14 h-14 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform"
+                  whileInView={{ rotate: [0, 10, -10, 0] }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
+                >
                   <feature.icon className="w-6 h-6 text-white/80" />
-                </div>
+                </motion.div>
                 <h3 className="font-display text-lg lg:text-xl tracking-wide mb-2">
                   {feature.title.toUpperCase()}
                 </h3>
@@ -384,7 +411,13 @@ export default function Home() {
         
         <div className="max-w-[1400px] mx-auto relative z-10">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 mb-16">
-            <div className="col-span-2 lg:col-span-1">
+            <motion.div 
+              className="col-span-2 lg:col-span-1"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
               <img
                 src="/uploads/branding/hank-logo.svg"
                 alt="HANK"
@@ -416,9 +449,14 @@ export default function Home() {
                   <a href="mailto:info@hank.com.tr" className="hover:text-white transition-colors">info@hank.com.tr</a>
                 </p>
               </div>
-            </div>
+            </motion.div>
             
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
               <h4 className="font-display text-lg tracking-wider mb-6">ALIŞVERİŞ</h4>
               <ul className="space-y-4 text-sm text-white/50">
                 {categories.slice(0, 4).map(cat => (
@@ -429,27 +467,43 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </motion.div>
             
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
               <h4 className="font-display text-lg tracking-wider mb-6">DESTEK</h4>
               <ul className="space-y-4 text-sm text-white/50">
                 <li><Link href="/teslimat-kosullari" className="hover:text-white transition-colors">Teslimat Koşulları</Link></li>
                 <li><Link href="/iptal-ve-iade" className="hover:text-white transition-colors">İptal ve İade Politikası</Link></li>
                 <li><Link href="/mesafeli-satis-sozlesmesi" className="hover:text-white transition-colors">Mesafeli Satış Sözleşmesi</Link></li>
               </ul>
-            </div>
+            </motion.div>
             
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
               <h4 className="font-display text-lg tracking-wider mb-6">KURUMSAL</h4>
               <ul className="space-y-4 text-sm text-white/50">
                 <li><Link href="/hakkimizda" className="hover:text-white transition-colors">Hakkımızda</Link></li>
                 <li><Link href="/kvkk" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</Link></li>
               </ul>
-            </div>
+            </motion.div>
           </div>
 
-          <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <motion.div 
+            className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
             <p className="text-sm text-white/40">
               © 2025 HANK. Tüm hakları saklıdır.
             </p>
@@ -470,7 +524,7 @@ export default function Home() {
                 />
               </a>
             </div>
-          </div>
+          </motion.div>
         </div>
       </footer>
     </div>
