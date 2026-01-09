@@ -199,7 +199,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="absolute bottom-[180px] sm:bottom-[200px] lg:bottom-[220px] left-1/2 -translate-x-1/2 z-20 flex gap-3">
+        <div className="absolute bottom-[180px] sm:bottom-[200px] lg:bottom-[240px] left-1/2 -translate-x-1/2 z-20 flex gap-3">
           {heroImages.map((_, index) => (
             <button
               key={index}
