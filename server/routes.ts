@@ -621,12 +621,15 @@ export async function registerRoutes(
 
   app.patch("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
+      console.log('Updating product:', req.params.id, 'with data:', JSON.stringify(req.body, null, 2));
       const product = await storage.updateProduct(req.params.id, req.body);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
+      console.log('Updated product result:', JSON.stringify(product, null, 2));
       res.json(product);
     } catch (error) {
+      console.error('Product update error:', error);
       res.status(400).json({ error: "Failed to update product" });
     }
   });
