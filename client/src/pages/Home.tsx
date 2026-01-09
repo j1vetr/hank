@@ -25,23 +25,23 @@ const defaultCategoryImages: Record<string, string> = {
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
 function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
-  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 8);
+  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 10);
   
   return (
-    <div className="overflow-hidden">
-      <div className="flex animate-marquee gap-4" style={{ width: 'max-content' }}>
+    <div className="overflow-hidden px-4">
+      <div className="flex animate-marquee gap-3 lg:gap-4" style={{ width: 'max-content' }}>
         {[...shuffledProducts, ...shuffledProducts].map((product, index) => (
           <Link key={`${product.id}-${index}`} href={`/urun/${product.slug}`}>
-            <div className="relative w-28 h-36 sm:w-32 sm:h-40 lg:w-40 lg:h-52 rounded-lg overflow-hidden group cursor-pointer flex-shrink-0 border border-white/10">
+            <div className="relative w-24 h-32 sm:w-28 sm:h-36 lg:w-32 lg:h-44 rounded-lg overflow-hidden group cursor-pointer flex-shrink-0 border border-white/20 hover:border-white/40 transition-colors">
               <img
                 src={product.images[0] || '/placeholder.jpg'}
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
-                <p className="text-white text-[10px] sm:text-xs font-medium truncate">{product.name}</p>
-                <p className="text-white/70 text-[10px] sm:text-xs">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-2">
+                <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-medium truncate">{product.name}</p>
+                <p className="text-emerald-400 text-[9px] sm:text-[10px] lg:text-xs font-bold">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
               </div>
             </div>
           </Link>
@@ -199,7 +199,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="absolute bottom-32 left-1/2 -translate-x-1/2 z-20 flex gap-3">
+        <div className="absolute bottom-[180px] sm:bottom-[200px] lg:bottom-[220px] left-1/2 -translate-x-1/2 z-20 flex gap-3">
           {heroImages.map((_, index) => (
             <button
               key={index}
@@ -212,19 +212,19 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="relative z-10 h-full flex items-center justify-center">
+        <div className="relative z-10 h-full flex flex-col justify-center pt-20 lg:pt-24">
           <div className="text-center px-6 w-full">
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="font-display text-6xl sm:text-7xl lg:text-[140px] xl:text-[180px] text-white tracking-wider mb-8 sm:mb-12 leading-none text-center"
+              className="font-display text-5xl sm:text-6xl lg:text-[100px] xl:text-[120px] text-white tracking-wider mb-6 sm:mb-8 leading-none text-center"
             >
               <motion.span 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="block mb-1 sm:mb-2 lg:mb-4"
+                className="block mb-1 sm:mb-2"
               >
                 GÜCÜNÜ
               </motion.span>
@@ -242,36 +242,34 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0 mb-8 lg:mb-12"
             >
               <Link href="/magaza" className="w-full sm:w-auto">
                 <button
                   data-testid="button-shop-men"
-                  className="group w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4 text-sm sm:text-base"
+                  className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4 text-sm"
                 >
                   Koleksiyonu Keşfet
-                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </button>
               </Link>
               <Link href="/magaza" className="w-full sm:w-auto">
                 <button
                   data-testid="button-shop-all"
-                  className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all text-sm sm:text-base"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all text-sm"
                 >
                   Tüm Ürünler
                 </button>
               </Link>
             </motion.div>
           </div>
-        </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-20">
           {allProducts.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="bg-black/60 backdrop-blur-sm border-t border-white/10 py-4"
+              className="mt-auto pb-6 lg:pb-10"
             >
               <HeroProductSlider products={allProducts} />
             </motion.div>
