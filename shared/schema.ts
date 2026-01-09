@@ -262,6 +262,15 @@ export const coupons = pgTable("coupons", {
   isActive: boolean("is_active").default(true).notNull(),
   startsAt: timestamp("starts_at"),
   expiresAt: timestamp("expires_at"),
+  // Influencer tracking fields
+  isInfluencerCode: boolean("is_influencer_code").default(false).notNull(),
+  influencerName: text("influencer_name"),
+  influencerInstagram: text("influencer_instagram"),
+  commissionType: text("commission_type"), // 'per_use' | 'percentage' | 'fixed_total'
+  commissionValue: decimal("commission_value", { precision: 10, scale: 2 }),
+  totalCommissionEarned: decimal("total_commission_earned", { precision: 10, scale: 2 }).default("0"),
+  isPaid: boolean("is_paid").default(false).notNull(),
+  paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

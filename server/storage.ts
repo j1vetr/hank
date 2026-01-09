@@ -902,6 +902,91 @@ export class DbStorage implements IStorage {
     return db.select().from(stockAdjustments).orderBy(desc(stockAdjustments.createdAt)).limit(100);
   }
 
+  async createStockAdjustment(data: { variantId: string; previousStock: number; newStock: number; adjustmentType: string; reason?: string; authorId?: string }): Promise<StockAdjustment> {
+    const [adjustment] = await db.insert(stockAdjustments).values(data).returning();
+    return adjustment;
+  }
+
+  // User order history methods
+  async getUserOrdersByEmail(email: string): Promise<Order[]> {
+    return db.select().from(orders).where(eq(orders.customerEmail, email)).orderBy(desc(orders.createdAt));
+  }
+
+  async getUserOrderStats(email: string): Promise<{ totalOrders: number; totalSpent: number; lastOrderDate: Date | null; products: string[] }> {
+    const userOrders = await this.getUserOrdersByEmail(email);
+    if (userOrders.length === 0) {
+      return { totalOrders: 0, totalSpent: 0, lastOrderDate: null, products: [] };
+    }
+
+    const totalSpent = userOrders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+    const lastOrderDate = userOrders[0].createdAt;
+    
+    // Get all order items for these orders
+    const allProducts: string[] = [];
+    for (const order of userOrders) {
+      const items = await this.getOrderItems(order.id);
+      items.forEach(item => {
+        if (!allProducts.includes(item.productName)) {
+          allProducts.push(item.productName);
+        }
+      });
+    }
+
+    return {
+      totalOrders: userOrders.length,
+      totalSpent,
+      lastOrderDate,
+      products: allProducts,
+    };
+  }
+
+  // Admin user methods
+  async updateAdminUser(id: string, data: Partial<InsertAdminUser>): Promise<AdminUser | undefined> {
+    const [updated] = await db.update(adminUsers).set(data).where(eq(adminUsers.id, id)).returning();
+    return updated;
+  }
+
+  async updateAdminUserByUsername(username: string, data: Partial<InsertAdminUser>): Promise<AdminUser | undefined> {
+    const [updated] = await db.update(adminUsers).set(data).where(eq(adminUsers.username, username)).returning();
+    return updated;
+  }
+
+  // Influencer coupon methods
+  async getInfluencerCoupons(): Promise<Coupon[]> {
+    return db.select().from(coupons).where(eq(coupons.isInfluencerCode, true)).orderBy(desc(coupons.createdAt));
+  }
+
+  async updateInfluencerCommission(couponId: string, orderTotal: number): Promise<void> {
+    const [coupon] = await db.select().from(coupons).where(eq(coupons.id, couponId));
+    if (!coupon || !coupon.isInfluencerCode || !coupon.commissionValue) return;
+
+    let commissionEarned = 0;
+    switch (coupon.commissionType) {
+      case 'per_use':
+        commissionEarned = parseFloat(coupon.commissionValue);
+        break;
+      case 'percentage':
+        commissionEarned = orderTotal * (parseFloat(coupon.commissionValue) / 100);
+        break;
+      case 'fixed_total':
+        // Fixed total is calculated at the end, not per order
+        return;
+    }
+
+    const newTotal = parseFloat(coupon.totalCommissionEarned || '0') + commissionEarned;
+    await db.update(coupons).set({ totalCommissionEarned: String(newTotal) }).where(eq(coupons.id, couponId));
+  }
+
+  async markInfluencerPaid(couponId: string): Promise<Coupon | undefined> {
+    const [updated] = await db.update(coupons).set({ 
+      isPaid: true, 
+      paidAt: new Date(),
+      totalCommissionEarned: '0', // Reset after payment
+      updatedAt: new Date()
+    }).where(eq(coupons.id, couponId)).returning();
+    return updated;
+  }
+
   // Campaign methods
   async getCampaigns(): Promise<Campaign[]> {
     return db.select().from(campaigns).orderBy(desc(campaigns.createdAt));

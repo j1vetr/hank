@@ -1550,48 +1550,304 @@ function CategoryModal({
   );
 }
 
-function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
+function OrderDetailModal({ order, onClose, onRefresh }: { order: Order; onClose: () => void; onRefresh?: () => void }) {
+  const [status, setStatus] = useState(order.status);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [newNote, setNewNote] = useState('');
+
+  useEffect(() => {
+    // Fetch order details including items
+    fetch(`/api/admin/orders/${order.id}`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.items) setOrderItems(data.items);
+        if (data.trackingNumber) setTrackingNumber(data.trackingNumber);
+        if (data.trackingUrl) setTrackingUrl(data.trackingUrl);
+      });
+    
+    // Fetch order notes
+    fetch(`/api/admin/orders/${order.id}/notes`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => setNotes(data));
+  }, [order.id]);
+
+  const handleStatusUpdate = async () => {
+    setIsUpdating(true);
+    try {
+      await fetch(`/api/admin/orders/${order.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+        credentials: 'include',
+      });
+      onRefresh?.();
+    } catch (error) {
+      console.error('Status update failed:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleTrackingUpdate = async () => {
+    setIsUpdating(true);
+    try {
+      await fetch(`/api/admin/orders/${order.id}/tracking`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          trackingNumber, 
+          trackingUrl: trackingUrl || `https://www.dhl.com/tr-tr/home/takip.html?tracking-id=${trackingNumber}`,
+          shippingCarrier: 'DHL E-Commerce'
+        }),
+        credentials: 'include',
+      });
+      
+      // Update status to shipped if tracking is added
+      if (status !== 'shipped' && status !== 'delivered') {
+        await fetch(`/api/admin/orders/${order.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'shipped' }),
+          credentials: 'include',
+        });
+        setStatus('shipped');
+      }
+      onRefresh?.();
+    } catch (error) {
+      console.error('Tracking update failed:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    setIsUpdating(true);
+    try {
+      await fetch(`/api/admin/orders/${order.id}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: cancelReason }),
+        credentials: 'include',
+      });
+      setStatus('cancelled');
+      setShowCancelConfirm(false);
+      onRefresh?.();
+    } catch (error) {
+      console.error('Cancel order failed:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newNote }),
+        credentials: 'include',
+      });
+      const note = await res.json();
+      setNotes([note, ...notes]);
+      setNewNote('');
+    } catch (error) {
+      console.error('Add note failed:', error);
+    }
+  };
+
+  const statusOptions = [
+    { value: 'pending', label: 'Beklemede', color: 'bg-yellow-500' },
+    { value: 'processing', label: 'Hazırlanıyor', color: 'bg-blue-500' },
+    { value: 'shipped', label: 'Kargoya Verildi', color: 'bg-purple-500' },
+    { value: 'delivered', label: 'Teslim Edildi', color: 'bg-green-500' },
+    { value: 'cancelled', label: 'İptal Edildi', color: 'bg-red-500' },
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl my-4">
         <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-          <h3 className="text-xl font-semibold text-white">Sipariş Detayı</h3>
+          <div>
+            <h3 className="text-xl font-semibold text-white">Sipariş Detayı</h3>
+            <p className="text-sm text-zinc-400 font-mono">{order.orderNumber}</p>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          {/* Customer Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-zinc-500">Sipariş No</p>
-              <p className="font-mono text-white">{order.orderNumber}</p>
+              <p className="text-sm text-zinc-500 mb-1">Müşteri</p>
+              <p className="text-white font-medium">{order.customerName}</p>
+              <p className="text-zinc-400 text-sm">{order.customerEmail}</p>
+              <p className="text-zinc-400 text-sm">{order.customerPhone}</p>
             </div>
             <div>
-              <p className="text-sm text-zinc-500">Tarih</p>
-              <p className="text-white">{new Date(order.createdAt).toLocaleDateString('tr-TR')}</p>
+              <p className="text-sm text-zinc-500 mb-1">Teslimat Adresi</p>
+              <p className="text-zinc-300 text-sm">{order.shippingAddress?.address}</p>
+              <p className="text-zinc-400 text-sm">{order.shippingAddress?.district}, {order.shippingAddress?.city}</p>
+              <p className="text-zinc-400 text-sm">{order.shippingAddress?.postalCode}</p>
             </div>
           </div>
-          
-          <div>
-            <p className="text-sm text-zinc-500 mb-1">Müşteri</p>
-            <p className="text-white font-medium">{order.customerName}</p>
-            <p className="text-zinc-400">{order.customerEmail}</p>
-            <p className="text-zinc-400">{order.customerPhone}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-zinc-500 mb-1">Teslimat Adresi</p>
-            <p className="text-zinc-300">{order.shippingAddress?.address}</p>
-            <p className="text-zinc-400">{order.shippingAddress?.district}, {order.shippingAddress?.city} {order.shippingAddress?.postalCode}</p>
-          </div>
-          
-          <div className="pt-4 border-t border-zinc-800">
-            <div className="flex justify-between items-center">
-              <span className="text-zinc-400">Toplam</span>
-              <span className="text-2xl font-bold text-white">{order.total}₺</span>
+
+          {/* Order Items */}
+          {orderItems.length > 0 && (
+            <div>
+              <p className="text-sm text-zinc-500 mb-2">Sipariş Kalemleri</p>
+              <div className="bg-zinc-800 rounded-lg p-3 space-y-2">
+                {orderItems.map((item: any, index: number) => (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <div>
+                      <p className="text-white">{item.productName}</p>
+                      {item.variantDetails && <p className="text-zinc-400 text-xs">{item.variantDetails}</p>}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white">{item.quantity} x {item.price}₺</p>
+                      <p className="text-zinc-400 text-xs">{item.subtotal}₺</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between mt-3 pt-3 border-t border-zinc-700">
+                <span className="text-zinc-400">Toplam</span>
+                <span className="text-xl font-bold text-white">{order.total}₺</span>
+              </div>
+            </div>
+          )}
+
+          {/* Status Management */}
+          <div className="bg-zinc-800/50 rounded-lg p-4">
+            <p className="text-sm text-zinc-500 mb-3">Sipariş Durumu</p>
+            <div className="flex gap-3 items-center">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                disabled={status === 'cancelled'}
+                className="flex-1 px-4 py-2 bg-zinc-700 border border-zinc-600 rounded-lg text-white focus:outline-none"
+              >
+                {statusOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleStatusUpdate}
+                disabled={isUpdating || status === order.status || status === 'cancelled'}
+                className="px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-zinc-200 disabled:opacity-50"
+              >
+                Güncelle
+              </button>
             </div>
           </div>
+
+          {/* DHL Tracking */}
+          <div className="bg-zinc-800/50 rounded-lg p-4">
+            <p className="text-sm text-zinc-500 mb-3">DHL E-Commerce Kargo</p>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Takip Numarası"
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                className="w-full px-4 py-2 bg-zinc-700 border border-zinc-600 rounded-lg text-white focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Takip URL (opsiyonel - otomatik oluşturulur)"
+                value={trackingUrl}
+                onChange={(e) => setTrackingUrl(e.target.value)}
+                className="w-full px-4 py-2 bg-zinc-700 border border-zinc-600 rounded-lg text-white focus:outline-none"
+              />
+              <button
+                onClick={handleTrackingUpdate}
+                disabled={isUpdating || !trackingNumber}
+                className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50"
+              >
+                Kargoya Ver
+              </button>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="text-sm text-zinc-500 mb-2">Notlar</p>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                placeholder="Not ekle..."
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                className="flex-1 px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none"
+              />
+              <button
+                onClick={handleAddNote}
+                className="px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600"
+              >
+                Ekle
+              </button>
+            </div>
+            {notes.length > 0 && (
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {notes.map((note: any) => (
+                  <div key={note.id} className="bg-zinc-800 rounded-lg p-2 text-sm">
+                    <p className="text-white">{note.content}</p>
+                    <p className="text-zinc-500 text-xs mt-1">
+                      {new Date(note.createdAt).toLocaleString('tr-TR')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Cancel Order */}
+          {status !== 'cancelled' && status !== 'delivered' && (
+            <div className="pt-4 border-t border-zinc-800">
+              {!showCancelConfirm ? (
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="w-full px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/30 rounded-lg hover:bg-red-600/30"
+                >
+                  Siparişi İptal Et
+                </button>
+              ) : (
+                <div className="space-y-3 bg-red-900/20 p-4 rounded-lg border border-red-600/30">
+                  <p className="text-red-400 text-sm">Siparişi iptal etmek istediğinize emin misiniz? Stok otomatik olarak iade edilecektir.</p>
+                  <input
+                    type="text"
+                    placeholder="İptal sebebi (opsiyonel)"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowCancelConfirm(false)}
+                      className="flex-1 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600"
+                    >
+                      Vazgeç
+                    </button>
+                    <button
+                      onClick={handleCancelOrder}
+                      disabled={isUpdating}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    >
+                      İptal Et
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1599,9 +1855,27 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 }
 
 function UserDetailModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const [stats, setStats] = useState<{
+    totalOrders: number;
+    totalSpent: number;
+    lastOrderDate: string | null;
+    products: string[];
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/admin/users/${user.id}/stats`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        setStats(data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, [user.id]);
+
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg">
         <div className="flex items-center justify-between p-6 border-b border-zinc-800">
           <h3 className="text-xl font-semibold text-white">Kullanıcı Detayı</h3>
           <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white">
@@ -1630,6 +1904,43 @@ function UserDetailModal({ user, onClose }: { user: User; onClose: () => void })
               <p className="text-white">{new Date(user.createdAt).toLocaleDateString('tr-TR')}</p>
             </div>
           </div>
+
+          {/* Order Stats */}
+          {isLoading ? (
+            <div className="text-center py-4 text-zinc-400">Yükleniyor...</div>
+          ) : stats && (
+            <div className="pt-4 border-t border-zinc-800 space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-zinc-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-white">{stats.totalOrders}</p>
+                  <p className="text-xs text-zinc-400">Toplam Sipariş</p>
+                </div>
+                <div className="bg-zinc-800 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-green-400">{stats.totalSpent.toFixed(2)}₺</p>
+                  <p className="text-xs text-zinc-400">Toplam Harcama</p>
+                </div>
+                <div className="bg-zinc-800 rounded-lg p-3 text-center">
+                  <p className="text-sm font-medium text-white">
+                    {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('tr-TR') : '-'}
+                  </p>
+                  <p className="text-xs text-zinc-400">Son Sipariş</p>
+                </div>
+              </div>
+
+              {stats.products.length > 0 && (
+                <div>
+                  <p className="text-sm text-zinc-500 mb-2">Satın Alınan Ürünler</p>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {stats.products.map((product, index) => (
+                      <span key={index} className="px-2 py-1 bg-zinc-800 text-zinc-300 text-xs rounded-full">
+                        {product}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2331,9 +2642,11 @@ function InventoryPanel() {
 
 function MarketingPanel() {
   const queryClient = useQueryClient();
-  const [activeSubTab, setActiveSubTab] = useState<'coupons' | 'campaigns'>('coupons');
+  const [activeSubTab, setActiveSubTab] = useState<'coupons' | 'campaigns' | 'influencers'>('coupons');
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
+  const [showInfluencerModal, setShowInfluencerModal] = useState(false);
+  const [editingInfluencer, setEditingInfluencer] = useState<any>(null);
 
   const { data: coupons = [], isLoading: couponsLoading } = useQuery({
     queryKey: ['admin-coupons'],
@@ -2349,6 +2662,15 @@ function MarketingPanel() {
     queryFn: async () => {
       const res = await fetch('/api/admin/campaigns', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch campaigns');
+      return res.json();
+    },
+  });
+
+  const { data: influencers = [], isLoading: influencersLoading } = useQuery({
+    queryKey: ['admin-influencer-coupons'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/influencer-coupons', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch influencer coupons');
       return res.json();
     },
   });
@@ -2385,6 +2707,65 @@ function MarketingPanel() {
     },
   });
 
+  const deleteInfluencerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/coupons/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete influencer coupon');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+    },
+  });
+
+  const saveInfluencerMutation = useMutation({
+    mutationFn: async (influencer: any) => {
+      const isEdit = !!influencer.id;
+      const couponData = {
+        code: influencer.code,
+        discountType: influencer.discountType || 'percentage',
+        discountValue: influencer.discountValue || '0',
+        isActive: influencer.isActive,
+        isInfluencerCode: true,
+        influencerName: influencer.name,
+        influencerInstagram: influencer.instagramHandle,
+        commissionType: influencer.commissionType,
+        commissionValue: influencer.commissionValue,
+      };
+      const res = await fetch(`/api/admin/coupons${isEdit ? `/${influencer.id}` : ''}`, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(couponData),
+      });
+      if (!res.ok) throw new Error('Failed to save influencer coupon');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      setShowInfluencerModal(false);
+      setEditingInfluencer(null);
+    },
+  });
+
+  const markInfluencerPaidMutation = useMutation({
+    mutationFn: async ({ id }: { id: string; isPaid: boolean }) => {
+      const res = await fetch(`/api/admin/influencer-coupons/${id}/pay`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to update payment status');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+    },
+  });
+
   const formatPrice = (price: string | number) => {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(price) || 0);
   };
@@ -2409,6 +2790,15 @@ function MarketingPanel() {
         >
           <Mail className="w-4 h-4" />
           Kampanyalar
+        </button>
+        <button
+          onClick={() => setActiveSubTab('influencers')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            activeSubTab === 'influencers' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Influencerlar
         </button>
       </div>
 
@@ -2552,6 +2942,145 @@ function MarketingPanel() {
         </div>
       )}
 
+      {activeSubTab === 'influencers' && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Influencer Takip Sistemi</h3>
+              <p className="text-sm text-zinc-500 mt-1">Instagram influencer kodları ve komisyon takibi</p>
+            </div>
+            <button
+              onClick={() => { setEditingInfluencer(null); setShowInfluencerModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Yeni Influencer
+            </button>
+          </div>
+
+          {influencersLoading ? (
+            <div className="p-8 flex justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+            </div>
+          ) : influencers.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-zinc-800/50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Influencer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kod</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Komisyon Tipi</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kullanım</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kazanç</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Durum</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {influencers.map((inf: any) => (
+                    <tr key={inf.id} className="hover:bg-zinc-800/30">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">
+                              {(inf.influencerName || inf.code)?.charAt(0).toUpperCase() || 'I'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-white">{inf.influencerName || inf.code}</div>
+                            {inf.influencerInstagram && (
+                              <a 
+                                href={`https://instagram.com/${inf.influencerInstagram.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-pink-400 hover:text-pink-300 flex items-center gap-1"
+                              >
+                                @{inf.influencerInstagram.replace('@', '')}
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-sm bg-zinc-800 px-2 py-1 rounded text-white">
+                          {inf.code}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-zinc-400">
+                        {inf.commissionType === 'percentage' && `%${inf.commissionValue} sipariş başına`}
+                        {inf.commissionType === 'per_use' && `${formatPrice(inf.commissionValue)} kullanım başına`}
+                        {inf.commissionType === 'fixed_total' && `${formatPrice(inf.commissionValue)} toplam`}
+                        {!inf.commissionType && 'Belirlenmemiş'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-white">
+                        {inf.usageCount || 0} kez
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-green-400 font-medium">
+                          {formatPrice(inf.totalCommissionEarned || 0)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className={`px-2 py-0.5 text-xs rounded w-fit ${
+                            inf.isActive ? 'bg-green-500/20 text-green-400' : 'bg-zinc-700 text-zinc-400'
+                          }`}>
+                            {inf.isActive ? 'Aktif' : 'Pasif'}
+                          </span>
+                          <span className={`px-2 py-0.5 text-xs rounded w-fit ${
+                            inf.isPaid ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            {inf.isPaid ? 'Ödendi' : 'Ödeme Bekliyor'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {!inf.isPaid && Number(inf.totalCommissionEarned || 0) > 0 && (
+                            <button
+                              onClick={() => { 
+                                if (confirm(`${inf.influencerName || inf.code} için ${formatPrice(inf.totalCommissionEarned)} tutarını ödendi olarak işaretlemek istiyor musunuz?`))
+                                  markInfluencerPaidMutation.mutate({ id: inf.id, isPaid: true });
+                              }}
+                              className="p-2 hover:bg-green-500/20 rounded-lg transition-colors text-zinc-400 hover:text-green-400"
+                              title="Ödendi olarak işaretle"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { setEditingInfluencer(inf); setShowInfluencerModal(true); }}
+                            className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => { 
+                              if (confirm('Bu influencer\'ı silmek istediğinize emin misiniz?')) 
+                                deleteInfluencerMutation.mutate(inf.id); 
+                            }}
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-zinc-500">
+              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Henüz influencer eklenmemiş</p>
+              <p className="text-xs mt-2">Influencer kodları ile satışları takip edin ve komisyon hesaplayın</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {showCouponModal && (
         <CouponModal
           coupon={editingCoupon}
@@ -2560,6 +3089,196 @@ function MarketingPanel() {
           isSaving={saveCouponMutation.isPending}
         />
       )}
+
+      {showInfluencerModal && (
+        <InfluencerModal
+          influencer={editingInfluencer}
+          onClose={() => { setShowInfluencerModal(false); setEditingInfluencer(null); }}
+          onSave={(influencer) => saveInfluencerMutation.mutate(influencer)}
+          isSaving={saveInfluencerMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function InfluencerModal({
+  influencer,
+  onClose,
+  onSave,
+  isSaving
+}: {
+  influencer: any;
+  onClose: () => void;
+  onSave: (influencer: any) => void;
+  isSaving: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    name: influencer?.influencerName || '',
+    code: influencer?.code || '',
+    instagramHandle: influencer?.influencerInstagram || '',
+    commissionType: influencer?.commissionType || 'percentage',
+    commissionValue: influencer?.commissionValue || '',
+    discountType: influencer?.discountType || 'percentage',
+    discountValue: influencer?.discountValue || '10',
+    isActive: influencer?.isActive ?? true,
+  });
+
+  const handleSubmit = () => {
+    onSave({
+      ...(influencer?.id && { id: influencer.id }),
+      ...formData,
+      commissionValue: formData.commissionValue.toString(),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">
+            {influencer ? 'Influencer Düzenle' : 'Yeni Influencer Ekle'}
+          </h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">İsim *</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+              placeholder="Influencer adı"
+              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">İndirim Kodu *</label>
+            <input
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+              placeholder="INFLUENCER20"
+              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-mono uppercase"
+            />
+            <p className="text-xs text-zinc-500 mt-1">
+              Bu kod kuponla eşleştirilecek ve kullanım takibi yapılacak
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Instagram Kullanıcı Adı</label>
+            <div className="flex items-center">
+              <span className="px-3 py-2 bg-zinc-700 border border-r-0 border-zinc-700 rounded-l-lg text-zinc-400">@</span>
+              <input
+                type="text"
+                value={formData.instagramHandle.replace('@', '')}
+                onChange={(e) => setFormData(p => ({ ...p, instagramHandle: e.target.value.replace('@', '') }))}
+                placeholder="kullaniciadi"
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-r-lg text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Komisyon Tipi *</label>
+              <select
+                value={formData.commissionType}
+                onChange={(e) => setFormData(p => ({ ...p, commissionType: e.target.value }))}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              >
+                <option value="percentage">Yüzde (%)</option>
+                <option value="per_use">Kullanım Başına (TL)</option>
+                <option value="fixed_total">Sabit Toplam (TL)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Komisyon Değeri *</label>
+              <input
+                type="number"
+                value={formData.commissionValue}
+                onChange={(e) => setFormData(p => ({ ...p, commissionValue: e.target.value }))}
+                placeholder={formData.commissionType === 'percentage' ? '10' : '50'}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-zinc-700 pt-4 mt-4">
+            <h4 className="text-sm font-medium text-zinc-300 mb-3">Müşteri İndirimi</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">İndirim Tipi</label>
+                <select
+                  value={formData.discountType}
+                  onChange={(e) => setFormData(p => ({ ...p, discountType: e.target.value }))}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+                >
+                  <option value="percentage">Yüzde (%)</option>
+                  <option value="fixed">Sabit Tutar (TL)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">İndirim Değeri</label>
+                <input
+                  type="number"
+                  value={formData.discountValue}
+                  onChange={(e) => setFormData(p => ({ ...p, discountValue: e.target.value }))}
+                  placeholder={formData.discountType === 'percentage' ? '10' : '50'}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-zinc-500 mt-2">
+              Influencer kodu kullanıldığında müşterinin alacağı indirim
+            </p>
+          </div>
+
+          <div className="bg-zinc-800/50 rounded-lg p-4 text-sm text-zinc-400">
+            <p className="font-medium text-zinc-300 mb-2">Komisyon Hesaplama:</p>
+            <ul className="space-y-1 text-xs">
+              <li>• <strong>Yüzde:</strong> Her siparişten belirtilen yüzde kadar kazanç</li>
+              <li>• <strong>Kullanım Başına:</strong> Kod her kullanıldığında sabit tutar</li>
+              <li>• <strong>Sabit Toplam:</strong> Tüm dönem için tek seferlik ödeme</li>
+            </ul>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="influencer-active"
+              checked={formData.isActive}
+              onChange={(e) => setFormData(p => ({ ...p, isActive: e.target.checked }))}
+              className="w-4 h-4 rounded bg-zinc-800 border-zinc-700"
+            />
+            <label htmlFor="influencer-active" className="text-sm text-zinc-400">
+              Aktif (Kod kullanılabilir)
+            </label>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-zinc-800 flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSaving || !formData.name || !formData.code || !formData.commissionValue}
+            className="flex items-center gap-2 px-6 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
+          >
+            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {influencer ? 'Güncelle' : 'Oluştur'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2764,7 +3483,15 @@ function SettingsPanel() {
   const [testEmail, setTestEmail] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const { data: savedSettings, isLoading } = useQuery({
+  const { data: savedSettings, isLoading } = useQuery<{
+    smtp_host?: string;
+    smtp_port?: string;
+    smtp_user?: string;
+    smtp_pass?: string;
+    smtp_secure?: string;
+    admin_email?: string;
+    site_url?: string;
+  }>({
     queryKey: ['/api/admin/settings'],
   });
 

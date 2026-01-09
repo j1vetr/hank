@@ -912,7 +912,7 @@ export async function registerRoutes(
 
       const order = await storage.createOrder(validated);
 
-      // Create order items
+      // Create order items and reduce stock
       for (const cartItem of cartItems) {
         const product = await storage.getProduct(cartItem.productId);
         const variant = cartItem.variantId 
@@ -930,6 +930,21 @@ export async function registerRoutes(
             quantity: cartItem.quantity,
             subtotal: ((parseFloat(variant?.price || product.basePrice) * cartItem.quantity).toFixed(2)),
           });
+
+          // Reduce stock for the variant
+          if (variant && variant.id) {
+            const newStock = Math.max(0, variant.stock - cartItem.quantity);
+            await storage.updateProductVariant(variant.id, { stock: newStock });
+            
+            // Log stock adjustment
+            await storage.createStockAdjustment({
+              variantId: variant.id,
+              previousStock: variant.stock,
+              newStock: newStock,
+              adjustmentType: 'sale',
+              reason: `Sipariş: ${orderNumber}`,
+            });
+          }
         }
       }
 
@@ -1465,6 +1480,115 @@ export async function registerRoutes(
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: "Failed to update order" });
+    }
+  });
+
+  // Order cancellation with stock restoration
+  app.post("/api/admin/orders/:id/cancel", requireAdmin, async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ error: "Order not found" });
+
+      // Get order items to restore stock
+      const orderItems = await storage.getOrderItems(order.id);
+      
+      // Restore stock for each variant
+      for (const item of orderItems) {
+        if (item.variantId) {
+          const variant = await storage.getProductVariant(item.variantId);
+          if (variant) {
+            const newStock = variant.stock + item.quantity;
+            await storage.updateProductVariant(variant.id, { stock: newStock });
+            await storage.createStockAdjustment({
+              variantId: variant.id,
+              previousStock: variant.stock,
+              newStock: newStock,
+              adjustmentType: 'return',
+              reason: `Sipariş iptali: ${order.orderNumber}`,
+            });
+          }
+        }
+      }
+
+      // Update order status to cancelled
+      const updatedOrder = await storage.updateOrder(req.params.id, { 
+        status: 'cancelled',
+        paymentStatus: 'refunded'
+      });
+
+      // Add cancellation note
+      await storage.createOrderNote({
+        orderId: req.params.id,
+        authorType: 'admin',
+        noteType: 'status_change',
+        content: `Sipariş iptal edildi. Sebep: ${req.body.reason || 'Belirtilmedi'}`,
+        isPrivate: false,
+      });
+
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error('Order cancellation error:', error);
+      res.status(500).json({ error: "Failed to cancel order" });
+    }
+  });
+
+  // User order stats for detail modal
+  app.get("/api/admin/users/:id/stats", requireAdmin, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      
+      const stats = await storage.getUserOrderStats(user.email);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user stats" });
+    }
+  });
+
+  // Influencer coupons routes
+  app.get("/api/admin/influencer-coupons", requireAdmin, async (req, res) => {
+    try {
+      const coupons = await storage.getInfluencerCoupons();
+      res.json(coupons);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch influencer coupons" });
+    }
+  });
+
+  app.post("/api/admin/influencer-coupons/:id/pay", requireAdmin, async (req, res) => {
+    try {
+      const coupon = await storage.markInfluencerPaid(req.params.id);
+      if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+      res.json(coupon);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark as paid" });
+    }
+  });
+
+  // Admin credentials update route
+  app.post("/api/admin/update-credentials", requireAdmin, async (req, res) => {
+    try {
+      const { newUsername, newPassword } = req.body;
+      
+      if (!newUsername || !newPassword) {
+        return res.status(400).json({ error: "Username and password required" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      // Get current admin and update
+      const admin = await storage.getAdminUser(req.session.adminId!);
+      if (!admin) return res.status(404).json({ error: "Admin not found" });
+
+      await storage.updateAdminUser(admin.id, {
+        username: newUsername,
+        password: hashedPassword,
+      });
+
+      res.json({ success: true, message: "Credentials updated" });
+    } catch (error) {
+      console.error('Credentials update error:', error);
+      res.status(500).json({ error: "Failed to update credentials" });
     }
   });
 

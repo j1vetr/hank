@@ -66,6 +66,30 @@ RESTful API endpoints under `/api/`:
 - `/api/categories` - Category management
 - `/api/cart` - Shopping cart operations
 - `/api/orders` - Order creation and management
+- `/api/admin/influencer-coupons` - Influencer tracking and commission management
+- `/api/admin/settings` - Database-stored SMTP and site settings
+
+### Marketing & Influencer System
+- **Influencer Tracking**: Influencers are managed via coupons with `isInfluencerCode=true`
+- **Commission Types**: 
+  - `percentage` - Percentage of order total per use
+  - `per_use` - Fixed amount per code usage
+  - `fixed_total` - One-time fixed payment
+- **Commission Tracking**: `totalCommissionEarned` tracks accumulated earnings
+- **Payment Status**: `commissionPaid` flag marks when influencer has been paid
+- **Instagram Integration**: `influencerInstagram` links to influencer's profile
+
+### Stock Management
+- **Automatic Stock Reduction**: Orders automatically reduce variant stock on creation
+- **Stock Adjustments**: Logged with types: 'sale', 'return', 'manual', 'restock', 'correction'
+- **Order Cancellation**: Automatically restores stock when orders are cancelled
+- **Low Stock Alerts**: Admin dashboard highlights low stock variants
+
+### Email Notifications
+- **SMTP Configuration**: Stored in database via `settings` table (not .env)
+- **Configured SMTP**: host=mail.toov.com.tr, user=no-reply@toov.com.tr
+- **Email Templates**: Dark athletic luxury theme matching brand identity
+- **Free Shipping Threshold**: 2500 TL
 
 ## External Dependencies
 
