@@ -1,5 +1,6 @@
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
+import { SEO } from '@/components/SEO';
 import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Instagram, Facebook, Twitter } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
@@ -59,6 +60,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Ana Sayfa"
+        description="Premium fitness ve bodybuilding giyim markası. Güç, performans ve stil bir arada. HANK ile antrenmanlarınızda fark yaratın."
+        url="/"
+      />
       <Header />
 
       <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">

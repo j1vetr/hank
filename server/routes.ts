@@ -6,6 +6,7 @@ import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema } from "@shared/schema";
 import "./types";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
@@ -1263,7 +1264,7 @@ export async function registerRoutes(
         orderId: req.params.id,
         authorId: req.session.adminId,
         content: req.body.content,
-        isInternal: req.body.isInternal !== false,
+        isPrivate: req.body.isInternal !== false,
       });
       res.status(201).json(note);
     } catch (error) {
@@ -1527,6 +1528,107 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ error: "E-posta gönderilemedi" });
     }
+  });
+
+  // Sitemap XML
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const baseUrl = req.protocol + '://' + req.get('host');
+      const products = await storage.getProducts();
+      const categories = await storage.getCategories();
+      
+      const escapeXml = (str: string) => {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+      };
+      
+      const normalizeUrl = (url: string) => {
+        if (!url) return '';
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          return url;
+        }
+        return baseUrl + (url.startsWith('/') ? url : '/' + url);
+      };
+      
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
+      
+      const staticPages = [
+        { loc: '/', priority: '1.0', changefreq: 'daily' },
+        { loc: '/giris', priority: '0.5', changefreq: 'monthly' },
+        { loc: '/kayit', priority: '0.5', changefreq: 'monthly' },
+        { loc: '/sepet', priority: '0.6', changefreq: 'weekly' },
+      ];
+      
+      for (const page of staticPages) {
+        xml += '  <url>\n';
+        xml += `    <loc>${escapeXml(baseUrl + page.loc)}</loc>\n`;
+        xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
+        xml += `    <priority>${page.priority}</priority>\n`;
+        xml += '  </url>\n';
+      }
+      
+      for (const category of categories) {
+        xml += '  <url>\n';
+        xml += `    <loc>${escapeXml(baseUrl + '/kategori/' + category.slug)}</loc>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.8</priority>\n';
+        xml += '  </url>\n';
+      }
+      
+      for (const product of products) {
+        xml += '  <url>\n';
+        xml += `    <loc>${escapeXml(baseUrl + '/urun/' + product.slug)}</loc>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.9</priority>\n';
+        if (product.images && product.images.length > 0) {
+          const imageUrl = normalizeUrl(product.images[0]);
+          xml += '    <image:image>\n';
+          xml += `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n`;
+          xml += `      <image:title>${escapeXml(product.name)}</image:title>\n`;
+          xml += '    </image:image>\n';
+        }
+        xml += '  </url>\n';
+      }
+      
+      xml += '</urlset>';
+      
+      res.set('Content-Type', 'application/xml');
+      res.send(xml);
+    } catch (error) {
+      console.error('Sitemap error:', error);
+      res.status(500).send('Error generating sitemap');
+    }
+  });
+
+  // Robots.txt
+  app.get("/robots.txt", (req, res) => {
+    const baseUrl = req.protocol + '://' + req.get('host');
+    const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /toov-admin/
+Disallow: /api/
+Disallow: /odeme
+Disallow: /hesabim
+
+Sitemap: ${baseUrl}/sitemap.xml
+`;
+    res.set('Content-Type', 'text/plain');
+    res.send(robotsTxt);
+  });
+
+  // Cache invalidation endpoint for admin
+  app.post("/api/admin/cache/clear", requireAdmin, (req, res) => {
+    cache.clear();
+    res.json({ success: true, message: "Cache cleared" });
+  });
+
+  app.get("/api/admin/cache/stats", requireAdmin, (req, res) => {
+    res.json(cache.getStats());
   });
 
   return httpServer;

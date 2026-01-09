@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
+import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { Link, useParams } from 'wouter';
 import { ChevronRight, X, SlidersHorizontal, Filter } from 'lucide-react';
@@ -100,6 +101,15 @@ export default function Category() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title={category?.name || 'Kategori'}
+        description={`${category?.name || 'Ürünler'} - HANK fitness ve bodybuilding giyim koleksiyonu`}
+        url={`/kategori/${slug}`}
+        breadcrumbs={[
+          { name: 'Ana Sayfa', url: '/' },
+          { name: category?.name || 'Kategori', url: `/kategori/${slug}` }
+        ]}
+      />
       <Header />
 
       <section className="relative h-[50vh] min-h-[400px] overflow-hidden">

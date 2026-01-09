@@ -82,12 +82,22 @@ export function SEO({
     });
 
     if (product) {
+      const normalizeImageUrl = (url: string) => {
+        if (!url) return '';
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`;
+      };
+      
+      const productImages = product.images 
+        ? product.images.map(normalizeImageUrl) 
+        : [imageUrl];
+      
       schemas.push({
         '@context': 'https://schema.org',
         '@type': 'Product',
         name: product.name,
         description: description,
-        image: product.images || [imageUrl],
+        image: productImages,
         sku: product.sku,
         brand: {
           '@type': 'Brand',

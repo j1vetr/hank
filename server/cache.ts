@@ -39,7 +39,8 @@ class MemoryCache {
 
   invalidatePattern(pattern: string): void {
     const regex = new RegExp(pattern);
-    for (const key of this.cache.keys()) {
+    const keys = Array.from(this.cache.keys());
+    for (const key of keys) {
       if (regex.test(key)) {
         this.cache.delete(key);
       }
@@ -52,7 +53,8 @@ class MemoryCache {
 
   private cleanup(): void {
     const now = Date.now();
-    for (const [key, entry] of this.cache.entries()) {
+    const entries = Array.from(this.cache.entries());
+    for (const [key, entry] of entries) {
       if (now > entry.timestamp + entry.ttl) {
         this.cache.delete(key);
       }

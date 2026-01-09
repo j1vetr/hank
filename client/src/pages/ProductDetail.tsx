@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Header } from '@/components/Header';
+import { SEO } from '@/components/SEO';
 import { Link, useParams } from 'wouter';
 import { 
   ChevronRight, 
@@ -256,8 +257,33 @@ export default function ProductDetail() {
     ? [...relatedProducts, ...allProducts.filter(p => p.id !== product.id && p.categoryId !== product.categoryId).slice(0, 4 - relatedProducts.length)]
     : relatedProducts;
 
+  const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Ürünler';
+  const categorySlug = categories.find(c => c.id === product.categoryId)?.slug || '';
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
+      <SEO 
+        title={product.name}
+        description={product.description || `${product.name} - HANK premium fitness giyim`}
+        image={images[0]}
+        url={`/urun/${product.slug}`}
+        type="product"
+        product={{
+          name: product.name,
+          price: price,
+          currency: 'TRY',
+          availability: 'InStock',
+          sku: product.sku || undefined,
+          brand: 'HANK',
+          category: categoryName,
+          images: images
+        }}
+        breadcrumbs={[
+          { name: 'Ana Sayfa', url: '/' },
+          { name: categoryName, url: `/kategori/${categorySlug}` },
+          { name: product.name, url: `/urun/${product.slug}` }
+        ]}
+      />
       <Header />
 
       <AnimatePresence>
