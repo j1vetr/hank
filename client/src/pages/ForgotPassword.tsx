@@ -142,7 +142,7 @@ export default function ForgotPassword() {
                   Şifremi Unuttum
                 </h1>
                 <p className="text-muted-foreground">
-                  E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim
+                  E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim.
                 </p>
               </motion.div>
             </div>

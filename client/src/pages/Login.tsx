@@ -62,7 +62,7 @@ export default function Login() {
                   Hoş Geldin
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  Hesabına giriş yap ve alışverişe başla
+                  Hesabına giriş yap ve alışverişe başla.
                 </p>
               </motion.div>
             </div>

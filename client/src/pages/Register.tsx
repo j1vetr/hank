@@ -110,7 +110,7 @@ export default function Register() {
                   Kayıt Ol
                 </h1>
                 <p className="text-muted-foreground">
-                  Hesap oluştur ve alışverişe başla
+                  Hesap oluştur ve alışverişe başla.
                 </p>
               </motion.div>
             </div>
