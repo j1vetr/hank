@@ -87,7 +87,7 @@ export default function Home() {
           </div>
         ))}
 
-        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 flex justify-between px-6 pointer-events-none">
+        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 hidden sm:flex justify-between px-6 pointer-events-none">
           <button
             onClick={() => setActiveSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)}
             className="w-12 h-12 border border-white/30 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all pointer-events-auto"

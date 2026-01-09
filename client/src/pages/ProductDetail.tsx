@@ -420,12 +420,55 @@ export default function ProductDetail() {
                   )}
                 </motion.div>
 
-                <div className="flex sm:hidden gap-2 mt-4 overflow-x-auto pb-2 -mx-1 px-1">
-                  {images.slice(0, 10).map((image, index) => (
-                    <button key={index} onClick={() => setSelectedImage(index)} className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden ${index === selectedImage ? 'ring-2 ring-white' : 'opacity-50'}`}>
-                      <img src={image} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+                <div className="sm:hidden mt-4">
+                  {images.length <= 5 ? (
+                    <div className="flex gap-2 justify-center">
+                      {images.map((image, index) => (
+                        <button 
+                          key={index} 
+                          onClick={() => setSelectedImage(index)} 
+                          className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                            index === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-50'
+                          }`}
+                        >
+                          <img src={image} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="flex gap-2 justify-center">
+                        {images.slice(
+                          Math.max(0, Math.min(selectedImage - 2, images.length - 5)),
+                          Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + 5
+                        ).map((image, idx) => {
+                          const actualIndex = Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + idx;
+                          return (
+                            <button 
+                              key={actualIndex} 
+                              onClick={() => setSelectedImage(actualIndex)} 
+                              className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                                actualIndex === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-50'
+                              }`}
+                            >
+                              <img src={image} alt="" className="w-full h-full object-cover" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-center gap-1 mt-3">
+                        {images.map((_, idx) => (
+                          <button 
+                            key={idx}
+                            onClick={() => setSelectedImage(idx)}
+                            className={`w-1.5 h-1.5 rounded-full transition-all ${
+                              idx === selectedImage ? 'bg-white w-4' : 'bg-white/30'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
