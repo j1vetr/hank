@@ -144,9 +144,9 @@ export function Header() {
                       <DropdownMenuTrigger asChild>
                         <button
                           data-testid="button-account"
-                          className="hidden sm:flex p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                          className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors"
                         >
-                          <User className="w-5 h-5" />
+                          <User className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10">
@@ -167,9 +167,9 @@ export function Header() {
                     <Link href="/giris">
                       <button
                         data-testid="button-account"
-                        className="hidden sm:flex p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                        className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors"
                       >
-                        <User className="w-5 h-5" />
+                        <User className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                     </Link>
                   )}
