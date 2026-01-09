@@ -358,7 +358,7 @@ export default function ProductDetail() {
       </AnimatePresence>
 
       <main className="pt-36 pb-20">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.nav initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
             <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
             <ChevronRight className="w-3 h-3" />
@@ -371,16 +371,16 @@ export default function ProductDetail() {
             <span className="text-foreground truncate max-w-[300px] uppercase">{product.name}</span>
           </motion.nav>
 
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
-            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="flex gap-4">
-              <div className="hidden sm:flex flex-col gap-3 w-20 shrink-0">
-                {images.map((image, index) => (
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-16">
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="flex gap-3 sm:gap-4 w-full">
+              <div className="hidden sm:flex flex-col gap-3 w-20 shrink-0 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700">
+                {images.slice(0, 8).map((image, index) => (
                   <motion.button
                     key={index}
                     onClick={() => setSelectedImage(index)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all ${
+                    className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
                       index === selectedImage ? 'ring-2 ring-white' : 'opacity-50 hover:opacity-100'
                     }`}
                   >
@@ -389,10 +389,10 @@ export default function ProductDetail() {
                 ))}
               </div>
 
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <motion.div 
                   ref={imageRef}
-                  className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in group"
+                  className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in group w-full"
                   onMouseEnter={() => setIsZooming(true)}
                   onMouseLeave={() => setIsZooming(false)}
                   onMouseMove={handleMouseMove}
@@ -420,9 +420,9 @@ export default function ProductDetail() {
                   )}
                 </motion.div>
 
-                <div className="flex sm:hidden gap-2 mt-4 overflow-x-auto pb-2">
-                  {images.map((image, index) => (
-                    <button key={index} onClick={() => setSelectedImage(index)} className={`shrink-0 w-16 aspect-[3/4] rounded-lg overflow-hidden ${index === selectedImage ? 'ring-2 ring-white' : 'opacity-50'}`}>
+                <div className="flex sm:hidden gap-2 mt-4 overflow-x-auto pb-2 -mx-1 px-1">
+                  {images.slice(0, 10).map((image, index) => (
+                    <button key={index} onClick={() => setSelectedImage(index)} className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden ${index === selectedImage ? 'ring-2 ring-white' : 'opacity-50'}`}>
                       <img src={image} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
@@ -689,7 +689,7 @@ export default function ProductDetail() {
 
             {!user && (
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-8 text-center">
-                <p className="text-muted-foreground mb-4">Değerlendirme yazmak için giriş yapın</p>
+                <p className="text-white font-medium mb-4">Değerlendirme Yazmak için Giriş Yapın !</p>
                 <Link href="/giris">
                   <button className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-zinc-200 transition-colors">
                     Giriş Yap
