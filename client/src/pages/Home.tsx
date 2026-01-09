@@ -212,7 +212,7 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="relative z-10 h-full flex flex-col justify-center pt-20 lg:pt-24">
+        <div className="relative z-10 h-full flex flex-col justify-center items-center pt-28 lg:pt-32">
           <div className="text-center px-6 w-full">
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
