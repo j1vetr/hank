@@ -171,13 +171,18 @@
   width: max-content;
 }
 
-@keyframes border-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes border-travel {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.animate-border-spin {
-  animation: border-spin 4s linear infinite;
+.animate-border-travel {
+  animation: border-travel 8s linear infinite;
+  transform-origin: center center;
 }
 
 .animate-marquee-slow {

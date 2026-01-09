@@ -436,9 +436,9 @@ export default function ProductDetail() {
 
               <div className="flex-1 min-w-0">
                 <div className="relative">
-                  <div className="absolute -inset-[2px] rounded-xl overflow-hidden">
-                    <div className="absolute inset-0 animate-border-spin">
-                      <div className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_0deg,transparent_60deg,white_120deg,transparent_180deg,transparent_360deg)]" />
+                  <div className="absolute -inset-[2px] rounded-xl overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 animate-border-travel">
+                      <div className="absolute w-16 h-16 bg-white/80 blur-sm rounded-full" style={{ top: '-8px', left: '50%', transform: 'translateX(-50%)' }} />
                     </div>
                   </div>
                   <motion.div 
