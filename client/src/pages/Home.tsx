@@ -272,7 +272,7 @@ export default function Home() {
                   href={`/kategori/${category.slug}`}
                   data-testid={`link-category-${category.id}`}
                 >
-                  <div className="group relative w-[160px] sm:w-[200px] lg:w-[260px] h-[220px] sm:h-[280px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
+                  <div className="group relative w-[200px] sm:w-[220px] lg:w-[260px] h-[280px] sm:h-[300px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
                     <motion.img
                       src={category.image}
                       alt={category.name}
