@@ -65,6 +65,25 @@ export function Header() {
               </div>
 
               <nav className="hidden lg:flex items-center gap-8">
+                <Link
+                  href="/magaza"
+                  data-testid="link-nav-magaza"
+                >
+                  <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                    location === '/magaza' ? 'text-white' : 'text-white/70'
+                  }`}>
+                    MAĞAZA
+                    <motion.span
+                      className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                      initial={{ scaleX: 0 }}
+                      whileHover={{ scaleX: 1 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                    {location === '/magaza' && (
+                      <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                    )}
+                  </span>
+                </Link>
                 {leftCategories.map((link) => (
                   <Link
                     key={link.href}
@@ -250,6 +269,19 @@ export function Header() {
                       whileHover={{ x: 10 }}
                     >
                       ANA SAYFA
+                    </motion.span>
+                  </Link>
+                  
+                  <Link
+                    href="/magaza"
+                    data-testid="link-mobile-nav-magaza"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <motion.span 
+                      className="block font-display text-3xl tracking-wider hover:text-muted-foreground transition-colors mb-6"
+                      whileHover={{ x: 10 }}
+                    >
+                      MAĞAZA
                     </motion.span>
                   </Link>
                   

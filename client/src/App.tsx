@@ -29,6 +29,7 @@ const DeliveryTerms = lazy(() => import("@/pages/DeliveryTerms"));
 const DistanceSalesAgreement = lazy(() => import("@/pages/DistanceSalesAgreement"));
 const CancellationPolicy = lazy(() => import("@/pages/CancellationPolicy"));
 const KVKK = lazy(() => import("@/pages/KVKK"));
+const Store = lazy(() => import("@/pages/Store"));
 
 function PageLoader() {
   return (
@@ -45,6 +46,7 @@ function Router() {
       <Suspense fallback={<PageLoader />}>
         <Switch>
         <Route path="/" component={Home} />
+        <Route path="/magaza" component={Store} />
         <Route path="/kategori/:slug" component={Category} />
         <Route path="/urun/:slug" component={ProductDetail} />
         <Route path="/giris" component={Login} />
