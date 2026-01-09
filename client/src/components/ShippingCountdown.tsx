@@ -52,14 +52,10 @@ export function ShippingCountdown() {
           </div>
           <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
         </div>
-        <div className="flex flex-col">
-          <span className="text-emerald-400 font-bold text-sm sm:text-base">
-            {formatTime(timeLeft.hours, timeLeft.minutes)}
-          </span>
-          <span className="text-white/70 text-xs sm:text-sm">
-            içinde sipariş verirsen aynı gün kargoda!
-          </span>
-        </div>
+        <p className="text-xs sm:text-sm">
+          <span className="text-emerald-400 font-bold">{formatTime(timeLeft.hours, timeLeft.minutes)}</span>
+          <span className="text-white/70"> içinde sipariş verirsen aynı gün kargoda!</span>
+        </p>
       </div>
     );
   }
