@@ -108,6 +108,7 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: string): Promise<void>;
+  deleteAllProducts(): Promise<{ deletedProducts: number; deletedVariants: number; imagePaths: string[] }>;
 
   // Favorites
   getFavorites(userId: string): Promise<Favorite[]>;
@@ -323,6 +324,43 @@ export class DbStorage implements IStorage {
 
   async deleteProduct(id: string): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
+  }
+
+  async deleteAllProducts(): Promise<{ deletedProducts: number; deletedVariants: number; imagePaths: string[] }> {
+    // Get all product images first
+    const allProducts = await db.select({ images: products.images }).from(products);
+    const imagePaths: string[] = [];
+    for (const prod of allProducts) {
+      if (prod.images && Array.isArray(prod.images)) {
+        imagePaths.push(...prod.images);
+      }
+    }
+
+    // Nullify product references in order_items (keep order history but decouple products)
+    await db.execute(sql`UPDATE order_items SET product_id = NULL WHERE product_id IS NOT NULL`);
+
+    // Delete favorites referencing products
+    await db.delete(favorites);
+    
+    // Delete reviews referencing products
+    await db.delete(productReviews);
+    
+    // Delete cart items referencing products
+    await db.delete(cartItems);
+
+    // Count and delete variants
+    const variantCount = await db.select({ count: sql<number>`count(*)` }).from(productVariants);
+    await db.delete(productVariants);
+
+    // Count and delete products
+    const productCount = await db.select({ count: sql<number>`count(*)` }).from(products);
+    await db.delete(products);
+
+    return {
+      deletedProducts: Number(productCount[0]?.count || 0),
+      deletedVariants: Number(variantCount[0]?.count || 0),
+      imagePaths,
+    };
   }
 
   async getProductVariants(productId: string): Promise<ProductVariant[]> {

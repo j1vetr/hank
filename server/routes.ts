@@ -643,6 +643,35 @@ export async function registerRoutes(
     }
   });
 
+  // Delete all products (for WooCommerce re-import)
+  app.delete("/api/admin/products-all", requireAdmin, async (req, res) => {
+    try {
+      const result = await storage.deleteAllProducts();
+      
+      // Delete image files
+      for (const imagePath of result.imagePaths) {
+        try {
+          const fullPath = path.join(process.cwd(), 'client/public', imagePath);
+          if (fs.existsSync(fullPath)) {
+            fs.unlinkSync(fullPath);
+          }
+        } catch (fileError) {
+          console.error(`Failed to delete image: ${imagePath}`, fileError);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        deletedProducts: result.deletedProducts,
+        deletedVariants: result.deletedVariants,
+        deletedImages: result.imagePaths.length
+      });
+    } catch (error: any) {
+      console.error('Delete all products error:', error);
+      res.status(500).json({ error: error.message || "Failed to delete products" });
+    }
+  });
+
   // Product Variants API
   app.get("/api/products/:productId/variants", async (req, res) => {
     try {
