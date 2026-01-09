@@ -8,6 +8,7 @@ import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app);
 
+app.set('trust proxy', 1);
 app.use(compression());
 
 // Session middleware
@@ -18,6 +19,7 @@ app.use(
     saveUninitialized: true,
     cookie: {
       secure: process.env.NODE_ENV === "production",
+      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   })
