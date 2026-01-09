@@ -373,20 +373,64 @@ export default function ProductDetail() {
 
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-16">
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="flex gap-3 sm:gap-4 w-full">
-              <div className="hidden sm:flex flex-col gap-3 w-20 shrink-0 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700">
-                {images.slice(0, 8).map((image, index) => (
-                  <motion.button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
-                      index === selectedImage ? 'ring-2 ring-white' : 'opacity-50 hover:opacity-100'
-                    }`}
+              <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0">
+                {images.length > 5 && selectedImage > 0 && (
+                  <button
+                    onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
+                    className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                    data-testid="button-thumbnail-prev"
                   >
-                    <img src={image} alt="" className="w-full h-full object-cover" />
-                  </motion.button>
-                ))}
+                    <ChevronLeft className="w-4 h-4 rotate-90" />
+                  </button>
+                )}
+                <div className="flex flex-col gap-2">
+                  {images.length <= 5 ? (
+                    images.map((image, index) => (
+                      <motion.button
+                        key={index}
+                        onClick={() => setSelectedImage(index)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
+                          index === selectedImage ? 'ring-2 ring-white' : 'opacity-50 hover:opacity-100'
+                        }`}
+                        data-testid={`button-thumbnail-${index}`}
+                      >
+                        <img src={image} alt="" className="w-full h-full object-cover" />
+                      </motion.button>
+                    ))
+                  ) : (
+                    images.slice(
+                      Math.max(0, Math.min(selectedImage - 2, images.length - 5)),
+                      Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + 5
+                    ).map((image, idx) => {
+                      const actualIndex = Math.max(0, Math.min(selectedImage - 2, images.length - 5)) + idx;
+                      return (
+                        <motion.button
+                          key={actualIndex}
+                          onClick={() => setSelectedImage(actualIndex)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
+                            actualIndex === selectedImage ? 'ring-2 ring-white' : 'opacity-50 hover:opacity-100'
+                          }`}
+                          data-testid={`button-thumbnail-${actualIndex}`}
+                        >
+                          <img src={image} alt="" className="w-full h-full object-cover" />
+                        </motion.button>
+                      );
+                    })
+                  )}
+                </div>
+                {images.length > 5 && selectedImage < images.length - 1 && (
+                  <button
+                    onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
+                    className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                    data-testid="button-thumbnail-next"
+                  >
+                    <ChevronLeft className="w-4 h-4 -rotate-90" />
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 min-w-0">
