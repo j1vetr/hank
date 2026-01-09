@@ -1,7 +1,6 @@
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
-import { ShippingCountdownBanner } from '@/components/ShippingCountdown';
 import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Instagram } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
@@ -136,9 +135,7 @@ export default function Home() {
       />
       <Header />
 
-      <ShippingCountdownBanner />
-
-      <section className="relative h-screen overflow-hidden noise-overlay pt-8" data-testid="section-hero">
+      <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
         {heroImages.map((img, index) => (
           <div
             key={index}

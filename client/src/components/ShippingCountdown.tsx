@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Truck, Clock } from 'lucide-react';
 
 export function ShippingCountdown() {
-  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number } | null>(null);
   const [nextShippingDay, setNextShippingDay] = useState<string | null>(null);
 
   useEffect(() => {
@@ -10,8 +10,6 @@ export function ShippingCountdown() {
       const now = new Date();
       const day = now.getDay();
       const hour = now.getHours();
-      const minute = now.getMinutes();
-      const second = now.getSeconds();
 
       const isShippingDay = day === 1 || day === 5;
       const cutoffHour = 16;
@@ -23,49 +21,35 @@ export function ShippingCountdown() {
 
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        setTimeLeft({ hours, minutes, seconds });
+        setTimeLeft({ hours, minutes });
         setNextShippingDay(null);
       } else {
         setTimeLeft(null);
-        let daysUntilNext = 0;
-        
-        if (day === 1 && hour >= cutoffHour) {
-          daysUntilNext = 4;
-        } else if (day === 5 && hour >= cutoffHour) {
-          daysUntilNext = 3;
-        } else if (day === 0) {
-          daysUntilNext = 1;
-        } else if (day === 2) {
-          daysUntilNext = 3;
-        } else if (day === 3) {
-          daysUntilNext = 2;
-        } else if (day === 4) {
-          daysUntilNext = 1;
-        } else if (day === 6) {
-          daysUntilNext = 2;
-        }
-
         const nextDay = day === 1 || (day > 1 && day < 5) ? 'Cuma' : 'Pazartesi';
         setNextShippingDay(nextDay);
       }
     };
 
     calculateTime();
-    const interval = setInterval(calculateTime, 1000);
+    const interval = setInterval(calculateTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const pad = (n: number) => n.toString().padStart(2, '0');
+  const formatTime = (hours: number, minutes: number) => {
+    if (hours > 0) {
+      return `${hours} saat ${minutes} dakika`;
+    }
+    return `${minutes} dakika`;
+  };
 
   if (timeLeft) {
     return (
       <div className="flex items-center gap-2 text-emerald-400">
         <Clock className="w-4 h-4" />
         <span className="text-xs sm:text-sm font-medium">
-          <span className="font-bold">{pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}</span>
-          {' '}içinde sipariş ver, aynı gün kargoda!
+          <span className="font-bold">{formatTime(timeLeft.hours, timeLeft.minutes)}</span>
+          {' '}içinde sipariş verirsen aynı gün kargoda!
         </span>
       </div>
     );
