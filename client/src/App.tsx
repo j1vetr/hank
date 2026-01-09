@@ -12,6 +12,7 @@ import ProductDetail from "@/pages/ProductDetail";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Cart from "@/pages/Cart";
 import Checkout from "@/pages/Checkout";
 import Profile from "@/pages/Profile";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/giris" component={Login} />
       <Route path="/kayit" component={Register} />
       <Route path="/sifremi-unuttum" component={ForgotPassword} />
+      <Route path="/sifre-sifirla" component={ResetPassword} />
       <Route path="/sepet" component={Cart} />
       <Route path="/odeme" component={Checkout} />
       <Route path="/hesabim" component={Profile} />
