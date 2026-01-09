@@ -45,23 +45,39 @@ export function ShippingCountdown() {
 
   if (timeLeft) {
     return (
-      <div className="flex items-center gap-2 text-emerald-400">
-        <Clock className="w-4 h-4" />
-        <span className="text-xs sm:text-sm font-medium">
-          <span className="font-bold">{formatTime(timeLeft.hours, timeLeft.minutes)}</span>
-          {' '}içinde sipariş verirsen aynı gün kargoda!
-        </span>
+      <div className="flex items-center gap-3">
+        <div className="relative flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+            <Truck className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-emerald-400 font-bold text-sm sm:text-base">
+            {formatTime(timeLeft.hours, timeLeft.minutes)}
+          </span>
+          <span className="text-white/70 text-xs sm:text-sm">
+            içinde sipariş verirsen aynı gün kargoda!
+          </span>
+        </div>
       </div>
     );
   }
 
   if (nextShippingDay) {
     return (
-      <div className="flex items-center gap-2 text-white/80">
-        <Truck className="w-4 h-4" />
-        <span className="text-xs sm:text-sm">
-          Sonraki aynı gün kargo: <span className="font-bold">{nextShippingDay}</span> 16:00'a kadar
-        </span>
+      <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-700/50 flex items-center justify-center">
+          <Truck className="w-5 h-5 text-white/60" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-white/80 text-xs sm:text-sm">
+            Sonraki aynı gün kargo
+          </span>
+          <span className="text-white font-medium text-sm">
+            {nextShippingDay} 16:00'a kadar
+          </span>
+        </div>
       </div>
     );
   }
