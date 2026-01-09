@@ -96,9 +96,9 @@ export function Header() {
                   className="relative"
                 >
                   <img
-                    src="/favicon.png"
+                    src="/uploads/branding/hank-icon.png"
                     alt="HANK"
-                    className="h-9 w-9 lg:hidden"
+                    className="h-11 w-11 lg:hidden"
                     data-testid="img-logo-mobile"
                   />
                   <img
