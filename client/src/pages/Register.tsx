@@ -22,6 +22,9 @@ export default function Register() {
     firstName: '',
     lastName: '',
     phone: '',
+    address: '',
+    city: '',
+    district: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,6 +60,9 @@ export default function Register() {
         firstName: formData.firstName || undefined,
         lastName: formData.lastName || undefined,
         phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        city: formData.city || undefined,
+        district: formData.district || undefined,
       });
       toast({ title: 'Başarılı', description: 'Kayıt tamamlandı' });
       navigate('/');
@@ -163,7 +169,7 @@ export default function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">Telefon</Label>
+                <Label htmlFor="phone" className="text-sm font-medium">Telefon *</Label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -173,8 +179,49 @@ export default function Register() {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="05XX XXX XX XX"
+                    required
                     data-testid="input-phone"
                     className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address" className="text-sm font-medium">Adres</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Sokak, Mahalle, Bina No, Daire No"
+                  data-testid="input-address"
+                  className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-sm font-medium">İl</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="İstanbul"
+                    data-testid="input-city"
+                    className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="district" className="text-sm font-medium">İlçe</Label>
+                  <Input
+                    id="district"
+                    name="district"
+                    value={formData.district}
+                    onChange={handleChange}
+                    placeholder="Kadıköy"
+                    data-testid="input-district"
+                    className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                 </div>
               </div>

@@ -46,6 +46,7 @@ export default function Checkout() {
   const [createAccount, setCreateAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState('');
   const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({});
+  const [savedOrderTotal, setSavedOrderTotal] = useState<number | null>(null);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -76,6 +77,10 @@ export default function Checkout() {
         ...prev,
         customerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || prev.customerName,
         customerEmail: user.email || prev.customerEmail,
+        customerPhone: (user as any).phone || prev.customerPhone,
+        address: (user as any).address || prev.address,
+        city: (user as any).city || prev.city,
+        district: (user as any).district || prev.district,
       }));
     }
   }, [user]);
@@ -175,6 +180,7 @@ export default function Checkout() {
 
       const order = await res.json();
       setOrderNumber(order.orderNumber);
+      setSavedOrderTotal(total);
       setOrderComplete(true);
       clearCart();
     } catch (error: any) {
@@ -234,7 +240,7 @@ export default function Checkout() {
                 <div className="h-px bg-zinc-800 my-3" />
                 <div className="flex justify-between font-semibold">
                   <span>Toplam</span>
-                  <span>{total.toLocaleString('tr-TR')} ₺</span>
+                  <span>{(savedOrderTotal || total).toLocaleString('tr-TR')} ₺</span>
                 </div>
               </div>
             </div>

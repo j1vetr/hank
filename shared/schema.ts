@@ -25,6 +25,10 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   phone: text("phone"),
+  address: text("address"),
+  city: text("city"),
+  district: text("district"),
+  postalCode: text("postal_code"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

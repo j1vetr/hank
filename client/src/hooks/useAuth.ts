@@ -6,6 +6,10 @@ interface User {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  district: string | null;
 }
 
 interface AuthContextType {
@@ -22,6 +26,9 @@ interface RegisterData {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  address?: string;
+  city?: string;
+  district?: string;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
