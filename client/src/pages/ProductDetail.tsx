@@ -445,19 +445,10 @@ export default function ProductDetail() {
                         height="132"
                         rx="6"
                         fill="none"
-                        stroke="url(#borderGradient)"
-                        strokeWidth="1"
+                        stroke="white"
+                        strokeWidth="1.5"
                         className="animate-border-dash"
                       />
-                      <defs>
-                        <linearGradient id="borderGradient" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stopColor="transparent" />
-                          <stop offset="45%" stopColor="transparent" />
-                          <stop offset="50%" stopColor="white" />
-                          <stop offset="55%" stopColor="transparent" />
-                          <stop offset="100%" stopColor="transparent" />
-                        </linearGradient>
-                      </defs>
                     </svg>
                   </div>
                   <motion.div 
