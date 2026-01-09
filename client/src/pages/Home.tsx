@@ -24,6 +24,33 @@ const defaultCategoryImages: Record<string, string> = {
 
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
+function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
+  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 8);
+  
+  return (
+    <div className="overflow-hidden">
+      <div className="flex animate-marquee gap-4" style={{ width: 'max-content' }}>
+        {[...shuffledProducts, ...shuffledProducts].map((product, index) => (
+          <Link key={`${product.id}-${index}`} href={`/urun/${product.slug}`}>
+            <div className="relative w-28 h-36 sm:w-32 sm:h-40 lg:w-40 lg:h-52 rounded-lg overflow-hidden group cursor-pointer flex-shrink-0 border border-white/10">
+              <img
+                src={product.images[0] || '/placeholder.jpg'}
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
+                <p className="text-white text-[10px] sm:text-xs font-medium truncate">{product.name}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const features = [
   { icon: Truck, title: 'Ücretsiz Kargo', desc: '2.500₺ üzeri siparişlerde' },
   { icon: RotateCcw, title: 'Kolay İade', desc: '14 gün içinde ücretsiz' },
@@ -238,14 +265,17 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden py-5 bg-black/60 backdrop-blur-sm border-t border-white/10">
-          <div className="marquee-container">
-            <div className="animate-marquee-right flex whitespace-nowrap">
-              <span className="font-display text-2xl text-white/50 tracking-[0.3em] px-4">
-                {marqueeText}{marqueeText}{marqueeText}{marqueeText}
-              </span>
-            </div>
-          </div>
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          {allProducts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="bg-black/60 backdrop-blur-sm border-t border-white/10 py-4"
+            >
+              <HeroProductSlider products={allProducts} />
+            </motion.div>
+          )}
         </div>
       </section>
 
