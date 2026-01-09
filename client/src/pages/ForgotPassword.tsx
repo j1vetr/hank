@@ -73,7 +73,7 @@ export default function ForgotPassword() {
               </motion.div>
               
               <h1 className="font-display text-3xl tracking-wide mb-4" data-testid="text-email-sent">
-                E-POSTA GÖNDERİLDİ
+                E-posta Gönderildi
               </h1>
               <p className="text-muted-foreground mb-8 leading-relaxed">
                 Eğer <strong className="text-white">{email}</strong> adresi sistemimizde kayıtlıysa, 
@@ -102,7 +102,7 @@ export default function ForgotPassword() {
                 <Link href="/giris">
                   <Button className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide group">
                     <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
-                    GİRİŞ SAYFASINA DÖN
+                    Giriş Sayfasına Dön
                   </Button>
                 </Link>
                 <button
@@ -139,7 +139,7 @@ export default function ForgotPassword() {
                   <KeyRound className="w-7 h-7 text-white" />
                 </div>
                 <h1 className="font-display text-4xl tracking-wide mb-3" data-testid="text-page-title">
-                  ŞİFREMİ UNUTTUM
+                  Şifremi Unuttum
                 </h1>
                 <p className="text-muted-foreground">
                   E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim
@@ -181,11 +181,11 @@ export default function ForgotPassword() {
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      GÖNDERİLİYOR...
+                      Gönderiliyor...
                     </>
                   ) : (
                     <>
-                      SIFIRLAMA BAĞLANTISI GÖNDER
+                      Sıfırlama Bağlantısı Gönder
                       <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                     </>
                   )}

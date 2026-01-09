@@ -95,7 +95,7 @@ export default function Login() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-sm font-medium">Şifre</Label>
                   <Link href="/sifremi-unuttum" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                    Şifremi Unuttum
+                    Şifremi unuttum
                   </Link>
                 </div>
                 <div className="relative">
@@ -131,10 +131,10 @@ export default function Login() {
                   data-testid="button-login"
                 >
                   {loading ? (
-                    'GİRİŞ YAPILIYOR...'
+                    'Giriş yapılıyor...'
                   ) : (
                     <>
-                      GİRİŞ YAP
+                      Giriş Yap
                       <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                     </>
                   )}

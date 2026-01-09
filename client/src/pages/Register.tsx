@@ -310,10 +310,10 @@ export default function Register() {
                   data-testid="button-register"
                 >
                   {loading ? (
-                    'KAYIT YAPILIYOR...'
+                    'Kayıt yapılıyor...'
                   ) : (
                     <>
-                      KAYIT OL
+                      Kayıt Ol
                       <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                     </>
                   )}
