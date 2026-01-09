@@ -161,6 +161,16 @@
   animation: marquee 30s linear infinite;
 }
 
+@keyframes hero-slider {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-hero-slider {
+  animation: hero-slider 40s linear infinite;
+  width: max-content;
+}
+
 .animate-marquee-slow {
   animation: marquee 60s linear infinite;
 }

@@ -25,12 +25,13 @@ const defaultCategoryImages: Record<string, string> = {
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
 function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
-  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 10);
+  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
+  const duplicatedProducts = [...shuffledProducts, ...shuffledProducts, ...shuffledProducts, ...shuffledProducts];
   
   return (
-    <div className="overflow-hidden px-4">
-      <div className="flex animate-marquee gap-3 lg:gap-4" style={{ width: 'max-content' }}>
-        {[...shuffledProducts, ...shuffledProducts].map((product, index) => (
+    <div className="overflow-hidden">
+      <div className="flex animate-hero-slider gap-3 lg:gap-4">
+        {duplicatedProducts.map((product, index) => (
           <Link key={`${product.id}-${index}`} href={`/urun/${product.slug}`}>
             <div className="relative w-24 h-32 sm:w-28 sm:h-36 lg:w-32 lg:h-44 rounded-lg overflow-hidden group cursor-pointer flex-shrink-0 border border-white/20 hover:border-white/40 transition-colors">
               <img
