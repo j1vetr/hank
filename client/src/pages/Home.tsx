@@ -47,9 +47,77 @@ export default function Home() {
 
   const categoriesRef = useRef(null);
   const productsRef = useRef(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [isScrollPaused, setIsScrollPaused] = useState(false);
+  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
   const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
+
+  // Auto-scroll categories on mobile
+  useEffect(() => {
+    const scrollContainer = categoryScrollRef.current;
+    if (!scrollContainer || categories.length === 0) return;
+
+    let animationId: number;
+    let scrollPosition = 0;
+    const scrollSpeed = 0.5; // pixels per frame - slow speed
+
+    const animate = () => {
+      if (!isScrollPaused && scrollContainer) {
+        scrollPosition += scrollSpeed;
+        
+        // Reset to beginning when reaching the end
+        if (scrollPosition >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
+          scrollPosition = 0;
+        }
+        
+        scrollContainer.scrollLeft = scrollPosition;
+      }
+      animationId = requestAnimationFrame(animate);
+    };
+
+    // Only auto-scroll on mobile
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    if (mediaQuery.matches) {
+      animationId = requestAnimationFrame(animate);
+    }
+
+    const handleResize = () => {
+      if (mediaQuery.matches) {
+        animationId = requestAnimationFrame(animate);
+      } else {
+        cancelAnimationFrame(animationId);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [categories.length, isScrollPaused]);
+
+  const handleCategoryTouchStart = () => {
+    setIsScrollPaused(true);
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current);
+    }
+  };
+
+  const handleCategoryTouchEnd = () => {
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current);
+    }
+    // Resume after 3 seconds
+    pauseTimeoutRef.current = setTimeout(() => {
+      if (categoryScrollRef.current) {
+        // Sync scroll position before resuming
+        setIsScrollPaused(false);
+      }
+    }, 3000);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -183,7 +251,15 @@ export default function Home() {
 
       <section ref={categoriesRef} className="py-6 lg:py-10 px-4 lg:px-6" data-testid="section-categories">
         <div className="max-w-[1400px] mx-auto">
-          <div className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+          <div 
+            ref={categoryScrollRef}
+            onTouchStart={handleCategoryTouchStart}
+            onTouchEnd={handleCategoryTouchEnd}
+            onMouseDown={handleCategoryTouchStart}
+            onMouseUp={handleCategoryTouchEnd}
+            onMouseLeave={handleCategoryTouchEnd}
+            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory"
+          >
             {categories.map((category, index) => (
               <motion.div
                 key={category.id}
