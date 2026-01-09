@@ -171,18 +171,18 @@
   width: max-content;
 }
 
-@keyframes border-travel {
+@keyframes border-dash {
   0% {
-    transform: rotate(0deg);
+    stroke-dashoffset: 0;
   }
   100% {
-    transform: rotate(360deg);
+    stroke-dashoffset: -466;
   }
 }
 
-.animate-border-travel {
-  animation: border-travel 8s linear infinite;
-  transform-origin: center center;
+.animate-border-dash {
+  stroke-dasharray: 40 426;
+  animation: border-dash 6s linear infinite;
 }
 
 .animate-marquee-slow {

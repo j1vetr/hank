@@ -436,10 +436,29 @@ export default function ProductDetail() {
 
               <div className="flex-1 min-w-0">
                 <div className="relative">
-                  <div className="absolute -inset-[2px] rounded-xl overflow-hidden pointer-events-none">
-                    <div className="absolute inset-0 animate-border-travel">
-                      <div className="absolute w-16 h-16 bg-white/80 blur-sm rounded-full" style={{ top: '-8px', left: '50%', transform: 'translateX(-50%)' }} />
-                    </div>
+                  <div className="absolute -inset-[1px] rounded-xl pointer-events-none overflow-hidden">
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 133" preserveAspectRatio="none">
+                      <rect
+                        x="0.5"
+                        y="0.5"
+                        width="99"
+                        height="132"
+                        rx="6"
+                        fill="none"
+                        stroke="url(#borderGradient)"
+                        strokeWidth="1"
+                        className="animate-border-dash"
+                      />
+                      <defs>
+                        <linearGradient id="borderGradient" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="transparent" />
+                          <stop offset="45%" stopColor="transparent" />
+                          <stop offset="50%" stopColor="white" />
+                          <stop offset="55%" stopColor="transparent" />
+                          <stop offset="100%" stopColor="transparent" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
                   </div>
                   <motion.div 
                     ref={imageRef}
