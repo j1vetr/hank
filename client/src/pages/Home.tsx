@@ -123,13 +123,13 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="font-display text-5xl sm:text-7xl lg:text-[140px] xl:text-[180px] text-white tracking-wider mb-12 leading-none"
+              className="font-display text-6xl sm:text-7xl lg:text-[140px] xl:text-[180px] text-white tracking-wider mb-8 sm:mb-12 leading-none text-center"
             >
               <motion.span 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="block mb-2 lg:mb-4"
+                className="block mb-1 sm:mb-2 lg:mb-4"
               >
                 GÜCÜNÜ
               </motion.span>
@@ -147,21 +147,21 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0"
             >
-              <Link href="/kategori/tshirt">
+              <Link href="/kategori/tshirt" className="w-full sm:w-auto">
                 <button
                   data-testid="button-shop-men"
-                  className="group px-10 py-5 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4"
+                  className="group w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4 text-sm sm:text-base"
                 >
                   Koleksiyonu Keşfet
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
                 </button>
               </Link>
-              <Link href="/kategori/esofman">
+              <Link href="/kategori/esofman" className="w-full sm:w-auto">
                 <button
                   data-testid="button-shop-all"
-                  className="px-10 py-5 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all"
+                  className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all text-sm sm:text-base"
                 >
                   Tüm Ürünler
                 </button>

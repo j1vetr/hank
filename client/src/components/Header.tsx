@@ -130,13 +130,13 @@ export function Header() {
               </nav>
 
               <div className="flex items-center">
-                <div className="flex items-center gap-1 p-1.5 bg-white/5 rounded-full border border-white/10">
+                <div className="flex items-center gap-0.5 sm:gap-1 p-1 sm:p-1.5 bg-white/5 rounded-full border border-white/10">
                   <button
                     data-testid="button-search"
-                    className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                    className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors"
                     onClick={() => setSearchOpen(true)}
                   >
-                    <Search className="w-5 h-5" />
+                    <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                   
                   {user ? (
@@ -177,14 +177,14 @@ export function Header() {
                   <Link href="/sepet">
                     <button
                       data-testid="button-cart"
-                      className="p-2.5 hover:bg-white/10 rounded-full transition-colors relative"
+                      className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors relative"
                     >
-                      <ShoppingBag className="w-5 h-5" />
+                      <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                       {totalItems > 0 && (
                         <motion.span
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-xs font-bold flex items-center justify-center rounded-full"
+                          className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-white text-black text-[10px] sm:text-xs font-bold flex items-center justify-center rounded-full"
                         >
                           {totalItems}
                         </motion.span>
