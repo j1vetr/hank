@@ -19,6 +19,9 @@ import {
   lowStockAlerts,
   campaigns,
   emailJobs,
+  siteSettings,
+  passwordResetTokens,
+  reviewRequests,
   type AdminUser,
   type InsertAdminUser,
   type Category,
@@ -51,7 +54,10 @@ import {
   type LowStockAlert,
   type Campaign,
   type InsertCampaign,
-  type EmailJob
+  type EmailJob,
+  type SiteSetting,
+  type PasswordResetToken,
+  type ReviewRequest
 } from "@shared/schema";
 import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
 
@@ -959,6 +965,89 @@ export class DbStorage implements IStorage {
       email: r.email,
       name: r.name || `${r.firstName || ''} ${r.lastName || ''}`.trim() || 'Müşteri',
     }));
+  }
+
+  // Site Settings methods
+  async getSiteSetting(key: string): Promise<string | null> {
+    const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    return setting?.value || null;
+  }
+
+  async setSiteSetting(key: string, value: string): Promise<void> {
+    const [existing] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    if (existing) {
+      await db.update(siteSettings).set({ value, updatedAt: new Date() }).where(eq(siteSettings.key, key));
+    } else {
+      await db.insert(siteSettings).values({ key, value });
+    }
+  }
+
+  async getSiteSettings(): Promise<Record<string, string>> {
+    const settings = await db.select().from(siteSettings);
+    return settings.reduce((acc, s) => {
+      if (s.value) acc[s.key] = s.value;
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  async setSiteSettings(settings: Record<string, string>): Promise<void> {
+    for (const [key, value] of Object.entries(settings)) {
+      await this.setSiteSetting(key, value);
+    }
+  }
+
+  // Password Reset Token methods
+  async createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken> {
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
+    const [newToken] = await db.insert(passwordResetTokens).values({
+      userId,
+      token,
+      expiresAt,
+    }).returning();
+    return newToken;
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const [resetToken] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token));
+    return resetToken;
+  }
+
+  async markPasswordResetTokenUsed(token: string): Promise<void> {
+    await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.token, token));
+  }
+
+  async deleteExpiredPasswordResetTokens(): Promise<void> {
+    await db.delete(passwordResetTokens).where(lte(passwordResetTokens.expiresAt, new Date()));
+  }
+
+  // Review Request methods
+  async createReviewRequest(orderId: string, userId: string): Promise<ReviewRequest> {
+    const [request] = await db.insert(reviewRequests).values({ orderId, userId }).returning();
+    return request;
+  }
+
+  async getReviewRequest(orderId: string): Promise<ReviewRequest | undefined> {
+    const [request] = await db.select().from(reviewRequests).where(eq(reviewRequests.orderId, orderId));
+    return request;
+  }
+
+  async markReviewRequestSent(orderId: string): Promise<void> {
+    await db.update(reviewRequests).set({ sentAt: new Date() }).where(eq(reviewRequests.orderId, orderId));
+  }
+
+  async markReviewRequestCompleted(orderId: string): Promise<void> {
+    await db.update(reviewRequests).set({ completedAt: new Date() }).where(eq(reviewRequests.orderId, orderId));
+  }
+
+  async getPendingReviewRequests(): Promise<ReviewRequest[]> {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return db.select().from(reviewRequests)
+      .where(and(
+        sql`${reviewRequests.sentAt} IS NULL`,
+        gte(reviewRequests.createdAt, sevenDaysAgo)
+      ))
+      .orderBy(desc(reviewRequests.createdAt));
   }
 }
 
