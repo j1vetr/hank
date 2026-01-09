@@ -1327,7 +1327,7 @@ export async function registerRoutes(
                     }
                   }
                   
-                  await storage.createProduct({
+                  const newProduct = await storage.createProduct({
                     name: wooProd.name,
                     slug: wooProd.slug,
                     description: wooProd.description?.replace(/<[^>]*>/g, '') || '',
@@ -1342,6 +1342,105 @@ export async function registerRoutes(
                     isNew: false,
                   });
                   productsImported++;
+                  
+                  // Fetch and create variations for variable products
+                  if (wooProd.type === 'variable' && newProduct) {
+                    try {
+                      const variationsUrl = new URL(`/wp-json/wc/v3/products/${wooProd.id}/variations`, settings.siteUrl);
+                      variationsUrl.searchParams.set('per_page', '100');
+                      
+                      const varResponse = await fetch(variationsUrl.toString(), {
+                        headers: { 'Authorization': `Basic ${auth}` },
+                      });
+                      
+                      if (varResponse.ok) {
+                        const wooVariations = await varResponse.json();
+                        for (const wooVar of wooVariations) {
+                          let size = '';
+                          let color = '';
+                          let colorHex = '#000000';
+                          
+                          for (const attr of (wooVar.attributes || [])) {
+                            if (attr.name.toLowerCase().includes('beden') || attr.name.toLowerCase().includes('size')) {
+                              size = attr.option || '';
+                            }
+                            if (attr.name.toLowerCase().includes('renk') || attr.name.toLowerCase().includes('color')) {
+                              color = attr.option || '';
+                            }
+                          }
+                          
+                          await storage.createProductVariant({
+                            productId: newProduct.id,
+                            sku: wooVar.sku || null,
+                            size: size || null,
+                            color: color || null,
+                            colorHex: colorHex,
+                            price: wooVar.price || wooProd.price || '0',
+                            stock: wooVar.stock_quantity || 0,
+                            isActive: wooVar.status === 'publish',
+                          });
+                        }
+                      }
+                    } catch (varError: any) {
+                      errors.push(`Varyasyonlar alınamadı: ${wooProd.name}`);
+                    }
+                  } else if (newProduct) {
+                    // Simple product - create a single variant
+                    if (availableSizes.length > 0 && availableColors.length > 0) {
+                      for (const size of availableSizes) {
+                        for (const colorObj of availableColors) {
+                          await storage.createProductVariant({
+                            productId: newProduct.id,
+                            sku: wooProd.sku ? `${wooProd.sku}-${size}-${colorObj.name}` : null,
+                            size,
+                            color: colorObj.name,
+                            colorHex: colorObj.hex,
+                            price: wooProd.price || '0',
+                            stock: wooProd.stock_quantity || 0,
+                            isActive: true,
+                          });
+                        }
+                      }
+                    } else if (availableSizes.length > 0) {
+                      for (const size of availableSizes) {
+                        await storage.createProductVariant({
+                          productId: newProduct.id,
+                          sku: wooProd.sku ? `${wooProd.sku}-${size}` : null,
+                          size,
+                          color: null,
+                          colorHex: null,
+                          price: wooProd.price || '0',
+                          stock: wooProd.stock_quantity || 0,
+                          isActive: true,
+                        });
+                      }
+                    } else if (availableColors.length > 0) {
+                      for (const colorObj of availableColors) {
+                        await storage.createProductVariant({
+                          productId: newProduct.id,
+                          sku: wooProd.sku ? `${wooProd.sku}-${colorObj.name}` : null,
+                          size: null,
+                          color: colorObj.name,
+                          colorHex: colorObj.hex,
+                          price: wooProd.price || '0',
+                          stock: wooProd.stock_quantity || 0,
+                          isActive: true,
+                        });
+                      }
+                    } else {
+                      // No size or color - create single variant
+                      await storage.createProductVariant({
+                        productId: newProduct.id,
+                        sku: wooProd.sku || null,
+                        size: null,
+                        color: null,
+                        colorHex: null,
+                        price: wooProd.price || '0',
+                        stock: wooProd.stock_quantity || 0,
+                        isActive: true,
+                      });
+                    }
+                  }
                 }
               } catch (prodError: any) {
                 errors.push(`Ürün aktarılamadı: ${wooProd.name} - ${prodError.message}`);
