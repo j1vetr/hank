@@ -8,6 +8,7 @@ import { CartProvider } from "@/components/CartProvider";
 import { CartModalProvider } from "@/hooks/useCartModal";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 import Home from "@/pages/Home";
 import Category from "@/pages/Category";
@@ -39,8 +40,10 @@ function PageLoader() {
 
 function Router() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Switch>
+    <>
+      <ScrollToTop />
+      <Suspense fallback={<PageLoader />}>
+        <Switch>
         <Route path="/" component={Home} />
         <Route path="/kategori/:slug" component={Category} />
         <Route path="/urun/:slug" component={ProductDetail} />
@@ -59,8 +62,9 @@ function Router() {
         <Route path="/toov-admin/login" component={AdminLogin} />
         <Route path="/toov-admin" component={AdminDashboard} />
         <Route component={NotFound} />
-      </Switch>
-    </Suspense>
+        </Switch>
+      </Suspense>
+    </>
   );
 }
 
