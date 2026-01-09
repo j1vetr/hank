@@ -52,11 +52,16 @@ export default function Login() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
+                className="relative"
               >
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-20 h-20 bg-gradient-to-br from-white/10 to-white/5 rounded-full blur-2xl" />
+                <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 shadow-xl">
+                  <Lock className="w-7 h-7 text-white" />
+                </div>
                 <h1 className="font-display text-4xl tracking-wide mb-3" data-testid="text-page-title">
-                  HOŞ GELDİN
+                  Hoş Geldin
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Hesabına giriş yap ve alışverişe başla
                 </p>
               </motion.div>
