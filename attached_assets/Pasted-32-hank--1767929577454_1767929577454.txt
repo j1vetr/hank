@@ -1,0 +1,34 @@
+32|hank    |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+32|hank    |
+32|hank    | Error: DATABASE_URL environment variable is not set
+32|hank    |     at Object.<anonymous> (/var/www/hank/dist/index.cjs:130:34126)
+32|hank    |     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+32|hank    |     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+32|hank    |     at Module.load (node:internal/modules/cjs/loader:1266:32)
+32|hank    |     at Module._load (node:internal/modules/cjs/loader:1091:12)
+32|hank    |     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+32|hank    |     at node:internal/main/run_main_module:28:49
+32|hank    |
+32|hank    | Node.js v20.19.5
+32|hank    | Warning: connect.session() MemoryStore is not
+32|hank    | designed for a production environment, as it will leak
+32|hank    | memory, and will not scale past a single process.
+
+/root/.pm2/logs/hank-out.log last 15 lines:
+32|hank    | 6:29:00 AM [express] GET /api/cart 200 in 2ms :: []
+32|hank    | 6:29:40 AM [express] GET /api/auth/me 401 in 0ms :: {"error":"Giriş yapılmamış"}
+32|hank    | 6:29:40 AM [express] GET /api/categories 200 in 22ms :: []
+32|hank    | 6:29:40 AM [express] GET /api/products 200 in 24ms :: []
+32|hank    | 6:29:40 AM [express] GET /api/cart 200 in 24ms :: []
+32|hank    | 6:29:49 AM [express] GET /api/categories 200 in 2ms :: []
+32|hank    | 6:29:49 AM [express] GET /api/products 200 in 2ms :: []
+32|hank    | 6:29:49 AM [express] GET /api/cart 200 in 1ms :: []
+32|hank    | 6:29:49 AM [express] GET /api/auth/me 401 in 1ms :: {"error":"Giriş yapılmamış"}
+32|hank    | 6:32:03 AM [express] POST /api/admin/login 200 in 59ms :: {"success":true,"user":{"id":"c4da9573-74f7-4fa4-9f34-b18894ea03bd","username":"Toov"}}
+32|hank    | 6:32:03 AM [express] GET /api/admin/me 401 in 1ms :: {"error":"Not authenticated"}
+32|hank    | 6:32:05 AM [express] GET /api/cart 304 in 3ms :: []
+32|hank    | 6:32:05 AM [express] GET /api/auth/me 401 in 1ms :: {"error":"Giriş yapılmamış"}
+32|hank    | 6:32:17 AM [express] POST /api/admin/login 200 in 56ms :: {"success":true,"user":{"id":"c4da9573-74f7-4fa4-9f34-b18894ea03bd","username":"Toov"}}
+32|hank    | 6:32:17 AM [express] GET /api/admin/me 401 in 1ms :: {"error":"Not authenticated"}
+
+
