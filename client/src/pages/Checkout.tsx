@@ -862,20 +862,18 @@ export default function Checkout() {
                                   />
                                 )}
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 overflow-hidden">
                                 <p className="font-medium text-sm truncate">{item.product?.name || 'Ürün'}</p>
                                 {item.variant && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                     {item.variant.size && `Beden: ${item.variant.size}`}
-                                    {item.variant.color && ` | Renk: ${item.variant.color}`}
+                                    {item.variant.color && ` | ${item.variant.color}`}
                                   </p>
                                 )}
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="text-sm text-muted-foreground">Adet: {item.quantity}</span>
-                                  <span className="font-bold">
-                                    {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
-                                  </span>
-                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">Adet: {item.quantity}</p>
+                                <p className="font-bold text-sm mt-1">
+                                  {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
+                                </p>
                               </div>
                             </div>
                           ))}
@@ -924,32 +922,32 @@ export default function Checkout() {
                         </div>
                       )}
 
-                      <div className="flex gap-3">
+                      <div className="flex gap-2 sm:gap-3">
                         <Button 
                           type="button" 
                           variant="outline"
                           onClick={() => setCurrentStep(3)}
-                          className="flex-1 h-14 border-white/20 hover:bg-white/5 rounded-xl"
+                          className="shrink-0 h-12 sm:h-14 px-4 sm:px-6 border-white/20 hover:bg-white/5 rounded-xl"
                         >
                           Geri
                         </Button>
-                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-[2]">
+                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1 min-w-0">
                           <Button 
                             type="submit"
                             disabled={loading || (createAccount && accountPassword.length < 6)}
-                            className="w-full h-14 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold tracking-wide text-lg group rounded-xl disabled:opacity-50"
+                            className="w-full h-12 sm:h-14 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold tracking-wide text-sm sm:text-base rounded-xl disabled:opacity-50 overflow-hidden"
                             data-testid="button-place-order"
                           >
                             {loading ? (
-                              <>
-                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                SİPARİŞ VERİLİYOR...
-                              </>
+                              <span className="flex items-center justify-center">
+                                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin shrink-0" />
+                                <span className="truncate">İŞLENİYOR...</span>
+                              </span>
                             ) : (
-                              <>
-                                SİPARİŞİ TAMAMLA
-                                <span className="ml-2 text-green-200">{total.toLocaleString('tr-TR')} ₺</span>
-                              </>
+                              <span className="flex items-center justify-center gap-1 sm:gap-2">
+                                <span className="truncate">SİPARİŞİ ONAYLA</span>
+                                <span className="text-green-200 shrink-0">{total.toLocaleString('tr-TR')} ₺</span>
+                              </span>
                             )}
                           </Button>
                         </motion.div>
