@@ -387,8 +387,8 @@ export default function Checkout() {
         <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
       </div>
 
-      <main className="pt-36 pb-20 px-4 sm:px-6 relative z-10 w-full box-border">
-        <div className="max-w-5xl mx-auto">
+      <main className="pt-36 pb-20 px-4 sm:px-6 relative z-10 w-full box-border overflow-hidden">
+        <div className="max-w-5xl mx-auto w-full overflow-hidden">
           <motion.nav 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -443,8 +443,8 @@ export default function Checkout() {
           </motion.div>
 
           <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 overflow-hidden">
-            <div className="lg:col-span-2">
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="lg:col-span-2 min-w-0 overflow-hidden">
+              <form onSubmit={handleSubmit} className="space-y-6 w-full">
                 <AnimatePresence mode="wait">
                   {currentStep === 1 && (
                     <motion.div
