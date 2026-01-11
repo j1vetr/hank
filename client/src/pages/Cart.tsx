@@ -197,35 +197,35 @@ export default function Cart() {
                             )}
                           </div>
 
-                          <div className="flex items-end justify-between mt-3">
-                            <div className="flex items-center gap-1 bg-black/30 rounded-lg p-1">
+                          <div className="flex items-end justify-between gap-2 mt-3">
+                            <div className="flex items-center bg-black/30 rounded-lg p-0.5 shrink-0">
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                                className="w-8 h-8 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
+                                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
                                 data-testid={`button-decrease-${item.id}`}
                               >
                                 <Minus className="w-3 h-3" />
                               </motion.button>
-                              <span className="w-8 text-center text-sm font-medium" data-testid={`text-quantity-${item.id}`}>
+                              <span className="w-6 sm:w-7 text-center text-xs sm:text-sm font-medium" data-testid={`text-quantity-${item.id}`}>
                                 {item.quantity}
                               </span>
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="w-8 h-8 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
+                                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded hover:bg-white/10 transition-colors"
                                 data-testid={`button-increase-${item.id}`}
                               >
                                 <Plus className="w-3 h-3" />
                               </motion.button>
                             </div>
 
-                            <div className="text-right">
-                              <p className="font-bold text-lg" data-testid={`text-price-${item.id}`}>
+                            <div className="text-right min-w-0">
+                              <p className="font-bold text-sm sm:text-base" data-testid={`text-price-${item.id}`}>
                                 {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
                               </p>
                               {item.quantity > 1 && (
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-[10px] sm:text-xs text-muted-foreground">
                                   Adet: {parseFloat(item.variant?.price || item.product?.basePrice || '0').toLocaleString('tr-TR')} ₺
                                 </p>
                               )}
