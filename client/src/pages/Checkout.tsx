@@ -347,9 +347,9 @@ export default function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background overflow-x-hidden">
+      <div className="min-h-screen bg-background overflow-x-hidden w-full">
         <Header />
-        <main className="pt-36 pb-20 px-4 sm:px-6">
+        <main className="pt-36 pb-20 px-4 sm:px-6 w-full box-border">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -377,7 +377,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Header />
       
       <div className="relative">
@@ -385,8 +385,8 @@ export default function Checkout() {
         <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
       </div>
 
-      <main className="pt-36 pb-20 px-4 sm:px-6 relative z-10">
-        <div className="max-w-5xl mx-auto w-full">
+      <main className="pt-36 pb-20 px-4 sm:px-6 relative z-10 w-full box-border">
+        <div className="max-w-5xl mx-auto">
           <motion.nav 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

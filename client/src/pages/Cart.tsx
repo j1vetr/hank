@@ -57,7 +57,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Header />
       
       <div className="relative">
@@ -65,8 +65,8 @@ export default function Cart() {
         <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
       </div>
 
-      <main className="pt-36 pb-20 px-4 sm:px-6 relative z-10">
-        <div className="max-w-5xl mx-auto w-full">
+      <main className="pt-36 pb-20 px-4 sm:px-6 relative z-10 w-full box-border">
+        <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
