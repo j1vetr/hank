@@ -76,65 +76,114 @@ export default function Home() {
   const categoriesRef = useRef(null);
   const productsRef = useRef(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
-  const [isScrollPaused, setIsScrollPaused] = useState(false);
   const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const scrollPositionRef = useRef(0);
+  const lastTimeRef = useRef<number | null>(null);
+  const isPausedRef = useRef(false);
+  const isRunningRef = useRef(false);
   
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
   const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
 
-  // Auto-scroll categories on mobile
+  // Auto-scroll categories on mobile with delta-time based speed
   useEffect(() => {
     const scrollContainer = categoryScrollRef.current;
     if (!scrollContainer || categories.length === 0) return;
 
-    let animationId: number;
-    let scrollPosition = 0;
-    const scrollSpeed = 0.5; // pixels per frame - slow speed
+    const SCROLL_SPEED = 30; // pixels per second (consistent across all devices)
+    const MAX_DELTA = 50; // clamp delta to prevent jumps (in ms)
 
-    const animate = () => {
-      if (!isScrollPaused && scrollContainer) {
-        scrollPosition += scrollSpeed;
+    const stopAnimation = () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      isRunningRef.current = false;
+      lastTimeRef.current = null;
+    };
+
+    const animate = (currentTime: number) => {
+      if (!isRunningRef.current) return;
+      
+      const scrollEl = categoryScrollRef.current;
+      if (!scrollEl) {
+        stopAnimation();
+        return;
+      }
+
+      if (lastTimeRef.current === null) {
+        lastTimeRef.current = currentTime;
+      }
+
+      const rawDelta = currentTime - lastTimeRef.current;
+      const delta = Math.min(rawDelta, MAX_DELTA); // Clamp delta to prevent speed spikes
+      lastTimeRef.current = currentTime;
+
+      if (!isPausedRef.current) {
+        const movement = (SCROLL_SPEED * delta) / 1000; // Convert to pixels
+        scrollPositionRef.current += movement;
         
-        // Reset to beginning when reaching the end
-        if (scrollPosition >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
-          scrollPosition = 0;
+        const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+        if (scrollPositionRef.current >= maxScroll) {
+          scrollPositionRef.current = 0;
         }
         
-        scrollContainer.scrollLeft = scrollPosition;
+        scrollEl.scrollLeft = scrollPositionRef.current;
       }
-      animationId = requestAnimationFrame(animate);
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    const startAnimation = () => {
+      // Guard: Stop any existing animation before starting
+      stopAnimation();
+      isRunningRef.current = true;
+      lastTimeRef.current = null;
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
     // Only auto-scroll on mobile
     const mediaQuery = window.matchMedia('(max-width: 640px)');
-    if (mediaQuery.matches) {
-      animationId = requestAnimationFrame(animate);
-    }
-
-    const handleResize = () => {
-      if (mediaQuery.matches) {
-        animationId = requestAnimationFrame(animate);
+    
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        startAnimation();
       } else {
-        cancelAnimationFrame(animationId);
+        stopAnimation();
       }
     };
 
-    window.addEventListener('resize', handleResize);
+    // Initial check
+    if (mediaQuery.matches) {
+      startAnimation();
+    }
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', handleMediaChange);
 
     return () => {
-      cancelAnimationFrame(animationId);
-      window.removeEventListener('resize', handleResize);
+      stopAnimation();
+      mediaQuery.removeEventListener('change', handleMediaChange);
     };
-  }, [categories.length, isScrollPaused]);
+  }, [categories.length]);
 
-  const handleCategoryTouchStart = () => {
-    setIsScrollPaused(true);
+  // Pointer event handlers to prevent double-trigger on iOS
+  const handleCategoryPointerDown = (e: React.PointerEvent) => {
+    // Prevent handling the same interaction twice
+    if (e.pointerType === 'mouse' && 'ontouchstart' in window) return;
+    
+    isPausedRef.current = true;
     if (pauseTimeoutRef.current) {
       clearTimeout(pauseTimeoutRef.current);
+      pauseTimeoutRef.current = null;
     }
   };
 
-  const handleCategoryTouchEnd = () => {
+  const handleCategoryPointerUp = (e: React.PointerEvent) => {
+    // Prevent handling the same interaction twice
+    if (e.pointerType === 'mouse' && 'ontouchstart' in window) return;
+    
     if (pauseTimeoutRef.current) {
       clearTimeout(pauseTimeoutRef.current);
     }
@@ -142,7 +191,8 @@ export default function Home() {
     pauseTimeoutRef.current = setTimeout(() => {
       if (categoryScrollRef.current) {
         // Sync scroll position before resuming
-        setIsScrollPaused(false);
+        scrollPositionRef.current = categoryScrollRef.current.scrollLeft;
+        isPausedRef.current = false;
       }
     }, 3000);
   };
@@ -285,12 +335,11 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto">
           <div 
             ref={categoryScrollRef}
-            onTouchStart={handleCategoryTouchStart}
-            onTouchEnd={handleCategoryTouchEnd}
-            onMouseDown={handleCategoryTouchStart}
-            onMouseUp={handleCategoryTouchEnd}
-            onMouseLeave={handleCategoryTouchEnd}
-            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory"
+            onPointerDown={handleCategoryPointerDown}
+            onPointerUp={handleCategoryPointerUp}
+            onPointerCancel={handleCategoryPointerUp}
+            onPointerLeave={handleCategoryPointerUp}
+            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x"
           >
             {categories.map((category, index) => (
               <motion.div
