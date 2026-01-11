@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Header } from '@/components/Header';
 import { SEO } from '@/components/SEO';
 import { ShippingCountdown } from '@/components/ShippingCountdown';
@@ -23,6 +23,7 @@ import {
   Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useEmblaCarousel from 'embla-carousel-react';
 import { useProduct, useProducts, useCategories } from '@/hooks/useProducts';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
@@ -96,6 +97,43 @@ export default function ProductDetail() {
   const [reviewContent, setReviewContent] = useState('');
 
   const imageRef = useRef<HTMLDivElement>(null);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, dragFree: false });
+  const [lightboxEmblaRef, lightboxEmblaApi] = useEmblaCarousel({ loop: true, dragFree: false });
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedImage(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.on('select', onSelect);
+    return () => { emblaApi.off('select', onSelect); };
+  }, [emblaApi, onSelect]);
+
+  useEffect(() => {
+    if (emblaApi && emblaApi.selectedScrollSnap() !== selectedImage) {
+      emblaApi.scrollTo(selectedImage);
+    }
+  }, [selectedImage, emblaApi]);
+
+  useEffect(() => {
+    if (lightboxEmblaApi && lightboxOpen) {
+      lightboxEmblaApi.scrollTo(selectedImage, true);
+    }
+  }, [lightboxOpen, selectedImage, lightboxEmblaApi]);
+
+  const onLightboxSelect = useCallback(() => {
+    if (!lightboxEmblaApi) return;
+    setSelectedImage(lightboxEmblaApi.selectedScrollSnap());
+  }, [lightboxEmblaApi]);
+
+  useEffect(() => {
+    if (!lightboxEmblaApi) return;
+    lightboxEmblaApi.on('select', onLightboxSelect);
+    return () => { lightboxEmblaApi.off('select', onLightboxSelect); };
+  }, [lightboxEmblaApi, onLightboxSelect]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) return;
@@ -296,17 +334,30 @@ export default function ProductDetail() {
             className="fixed inset-0 z-[200] bg-black flex items-center justify-center"
             onClick={() => setLightboxOpen(false)}
           >
-            <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors" onClick={() => setLightboxOpen(false)}>
+            <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20" onClick={() => setLightboxOpen(false)}>
               <X className="w-6 h-6" />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev === 0 ? images.length - 1 : prev - 1); }} className="absolute left-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors">
-              <ChevronLeft className="w-6 h-6" />
+            <button onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev === 0 ? images.length - 1 : prev - 1); }} className="absolute left-4 sm:left-6 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20 hidden sm:flex">
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <motion.img key={selectedImage} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 25 }} src={images[selectedImage]} alt={product.name} className="max-w-[90vw] max-h-[90vh] object-contain" onClick={(e) => e.stopPropagation()} />
-            <button onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev === images.length - 1 ? 0 : prev + 1); }} className="absolute right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors">
-              <ChevronRight className="w-6 h-6" />
+            <div className="hidden sm:block">
+              <motion.img key={selectedImage} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 25 }} src={images[selectedImage]} alt={product.name} className="max-w-[90vw] max-h-[90vh] object-contain" onClick={(e) => e.stopPropagation()} />
+            </div>
+            <div className="sm:hidden w-full h-full flex items-center" onClick={(e) => e.stopPropagation()}>
+              <div className="w-full overflow-hidden" ref={lightboxEmblaRef}>
+                <div className="flex">
+                  {images.map((image, index) => (
+                    <div key={index} className="flex-[0_0_100%] min-w-0 flex items-center justify-center px-4">
+                      <img src={image} alt={product.name} className="max-w-full max-h-[80vh] object-contain" draggable={false} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); setSelectedImage(prev => prev === images.length - 1 ? 0 : prev + 1); }} className="absolute right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20 hidden sm:flex">
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
               {images.map((_, idx) => (
                 <button key={idx} onClick={(e) => { e.stopPropagation(); setSelectedImage(idx); }} className={`w-2 h-2 rounded-full transition-all ${idx === selectedImage ? 'bg-white w-6' : 'bg-white/30'}`} />
               ))}
@@ -436,7 +487,7 @@ export default function ProductDetail() {
 
               <div className="flex-1 min-w-0">
                 <div className="relative">
-                  <div className="absolute -inset-[1px] rounded-xl pointer-events-none overflow-hidden">
+                  <div className="absolute -inset-[1px] rounded-xl pointer-events-none overflow-hidden z-10">
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 133" preserveAspectRatio="none">
                       <rect
                         x="0.5"
@@ -451,35 +502,54 @@ export default function ProductDetail() {
                       />
                     </svg>
                   </div>
-                  <motion.div 
-                    ref={imageRef}
-                    className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-pointer sm:cursor-zoom-in group w-full"
-                    onMouseEnter={() => window.innerWidth >= 640 && setIsZooming(true)}
-                    onMouseLeave={() => setIsZooming(false)}
-                    onMouseMove={(e) => window.innerWidth >= 640 && handleMouseMove(e)}
-                    onClick={() => setLightboxOpen(true)}
-                  >
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={selectedImage}
-                      initial={{ opacity: 0 }}
-                      animate={{ 
-                        opacity: 1,
-                        scale: isZooming && window.innerWidth >= 640 ? 2 : 1,
-                        x: isZooming && window.innerWidth >= 640 ? (50 - mousePosition.x) * 4 : 0,
-                        y: isZooming && window.innerWidth >= 640 ? (50 - mousePosition.y) * 4 : 0,
-                      }}
-                      exit={{ opacity: 0 }}
-                      className="w-full h-full"
+                  <div className="hidden sm:block">
+                    <motion.div 
+                      ref={imageRef}
+                      className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in group w-full"
+                      onMouseEnter={() => setIsZooming(true)}
+                      onMouseLeave={() => setIsZooming(false)}
+                      onMouseMove={handleMouseMove}
+                      onClick={() => setLightboxOpen(true)}
                     >
-                      <img src={images[selectedImage]} alt={product.name} className="w-full h-full object-cover" draggable={false} />
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={selectedImage}
+                          initial={{ opacity: 0 }}
+                          animate={{ 
+                            opacity: 1,
+                            scale: isZooming ? 2 : 1,
+                            x: isZooming ? (50 - mousePosition.x) * 4 : 0,
+                            y: isZooming ? (50 - mousePosition.y) * 4 : 0,
+                          }}
+                          exit={{ opacity: 0 }}
+                          className="w-full h-full"
+                        >
+                          <img src={images[selectedImage]} alt={product.name} className="w-full h-full object-cover" draggable={false} />
+                        </motion.div>
+                      </AnimatePresence>
+                      {product.isNew && (
+                        <span className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded z-20">%YENİ</span>
+                      )}
                     </motion.div>
-                  </AnimatePresence>
-
-                  {product.isNew && (
-                    <span className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">%YENİ</span>
-                  )}
-                  </motion.div>
+                  </div>
+                  <div className="sm:hidden">
+                    <div className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden w-full" ref={emblaRef}>
+                      <div className="flex h-full">
+                        {images.map((image, index) => (
+                          <div 
+                            key={index} 
+                            className="flex-[0_0_100%] min-w-0 h-full"
+                            onClick={() => setLightboxOpen(true)}
+                          >
+                            <img src={image} alt={product.name} className="w-full h-full object-cover" draggable={false} />
+                          </div>
+                        ))}
+                      </div>
+                      {product.isNew && (
+                        <span className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded z-20">%YENİ</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="sm:hidden mt-4">
