@@ -133,7 +133,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   y: isHovered ? 0 : 20
                 }}
                 transition={{ duration: 0.3 }}
-                className="absolute bottom-0 left-0 right-0 p-3"
+                className="absolute bottom-0 left-0 right-0 p-3 hidden sm:block"
               >
                 <motion.button
                   data-testid={`button-quick-view-${product.id}`}
