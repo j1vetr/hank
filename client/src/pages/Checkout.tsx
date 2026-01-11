@@ -410,15 +410,15 @@ export default function Checkout() {
               ÖDEME
             </h1>
             
-            <div className="flex items-center justify-center gap-1 sm:gap-2 max-w-2xl mx-auto px-2">
+            <div className="flex items-center justify-center gap-1 sm:gap-2 max-w-2xl mx-auto px-2 overflow-hidden">
               {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center flex-1 sm:flex-none">
+                <div key={step.id} className="flex items-center min-w-0">
                   <motion.button 
                     type="button"
                     whileHover={{ scale: 1.02 }}
                     onClick={() => goToStep(step.id)}
                     disabled={step.id > currentStep + 1}
-                    className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-full transition-all w-full sm:w-auto ${
+                    className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-full transition-all shrink-0 ${
                       currentStep === step.id 
                         ? 'bg-white text-black' 
                         : currentStep > step.id
@@ -442,17 +442,17 @@ export default function Checkout() {
             </div>
           </motion.div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 overflow-hidden">
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <AnimatePresence mode="wait">
                   {currentStep === 1 && (
                     <motion.div
                       key="step1"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-6"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
@@ -565,10 +565,10 @@ export default function Checkout() {
                   {currentStep === 2 && (
                     <motion.div
                       key="step2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-6"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
@@ -672,10 +672,10 @@ export default function Checkout() {
                   {currentStep === 3 && (
                     <motion.div
                       key="step3"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-6"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
@@ -772,10 +772,10 @@ export default function Checkout() {
                   {currentStep === 4 && (
                     <motion.div
                       key="step4"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="space-y-4"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-4 overflow-hidden"
                     >
                       <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-6">
                         <div className="flex items-center gap-3 mb-6">
@@ -962,9 +962,9 @@ export default function Checkout() {
 
             <div className="lg:col-span-1">
               <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-gradient-to-br from-zinc-900 via-zinc-800/80 to-zinc-900 border border-white/10 rounded-2xl p-6 sticky top-24"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-br from-zinc-900 via-zinc-800/80 to-zinc-900 border border-white/10 rounded-2xl p-4 sm:p-6 sticky top-24 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent rounded-2xl pointer-events-none" />
                 

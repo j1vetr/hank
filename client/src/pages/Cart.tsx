@@ -101,8 +101,8 @@ export default function Cart() {
               </Link>
             </motion.div>
           ) : (
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-4">
+            <div className="grid lg:grid-cols-3 gap-6 lg:gap-8 overflow-hidden">
+              <div className="lg:col-span-2 space-y-4 overflow-hidden">
                 {remainingForFreeShipping > 0 && (
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
@@ -154,11 +154,11 @@ export default function Cart() {
                     <motion.div
                       key={item.id}
                       layout
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20, height: 0 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="group bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/5 rounded-xl p-4 hover:border-white/10 transition-colors"
+                      className="group bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/5 rounded-xl p-4 hover:border-white/10 transition-colors overflow-hidden"
                       data-testid={`cart-item-${item.id}`}
                     >
                       <div className="flex gap-4">
@@ -250,9 +250,9 @@ export default function Cart() {
 
               <div className="lg:col-span-1">
                 <motion.div 
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="bg-gradient-to-br from-zinc-900 via-zinc-800/80 to-zinc-900 border border-white/10 rounded-2xl p-6 sticky top-24"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-br from-zinc-900 via-zinc-800/80 to-zinc-900 border border-white/10 rounded-2xl p-4 sm:p-6 sticky top-24 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent rounded-2xl pointer-events-none" />
                   
