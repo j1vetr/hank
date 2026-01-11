@@ -197,7 +197,7 @@ export default function Cart() {
                             )}
                           </div>
 
-                          <div className="flex items-end justify-between gap-2 mt-3">
+                          <div className="flex items-center justify-between gap-2 mt-3">
                             <div className="flex items-center bg-black/30 rounded-lg p-0.5 shrink-0">
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
@@ -220,16 +220,9 @@ export default function Cart() {
                               </motion.button>
                             </div>
 
-                            <div className="text-right min-w-0">
-                              <p className="font-bold text-sm sm:text-base" data-testid={`text-price-${item.id}`}>
-                                {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
-                              </p>
-                              {item.quantity > 1 && (
-                                <p className="text-[10px] sm:text-xs text-muted-foreground">
-                                  Adet: {parseFloat(item.variant?.price || item.product?.basePrice || '0').toLocaleString('tr-TR')} ₺
-                                </p>
-                              )}
-                            </div>
+                            <p className="font-bold text-sm sm:text-base shrink-0" data-testid={`text-price-${item.id}`}>
+                              {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
+                            </p>
                           </div>
                         </div>
 
@@ -299,15 +292,15 @@ export default function Cart() {
                   <div className="mt-6 pt-6 border-t border-white/5 space-y-3">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <Shield className="w-4 h-4 shrink-0" />
-                      <span>Güvenli ödeme</span>
+                      <span>Güvenli Ödeme</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <RotateCcw className="w-4 h-4 shrink-0" />
-                      <span>14 gün ücretsiz iade</span>
+                      <span>14 Gün Ücretsiz İade</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <Package className="w-4 h-4 shrink-0" />
-                      <span>Hızlı teslimat (2-4 iş günü)</span>
+                      <span>Hızlı Teslimat (1 İş Günü)</span>
                     </div>
                   </div>
                 </motion.div>

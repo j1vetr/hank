@@ -56,7 +56,7 @@ const features = [
   { icon: Truck, title: 'Ücretsiz Kargo', desc: '2.500₺ üzeri siparişlerde' },
   { icon: RotateCcw, title: 'Kolay İade', desc: '14 gün içinde ücretsiz' },
   { icon: Shield, title: 'Güvenli Ödeme', desc: 'SSL ile korunan ödeme' },
-  { icon: Zap, title: 'Hızlı Teslimat', desc: '2-4 iş günü içinde' },
+  { icon: Zap, title: 'Hızlı Teslimat', desc: '1 İş Günü içinde' },
 ];
 
 export default function Home() {

@@ -1122,15 +1122,15 @@ export default function Checkout() {
                 <div className="space-y-3 pt-4 border-t border-white/5 relative">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <Shield className="w-4 h-4 shrink-0 text-green-400" />
-                    <span>Güvenli ödeme</span>
+                    <span>Güvenli Ödeme</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <Truck className="w-4 h-4 shrink-0" />
-                    <span>Hızlı teslimat (2-4 iş günü)</span>
+                    <span>Hızlı Teslimat (1 İş Günü)</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <RotateCcw className="w-4 h-4 shrink-0" />
-                    <span>14 gün ücretsiz iade</span>
+                    <span>14 Gün Ücretsiz İade</span>
                   </div>
                 </div>
               </motion.div>
