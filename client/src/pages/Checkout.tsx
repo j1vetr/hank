@@ -98,7 +98,9 @@ export default function Checkout() {
     }
   }, [user]);
 
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 49.90;
+  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
+  const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
+  const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
   
   // Calculate discount based on coupon
   const calculateDiscount = () => {
@@ -1086,10 +1088,31 @@ export default function Checkout() {
                       {shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toFixed(2)} ₺`}
                     </span>
                   </div>
-                  {shippingCost > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {FREE_SHIPPING_THRESHOLD.toLocaleString('tr-TR')} ₺ üzeri siparişlerde kargo ücretsiz!
-                    </p>
+                  {shippingCost > 0 && remainingForFreeShipping > 0 && (
+                    <div className="mt-3 p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Truck className="w-4 h-4 text-amber-400" />
+                        <p className="text-xs">
+                          <span className="font-bold text-amber-400">{remainingForFreeShipping.toFixed(0)} TL</span> daha harcayın, kargo ücretsiz!
+                        </p>
+                      </div>
+                      <div className="h-2 bg-black/30 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${shippingProgress}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                          className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {shippingCost === 0 && (
+                    <div className="mt-2 p-3 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-green-400" />
+                        <p className="text-xs text-green-400 font-medium">Ücretsiz kargo kazandınız!</p>
+                      </div>
+                    </div>
                   )}
                   <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                   <div className="flex justify-between text-base">

@@ -32,7 +32,7 @@ export default function Cart() {
     return { ...item, product };
   });
 
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 49.90;
+  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
   const total = subtotal + shippingCost;
   const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
   const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);

@@ -978,7 +978,7 @@ export async function registerRoutes(
       
       // Calculate shipping and total on server
       const FREE_SHIPPING_THRESHOLD = 2500;
-      const shippingCost = serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 49.90;
+      const shippingCost = serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
       
       const validated = insertOrderSchema.parse({
