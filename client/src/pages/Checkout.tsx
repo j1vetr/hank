@@ -777,9 +777,9 @@ export default function Checkout() {
                       exit={{ opacity: 0, y: -20 }}
                       className="space-y-4 overflow-hidden"
                     >
-                      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-6">
+                      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden">
                         <div className="flex items-center gap-3 mb-6">
-                          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
                             <ClipboardCheck className="w-5 h-5" />
                           </div>
                           <h2 className="font-display text-xl tracking-wide">
@@ -788,13 +788,13 @@ export default function Checkout() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="flex items-start justify-between p-4 bg-zinc-800/50 rounded-xl">
-                            <div className="flex items-start gap-3">
-                              <User className="w-5 h-5 text-muted-foreground mt-0.5" />
-                              <div>
+                          <div className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-zinc-800/50 rounded-xl overflow-hidden">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                              <User className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                              <div className="min-w-0">
                                 <p className="text-xs text-muted-foreground uppercase tracking-wider">İletişim</p>
-                                <p className="font-medium">{formData.customerName}</p>
-                                <p className="text-sm text-muted-foreground">{formData.customerEmail}</p>
+                                <p className="font-medium truncate">{formData.customerName}</p>
+                                <p className="text-sm text-muted-foreground truncate">{formData.customerEmail}</p>
                                 <p className="text-sm text-muted-foreground">{formData.customerPhone}</p>
                               </div>
                             </div>
@@ -807,13 +807,13 @@ export default function Checkout() {
                             </button>
                           </div>
 
-                          <div className="flex items-start justify-between p-4 bg-zinc-800/50 rounded-xl">
-                            <div className="flex items-start gap-3">
-                              <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
-                              <div>
+                          <div className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-zinc-800/50 rounded-xl overflow-hidden">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                              <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                              <div className="min-w-0">
                                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Teslimat Adresi</p>
-                                <p className="font-medium">{formData.address}</p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="font-medium truncate">{formData.address}</p>
+                                <p className="text-sm text-muted-foreground truncate">
                                   {formData.district}, {formData.city} {formData.postalCode}
                                 </p>
                               </div>
@@ -827,10 +827,10 @@ export default function Checkout() {
                             </button>
                           </div>
 
-                          <div className="flex items-start justify-between p-4 bg-zinc-800/50 rounded-xl">
-                            <div className="flex items-start gap-3">
-                              <CreditCard className="w-5 h-5 text-muted-foreground mt-0.5" />
-                              <div>
+                          <div className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-zinc-800/50 rounded-xl overflow-hidden">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                              <CreditCard className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                              <div className="min-w-0">
                                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Ödeme Yöntemi</p>
                                 <p className="font-medium">
                                   {paymentMethod === 'cash_on_delivery' ? 'Kapıda Ödeme' : 'Kredi Kartı'}
@@ -848,12 +848,12 @@ export default function Checkout() {
                         </div>
                       </div>
 
-                      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-6">
+                      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden">
                         <h3 className="font-semibold mb-4">Ürünler</h3>
                         <div className="space-y-3">
                           {cartItemsWithProducts.map((item) => (
-                            <div key={item.id} className="flex gap-3 p-3 bg-zinc-800/50 rounded-xl">
-                              <div className="w-16 h-20 bg-zinc-700 rounded-lg overflow-hidden shrink-0">
+                            <div key={item.id} className="flex gap-3 p-3 bg-zinc-800/50 rounded-xl overflow-hidden">
+                              <div className="w-14 sm:w-16 h-18 sm:h-20 bg-zinc-700 rounded-lg overflow-hidden shrink-0">
                                 {item.product?.images?.[0] && (
                                   <img 
                                     src={item.product.images[0]} 
@@ -863,7 +863,7 @@ export default function Checkout() {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{item.product?.name || 'Ürün'}</p>
+                                <p className="font-medium text-sm truncate">{item.product?.name || 'Ürün'}</p>
                                 {item.variant && (
                                   <p className="text-xs text-muted-foreground mt-0.5">
                                     {item.variant.size && `Beden: ${item.variant.size}`}
