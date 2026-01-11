@@ -185,16 +185,18 @@ export default function Cart() {
                                 {item.product?.name || 'Ürün'}
                               </h3>
                             </Link>
-                            {item.variant && (
-                              <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-2">
-                                {item.variant.size && (
-                                  <span className="px-2 py-0.5 bg-white/5 rounded">Beden: {item.variant.size}</span>
-                                )}
-                                {item.variant.color && (
-                                  <span className="px-2 py-0.5 bg-white/5 rounded">{item.variant.color}</span>
-                                )}
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              {item.variant?.size && (
+                                <span className="text-xs px-2 py-0.5 bg-white/10 rounded text-white/80">
+                                  Beden: {item.variant.size}
+                                </span>
+                              )}
+                              {item.variant?.color && (
+                                <span className="text-xs px-2 py-0.5 bg-white/10 rounded text-white/80">
+                                  {item.variant.color}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <div className="flex items-center justify-between gap-2 mt-3">
@@ -220,7 +222,7 @@ export default function Cart() {
                               </motion.button>
                             </div>
 
-                            <p className="font-bold text-sm sm:text-base shrink-0" data-testid={`text-price-${item.id}`}>
+                            <p className="font-bold text-base sm:text-lg shrink-0" data-testid={`text-price-${item.id}`}>
                               {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
                             </p>
                           </div>
