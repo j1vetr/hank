@@ -244,11 +244,13 @@ export function Header() {
               
               <div className="relative">
                 <div className="flex items-center justify-between p-6 border-b border-white/10">
-                  <img
-                    src="/uploads/branding/hank-logo.svg"
-                    alt="HANK"
-                    className="h-8 invert"
-                  />
+                  <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+                    <img
+                      src="/uploads/branding/hank-logo.svg"
+                      alt="HANK"
+                      className="h-8 invert"
+                    />
+                  </Link>
                   <button
                     data-testid="button-close-menu"
                     onClick={() => setMobileMenuOpen(false)}

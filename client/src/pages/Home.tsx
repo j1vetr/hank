@@ -305,12 +305,10 @@ export default function Home() {
                   data-testid={`link-category-${category.id}`}
                 >
                   <div className="group relative w-[200px] sm:w-[220px] lg:w-[260px] h-[280px] sm:h-[300px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
-                    <motion.img
+                    <img
                       src={category.image}
                       alt={category.name}
-                      className="w-full h-full object-cover"
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.5 }}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       data-testid={`img-category-${category.id}`}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 group-hover:from-black/95 transition-all" />

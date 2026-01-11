@@ -453,10 +453,10 @@ export default function ProductDetail() {
                   </div>
                   <motion.div 
                     ref={imageRef}
-                    className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in group w-full"
-                    onMouseEnter={() => setIsZooming(true)}
+                    className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-pointer sm:cursor-zoom-in group w-full"
+                    onMouseEnter={() => window.innerWidth >= 640 && setIsZooming(true)}
                     onMouseLeave={() => setIsZooming(false)}
-                    onMouseMove={handleMouseMove}
+                    onMouseMove={(e) => window.innerWidth >= 640 && handleMouseMove(e)}
                     onClick={() => setLightboxOpen(true)}
                   >
                   <AnimatePresence mode="wait">
@@ -465,9 +465,9 @@ export default function ProductDetail() {
                       initial={{ opacity: 0 }}
                       animate={{ 
                         opacity: 1,
-                        scale: isZooming ? 2 : 1,
-                        x: isZooming ? (50 - mousePosition.x) * 4 : 0,
-                        y: isZooming ? (50 - mousePosition.y) * 4 : 0,
+                        scale: isZooming && window.innerWidth >= 640 ? 2 : 1,
+                        x: isZooming && window.innerWidth >= 640 ? (50 - mousePosition.x) * 4 : 0,
+                        y: isZooming && window.innerWidth >= 640 ? (50 - mousePosition.y) * 4 : 0,
                       }}
                       exit={{ opacity: 0 }}
                       className="w-full h-full"
