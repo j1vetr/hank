@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,6 @@ const steps = [
   { id: 1, title: 'İletişim', icon: User },
   { id: 2, title: 'Teslimat', icon: MapPin },
   { id: 3, title: 'Ödeme', icon: CreditCard },
-  { id: 4, title: 'Onay', icon: ClipboardCheck },
 ];
 
 export default function Checkout() {
@@ -42,11 +41,17 @@ export default function Checkout() {
   const [currentStep, setCurrentStep] = useState(1);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
   const [createAccount, setCreateAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState('');
   const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({});
   const [savedOrderTotal, setSavedOrderTotal] = useState<number | null>(null);
+  
+  // PayTR Payment State
+  const [paytrToken, setPaytrToken] = useState<string | null>(null);
+  const [merchantOid, setMerchantOid] = useState<string | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -208,13 +213,17 @@ export default function Checkout() {
 
   const handleNextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      if (currentStep === 2) {
+        // When moving to step 3 (payment), initiate PayTR payment
+        initiatePayment();
+      } else {
+        setCurrentStep(prev => Math.min(prev + 1, 4));
+      }
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // Initiate PayTR payment
+  const initiatePayment = async () => {
     if (items.length === 0) {
       toast({ 
         title: 'Hata', 
@@ -224,51 +233,88 @@ export default function Checkout() {
       return;
     }
 
-    setLoading(true);
+    setPaymentLoading(true);
+    setPaymentError(null);
+
     try {
-      const res = await fetch('/api/orders', {
+      const res = await fetch('/api/payment/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
           customerPhone: formData.customerPhone,
-          shippingAddress: {
-            address: formData.address,
-            city: formData.city,
-            district: formData.district,
-            postalCode: formData.postalCode,
-          },
-          subtotal: subtotal.toFixed(2),
-          shippingCost: shippingCost.toFixed(2),
-          discount: discount.toFixed(2),
-          total: total.toFixed(2),
+          address: formData.address,
+          city: formData.city,
+          district: formData.district,
+          postalCode: formData.postalCode,
           couponCode: appliedCoupon?.code || null,
-          paymentMethod: paymentMethod === 'cash_on_delivery' ? 'Kapıda Ödeme' : 'Kredi Kartı',
-          createAccount: createAccount && !user,
-          accountPassword: createAccount && !user ? accountPassword : undefined,
         }),
         credentials: 'include',
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error('Sipariş oluşturulamadı');
+        throw new Error(data.error || 'Ödeme başlatılamadı');
       }
 
-      const order = await res.json();
-      setOrderNumber(order.orderNumber);
+      setPaytrToken(data.token);
+      setMerchantOid(data.merchantOid);
       setSavedOrderTotal(total);
-      setOrderComplete(true);
-      clearCart();
+      setCurrentStep(3);
     } catch (error: any) {
+      setPaymentError(error.message || 'Ödeme başlatılamadı');
       toast({ 
         title: 'Hata', 
-        description: error.message || 'Sipariş oluşturulamadı',
+        description: error.message || 'Ödeme başlatılamadı',
         variant: 'destructive'
       });
     } finally {
-      setLoading(false);
+      setPaymentLoading(false);
     }
+  };
+
+  // Check payment status when redirected back
+  const checkPaymentStatus = useCallback(async () => {
+    if (!merchantOid) return;
+
+    try {
+      const res = await fetch(`/api/payment/status/${merchantOid}`, {
+        credentials: 'include',
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'completed') {
+          setOrderNumber(data.orderNumber);
+          setOrderComplete(true);
+          clearCart();
+        } else if (data.status === 'failed') {
+          setPaymentError('Ödeme başarısız oldu. Lütfen tekrar deneyin.');
+          setPaytrToken(null);
+        }
+      }
+    } catch (error) {
+      console.error('Payment status check failed:', error);
+    }
+  }, [merchantOid, clearCart]);
+
+  // Poll for payment status when on step 3
+  useEffect(() => {
+    if (currentStep === 3 && merchantOid && paytrToken) {
+      const interval = setInterval(() => {
+        checkPaymentStatus();
+      }, 3000); // Check every 3 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [currentStep, merchantOid, paytrToken, checkPaymentStatus]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Payment is now handled by PayTR iframe
+    // This function is kept for form compatibility but shouldn't be called directly
   };
 
   if (orderComplete) {
@@ -312,7 +358,7 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Ödeme Yöntemi</span>
-                  <span>{paymentMethod === 'cash_on_delivery' ? 'Kapıda Ödeme' : 'Kredi Kartı'}</span>
+                  <span>Kredi Kartı</span>
                 </div>
                 <div className="h-px bg-zinc-800 my-3" />
                 <div className="flex justify-between font-semibold">
@@ -682,278 +728,70 @@ export default function Checkout() {
                           <CreditCard className="w-5 h-5" />
                         </div>
                         <h2 className="font-display text-xl tracking-wide">
-                          ÖDEME YÖNTEMİ
+                          KREDİ KARTI İLE ÖDE
                         </h2>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <motion.button 
-                          type="button"
-                          whileHover={{ scale: 1.01 }}
-                          onClick={() => setPaymentMethod('cash_on_delivery')}
-                          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                            paymentMethod === 'cash_on_delivery'
-                              ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30'
-                              : 'bg-white/5 border-white/10 hover:border-white/20'
-                          }`}
-                          data-testid="payment-cash"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              paymentMethod === 'cash_on_delivery' ? 'border-amber-400' : 'border-white/30'
-                            }`}>
-                              {paymentMethod === 'cash_on_delivery' && (
-                                <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <span className="font-medium">Kapıda Ödeme</span>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Nakit veya kredi kartı ile ödeme
-                              </p>
-                            </div>
-                            {paymentMethod === 'cash_on_delivery' && (
-                              <span className="text-xs text-amber-400 font-medium px-2 py-1 bg-amber-500/10 rounded">
-                                Seçili
-                              </span>
-                            )}
-                          </div>
-                        </motion.button>
 
-                        <div className="p-4 bg-white/5 rounded-xl border border-white/10 opacity-50 cursor-not-allowed">
-                          <div className="flex items-center gap-3">
-                            <div className="w-5 h-5 rounded-full border-2 border-white/30" />
-                            <div className="flex-1">
-                              <span className="font-medium">Kredi Kartı</span>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Yakında aktif olacak
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
-                        <div className="flex items-start gap-3">
-                          <Lock className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium text-green-400">Güvenli Alışveriş</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Tüm bilgileriniz güvenli bir şekilde korunmaktadır.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 mt-6">
-                        <Button 
-                          type="button" 
-                          variant="outline"
-                          onClick={() => setCurrentStep(2)}
-                          className="flex-1 h-12 border-white/20 hover:bg-white/5 rounded-lg"
-                        >
-                          Geri
-                        </Button>
-                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1">
-                          <Button 
-                            type="button"
-                            onClick={handleNextStep}
-                            className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide group rounded-lg"
-                            data-testid="button-next-step3"
-                          >
-                            SİPARİŞİ İNCELE
-                            <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                          </Button>
-                        </motion.div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {currentStep === 4 && (
-                    <motion.div
-                      key="step4"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="space-y-4 overflow-hidden"
-                    >
-                      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                            <ClipboardCheck className="w-5 h-5" />
-                          </div>
-                          <h2 className="font-display text-xl tracking-wide">
-                            SİPARİŞ ÖZETİ
-                          </h2>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-zinc-800/50 rounded-xl overflow-hidden">
-                            <div className="flex items-start gap-3 min-w-0 flex-1">
-                              <User className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-xs text-muted-foreground uppercase tracking-wider">İletişim</p>
-                                <p className="font-medium truncate">{formData.customerName}</p>
-                                <p className="text-sm text-muted-foreground truncate">{formData.customerEmail}</p>
-                                <p className="text-sm text-muted-foreground">{formData.customerPhone}</p>
-                              </div>
-                            </div>
-                            <button 
-                              type="button" 
-                              onClick={() => setCurrentStep(1)}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          <div className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-zinc-800/50 rounded-xl overflow-hidden">
-                            <div className="flex items-start gap-3 min-w-0 flex-1">
-                              <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-xs text-muted-foreground uppercase tracking-wider">Teslimat Adresi</p>
-                                <p className="font-medium truncate">{formData.address}</p>
-                                <p className="text-sm text-muted-foreground truncate">
-                                  {formData.district}, {formData.city} {formData.postalCode}
-                                </p>
-                              </div>
-                            </div>
-                            <button 
-                              type="button" 
-                              onClick={() => setCurrentStep(2)}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          <div className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-zinc-800/50 rounded-xl overflow-hidden">
-                            <div className="flex items-start gap-3 min-w-0 flex-1">
-                              <CreditCard className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-xs text-muted-foreground uppercase tracking-wider">Ödeme Yöntemi</p>
-                                <p className="font-medium">
-                                  {paymentMethod === 'cash_on_delivery' ? 'Kapıda Ödeme' : 'Kredi Kartı'}
-                                </p>
-                              </div>
-                            </div>
-                            <button 
-                              type="button" 
-                              onClick={() => setCurrentStep(3)}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden">
-                        <h3 className="font-semibold mb-4">Ürünler</h3>
-                        <div className="space-y-3">
-                          {cartItemsWithProducts.map((item) => (
-                            <div key={item.id} className="flex gap-3 p-3 bg-zinc-800/50 rounded-xl overflow-hidden">
-                              <div className="w-14 sm:w-16 h-18 sm:h-20 bg-zinc-700 rounded-lg overflow-hidden shrink-0">
-                                {item.product?.images?.[0] && (
-                                  <img 
-                                    src={item.product.images[0]} 
-                                    alt={item.product.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0 overflow-hidden">
-                                <p className="font-medium text-sm truncate">{item.product?.name || 'Ürün'}</p>
-                                {item.variant && (
-                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                    {item.variant.size && `Beden: ${item.variant.size}`}
-                                    {item.variant.color && ` | ${item.variant.color}`}
-                                  </p>
-                                )}
-                                <p className="text-xs text-muted-foreground mt-1">Adet: {item.quantity}</p>
-                                <p className="font-bold text-sm mt-1">
-                                  {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {!user && (
-                        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-6">
-                          <div className="flex items-start gap-3">
-                            <input
-                              type="checkbox"
-                              id="createAccount"
-                              checked={createAccount}
-                              onChange={(e) => setCreateAccount(e.target.checked)}
-                              className="mt-1 w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-white focus:ring-white"
-                              data-testid="checkbox-create-account"
-                            />
-                            <div className="flex-1">
-                              <label htmlFor="createAccount" className="font-medium cursor-pointer">
-                                Hesap oluştur
-                              </label>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Siparişlerinizi takip edin ve bir sonraki alışverişinizde bilgilerinizi yeniden girmek zorunda kalmayın.
-                              </p>
-                              
-                              {createAccount && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: 'auto' }}
-                                  className="mt-4"
-                                >
-                                  <Label htmlFor="accountPassword" className="text-sm font-medium">Şifre Oluştur</Label>
-                                  <Input
-                                    id="accountPassword"
-                                    type="password"
-                                    value={accountPassword}
-                                    onChange={(e) => setAccountPassword(e.target.value)}
-                                    placeholder="En az 6 karakter"
-                                    className="mt-2 h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
-                                    data-testid="input-account-password"
-                                  />
-                                </motion.div>
-                              )}
-                            </div>
+                      {paymentError && (
+                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                            <div className="text-sm text-red-400">{paymentError}</div>
                           </div>
                         </div>
                       )}
 
-                      <div className="flex gap-2 sm:gap-3">
-                        <Button 
-                          type="button" 
-                          variant="outline"
-                          onClick={() => setCurrentStep(3)}
-                          className="shrink-0 h-12 sm:h-14 px-4 sm:px-6 border-white/20 hover:bg-white/5 rounded-xl"
-                        >
-                          Geri
-                        </Button>
-                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1 min-w-0">
+                      {paytrToken ? (
+                        <div className="space-y-4">
+                          <div className="bg-white rounded-xl overflow-hidden" style={{ minHeight: '500px' }}>
+                            <iframe
+                              ref={iframeRef}
+                              src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
+                              width="100%"
+                              height="500"
+                              frameBorder="0"
+                              scrolling="yes"
+                              style={{ border: 'none', minHeight: '500px' }}
+                              title="PayTR Ödeme"
+                              data-testid="paytr-iframe"
+                            />
+                          </div>
+                          
+                          <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                            <div className="flex items-start gap-3">
+                              <Lock className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-green-400">256-bit SSL Güvenlik</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Kart bilgileriniz PayTR güvencesiyle şifrelenmektedir.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
                           <Button 
-                            type="submit"
-                            disabled={loading || (createAccount && accountPassword.length < 6)}
-                            className="w-full h-12 sm:h-14 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold tracking-wide text-sm sm:text-base rounded-xl disabled:opacity-50 overflow-hidden"
-                            data-testid="button-place-order"
+                            type="button" 
+                            variant="outline"
+                            onClick={() => {
+                              setPaytrToken(null);
+                              setMerchantOid(null);
+                              setPaymentError(null);
+                              setCurrentStep(2);
+                            }}
+                            className="w-full h-12 border-white/20 hover:bg-white/5 rounded-lg"
                           >
-                            {loading ? (
-                              <span className="flex items-center justify-center">
-                                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin shrink-0" />
-                                <span className="truncate">İŞLENİYOR...</span>
-                              </span>
-                            ) : (
-                              <span className="flex items-center justify-center gap-1 sm:gap-2">
-                                <span className="truncate">SİPARİŞİ ONAYLA</span>
-                                <span className="text-green-200 shrink-0">{total.toLocaleString('tr-TR')} ₺</span>
-                              </span>
-                            )}
+                            Bilgilerimi Düzenle
                           </Button>
-                        </motion.div>
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12">
+                          <Loader2 className="w-8 h-8 animate-spin text-white/50 mb-4" />
+                          <p className="text-muted-foreground">Ödeme formu yükleniyor...</p>
+                        </div>
+                      )}
                     </motion.div>
                   )}
+
                 </AnimatePresence>
               </form>
             </div>
