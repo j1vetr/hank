@@ -402,7 +402,7 @@ export async function registerRoutes(
   // User Authentication
   app.post("/api/auth/register", async (req: Request, res) => {
     try {
-      const { email, password, firstName, lastName, phone } = req.body;
+      const { email, password, firstName, lastName, phone, address, city, district, postalCode } = req.body;
       
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
@@ -416,9 +416,29 @@ export async function registerRoutes(
         firstName,
         lastName,
         phone,
+        address,
+        city,
+        district,
+        postalCode,
       });
 
       req.session.userId = user.id;
+      
+      // If address info is provided, create a saved address
+      if (address && city && district && firstName && lastName && phone) {
+        await storage.createUserAddress({
+          userId: user.id,
+          title: 'Ev Adresi',
+          firstName,
+          lastName,
+          phone,
+          address,
+          city,
+          district,
+          postalCode: postalCode || undefined,
+          isDefault: true,
+        });
+      }
       
       // Send welcome email (don't wait)
       sendWelcomeEmail(user).catch(err => console.error('[Email] Welcome email failed:', err));
