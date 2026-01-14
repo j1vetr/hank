@@ -487,6 +487,115 @@ export async function registerRoutes(
     }
   });
 
+  // User Addresses API
+  app.get("/api/auth/addresses", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const addresses = await storage.getUserAddresses(req.session.userId);
+      res.json(addresses);
+    } catch (error) {
+      res.status(500).json({ error: "Adresler yüklenemedi" });
+    }
+  });
+
+  app.post("/api/auth/addresses", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const { title, firstName, lastName, phone, address, city, district, postalCode, isDefault } = req.body;
+      
+      // Check if this is the first address - if so, make it default
+      const existingAddresses = await storage.getUserAddresses(req.session.userId);
+      const shouldBeDefault = existingAddresses.length === 0 ? true : !!isDefault;
+      
+      const newAddress = await storage.createUserAddress({
+        userId: req.session.userId,
+        title: title || 'Adresim',
+        firstName,
+        lastName,
+        phone,
+        address,
+        city,
+        district,
+        postalCode,
+        isDefault: shouldBeDefault,
+      });
+      res.status(201).json(newAddress);
+    } catch (error) {
+      res.status(500).json({ error: "Adres eklenemedi" });
+    }
+  });
+
+  app.patch("/api/auth/addresses/:id", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const existingAddress = await storage.getUserAddress(req.params.id);
+      if (!existingAddress || existingAddress.userId !== req.session.userId) {
+        return res.status(404).json({ error: "Adres bulunamadı" });
+      }
+
+      const { title, firstName, lastName, phone, address, city, district, postalCode, isDefault } = req.body;
+      const updated = await storage.updateUserAddress(req.params.id, {
+        title,
+        firstName,
+        lastName,
+        phone,
+        address,
+        city,
+        district,
+        postalCode,
+        isDefault,
+      });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Adres güncellenemedi" });
+    }
+  });
+
+  app.delete("/api/auth/addresses/:id", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const existingAddress = await storage.getUserAddress(req.params.id);
+      if (!existingAddress || existingAddress.userId !== req.session.userId) {
+        return res.status(404).json({ error: "Adres bulunamadı" });
+      }
+
+      await storage.deleteUserAddress(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Adres silinemedi" });
+    }
+  });
+
+  app.patch("/api/auth/addresses/:id/default", async (req: Request, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Giriş yapılmamış" });
+    }
+
+    try {
+      const existingAddress = await storage.getUserAddress(req.params.id);
+      if (!existingAddress || existingAddress.userId !== req.session.userId) {
+        return res.status(404).json({ error: "Adres bulunamadı" });
+      }
+
+      await storage.setDefaultAddress(req.session.userId, req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Varsayılan adres ayarlanamadı" });
+    }
+  });
+
   app.get("/api/orders/my", async (req: Request, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
