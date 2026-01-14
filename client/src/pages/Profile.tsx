@@ -69,6 +69,19 @@ interface OrderItem {
   subtotal: string;
 }
 
+interface UserAddress {
+  id: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
+  city: string;
+  district: string;
+  postalCode: string | null;
+  isDefault: boolean;
+}
+
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; bg: string }> = {
   pending: { label: 'Beklemede', color: 'text-yellow-400', icon: Clock, bg: 'bg-yellow-400/10' },
   processing: { label: 'İşleniyor', color: 'text-blue-400', icon: Package, bg: 'bg-blue-400/10' },
@@ -135,6 +148,132 @@ export default function Profile() {
     },
   });
 
+  // Address management state
+  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    title: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    address: '',
+    city: '',
+    district: '',
+    postalCode: '',
+    isDefault: false,
+  });
+
+  const { data: addresses = [], isLoading: addressesLoading } = useQuery<UserAddress[]>({
+    queryKey: ['user-addresses'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/addresses', { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  const createAddressMutation = useMutation({
+    mutationFn: async (data: typeof addressForm) => {
+      const res = await fetch('/api/auth/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to create address');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+      toast({ title: 'Başarılı', description: 'Adres eklendi.' });
+      setShowAddressForm(false);
+      resetAddressForm();
+    },
+    onError: () => {
+      toast({ title: 'Hata', description: 'Adres eklenemedi.', variant: 'destructive' });
+    },
+  });
+
+  const updateAddressMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof addressForm }) => {
+      const res = await fetch(`/api/auth/addresses/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to update address');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+      toast({ title: 'Başarılı', description: 'Adres güncellendi.' });
+      setEditingAddress(null);
+      setShowAddressForm(false);
+      resetAddressForm();
+    },
+    onError: () => {
+      toast({ title: 'Hata', description: 'Adres güncellenemedi.', variant: 'destructive' });
+    },
+  });
+
+  const deleteAddressMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/auth/addresses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete address');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-addresses'] });
+      toast({ title: 'Başarılı', description: 'Adres silindi.' });
+    },
+    onError: () => {
+      toast({ title: 'Hata', description: 'Adres silinemedi.', variant: 'destructive' });
+    },
+  });
+
+  const resetAddressForm = () => {
+    setAddressForm({
+      title: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      address: '',
+      city: '',
+      district: '',
+      postalCode: '',
+      isDefault: false,
+    });
+  };
+
+  const handleEditAddress = (addr: UserAddress) => {
+    setEditingAddress(addr);
+    setAddressForm({
+      title: addr.title,
+      firstName: addr.firstName,
+      lastName: addr.lastName,
+      phone: addr.phone,
+      address: addr.address,
+      city: addr.city,
+      district: addr.district,
+      postalCode: addr.postalCode || '',
+      isDefault: addr.isDefault,
+    });
+    setShowAddressForm(true);
+  };
+
+  const handleSaveAddress = () => {
+    if (editingAddress) {
+      updateAddressMutation.mutate({ id: editingAddress.id, data: addressForm });
+    } else {
+      createAddressMutation.mutate(addressForm);
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -173,7 +312,7 @@ export default function Profile() {
     { id: 'orders' as TabType, label: 'Siparişlerim', icon: Package, count: orders.length },
     { id: 'favorites' as TabType, label: 'Favorilerim', icon: Heart, count: favorites.length },
     { id: 'profile' as TabType, label: 'Profil Bilgileri', icon: User },
-    { id: 'addresses' as TabType, label: 'Adreslerim', icon: MapPin },
+    { id: 'addresses' as TabType, label: 'Adreslerim', icon: MapPin, count: addresses.length },
   ];
 
   return (
@@ -523,15 +662,232 @@ export default function Profile() {
                   >
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xl font-semibold text-white">Adreslerim</h2>
+                      {!showAddressForm && (
+                        <button
+                          onClick={() => {
+                            resetAddressForm();
+                            setEditingAddress(null);
+                            setShowAddressForm(true);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl text-sm font-medium hover:bg-zinc-200 transition-colors"
+                          data-testid="button-add-address"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Yeni Adres
+                        </button>
+                      )}
                     </div>
 
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-12 text-center">
-                      <MapPin className="w-16 h-16 mx-auto mb-4 text-zinc-700" />
-                      <h3 className="text-xl font-semibold text-white mb-2">Adres Yönetimi</h3>
-                      <p className="text-zinc-500">
-                        Kayıtlı adresleriniz sipariş sırasında otomatik olarak kaydedilir.
-                      </p>
-                    </div>
+                    {showAddressForm ? (
+                      <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">
+                          {editingAddress ? 'Adresi Düzenle' : 'Yeni Adres Ekle'}
+                        </h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-400 mb-2">Adres Başlığı *</label>
+                            <input
+                              type="text"
+                              value={addressForm.title}
+                              onChange={(e) => setAddressForm({ ...addressForm, title: e.target.value })}
+                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                              placeholder="Ev, İş, vb."
+                              data-testid="input-address-title"
+                            />
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-zinc-400 mb-2">Ad *</label>
+                              <input
+                                type="text"
+                                value={addressForm.firstName}
+                                onChange={(e) => setAddressForm({ ...addressForm, firstName: e.target.value })}
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                                placeholder="Adınız"
+                                data-testid="input-address-firstName"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-zinc-400 mb-2">Soyad *</label>
+                              <input
+                                type="text"
+                                value={addressForm.lastName}
+                                onChange={(e) => setAddressForm({ ...addressForm, lastName: e.target.value })}
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                                placeholder="Soyadınız"
+                                data-testid="input-address-lastName"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-400 mb-2">Telefon *</label>
+                            <input
+                              type="tel"
+                              value={addressForm.phone}
+                              onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                              placeholder="05XX XXX XX XX"
+                              data-testid="input-address-phone"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-400 mb-2">Adres *</label>
+                            <input
+                              type="text"
+                              value={addressForm.address}
+                              onChange={(e) => setAddressForm({ ...addressForm, address: e.target.value })}
+                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                              placeholder="Sokak, Mahalle, Bina No, Daire No"
+                              data-testid="input-address-address"
+                            />
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-zinc-400 mb-2">İl *</label>
+                              <input
+                                type="text"
+                                value={addressForm.city}
+                                onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                                placeholder="İstanbul"
+                                data-testid="input-address-city"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-zinc-400 mb-2">İlçe *</label>
+                              <input
+                                type="text"
+                                value={addressForm.district}
+                                onChange={(e) => setAddressForm({ ...addressForm, district: e.target.value })}
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                                placeholder="Kadıköy"
+                                data-testid="input-address-district"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-zinc-400 mb-2">Posta Kodu</label>
+                            <input
+                              type="text"
+                              value={addressForm.postalCode}
+                              onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                              placeholder="34000"
+                              data-testid="input-address-postalCode"
+                            />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              id="isDefault"
+                              checked={addressForm.isDefault}
+                              onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                              className="w-5 h-5 rounded bg-zinc-800 border-zinc-700"
+                              data-testid="checkbox-address-default"
+                            />
+                            <label htmlFor="isDefault" className="text-sm text-zinc-400">
+                              Varsayılan adres olarak ayarla
+                            </label>
+                          </div>
+                          <div className="flex gap-3 pt-4">
+                            <button
+                              onClick={() => {
+                                setShowAddressForm(false);
+                                setEditingAddress(null);
+                                resetAddressForm();
+                              }}
+                              className="flex-1 px-4 py-3 border border-zinc-700 rounded-xl text-white hover:bg-zinc-800 transition-colors"
+                              data-testid="button-cancel-address"
+                            >
+                              İptal
+                            </button>
+                            <button
+                              onClick={handleSaveAddress}
+                              disabled={createAddressMutation.isPending || updateAddressMutation.isPending}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-black rounded-xl font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                              data-testid="button-save-address"
+                            >
+                              {(createAddressMutation.isPending || updateAddressMutation.isPending) ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Save className="w-4 h-4" />
+                              )}
+                              Kaydet
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : addressesLoading ? (
+                      <div className="flex items-center justify-center py-20">
+                        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+                      </div>
+                    ) : addresses.length === 0 ? (
+                      <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-12 text-center">
+                        <MapPin className="w-16 h-16 mx-auto mb-4 text-zinc-700" />
+                        <h3 className="text-xl font-semibold text-white mb-2">Henüz adresiniz yok</h3>
+                        <p className="text-zinc-500 mb-6">
+                          Siparişlerinizi hızlandırmak için adres ekleyin.
+                        </p>
+                        <button
+                          onClick={() => {
+                            resetAddressForm();
+                            setShowAddressForm(true);
+                          }}
+                          className="px-6 py-3 bg-white text-black rounded-xl font-medium hover:bg-zinc-200 transition-colors"
+                          data-testid="button-add-first-address"
+                        >
+                          İlk Adresimi Ekle
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {addresses.map((addr) => (
+                          <div
+                            key={addr.id}
+                            className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-700 transition-colors"
+                            data-testid={`address-card-${addr.id}`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Home className="w-4 h-4 text-zinc-500" />
+                                  <span className="font-semibold text-white">{addr.title}</span>
+                                  {addr.isDefault && (
+                                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">
+                                      Varsayılan
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-zinc-300">{addr.firstName} {addr.lastName}</p>
+                                <p className="text-zinc-500">{addr.address}</p>
+                                <p className="text-zinc-500">{addr.district}, {addr.city} {addr.postalCode}</p>
+                                <p className="text-zinc-500 mt-1">{addr.phone}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditAddress(addr)}
+                                  className="p-2 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                                  data-testid={`button-edit-address-${addr.id}`}
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Bu adresi silmek istediğinizden emin misiniz?')) {
+                                      deleteAddressMutation.mutate(addr.id);
+                                    }
+                                  }}
+                                  className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
+                                  data-testid={`button-delete-address-${addr.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

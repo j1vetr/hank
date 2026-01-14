@@ -100,6 +100,7 @@ export default function Checkout() {
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [hasAutoSelectedAddress, setHasAutoSelectedAddress] = useState(false);
 
   const cartItemsWithProducts = items.map(item => {
     const product = products.find(p => p.id === item.productId);
@@ -127,12 +128,13 @@ export default function Checkout() {
     }
   }, [user]);
 
-  // Auto-select default address when addresses are loaded
+  // Auto-select default address when addresses are loaded (only once on initial load)
   useEffect(() => {
-    if (savedAddresses.length > 0 && !selectedAddressId) {
+    if (savedAddresses.length > 0 && !hasAutoSelectedAddress) {
       const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
       if (defaultAddr) {
         setSelectedAddressId(defaultAddr.id);
+        setHasAutoSelectedAddress(true);
         setFormData(prev => ({
           ...prev,
           customerName: `${defaultAddr.firstName} ${defaultAddr.lastName}`.trim(),
@@ -144,7 +146,7 @@ export default function Checkout() {
         }));
       }
     }
-  }, [savedAddresses]);
+  }, [savedAddresses, hasAutoSelectedAddress]);
 
   // Update form data when a saved address is selected
   const handleSelectAddress = (addr: UserAddress) => {
