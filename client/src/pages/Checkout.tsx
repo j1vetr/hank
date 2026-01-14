@@ -24,6 +24,19 @@ interface Product {
   images: string[];
 }
 
+interface UserAddress {
+  id: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: string;
+  city: string;
+  district: string;
+  postalCode: string | null;
+  isDefault: boolean;
+}
+
 const FREE_SHIPPING_THRESHOLD = 2500;
 
 const steps = [
@@ -74,6 +87,20 @@ export default function Checkout() {
     },
   });
 
+  // Fetch saved addresses for logged in users
+  const { data: savedAddresses = [] } = useQuery<UserAddress[]>({
+    queryKey: ['user-addresses'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/addresses', { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+
   const cartItemsWithProducts = items.map(item => {
     const product = products.find(p => p.id === item.productId);
     return { ...item, product };
@@ -96,12 +123,43 @@ export default function Checkout() {
         customerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || prev.customerName,
         customerEmail: user.email || prev.customerEmail,
         customerPhone: (user as any).phone || prev.customerPhone,
-        address: (user as any).address || prev.address,
-        city: (user as any).city || prev.city,
-        district: (user as any).district || prev.district,
       }));
     }
   }, [user]);
+
+  // Auto-select default address when addresses are loaded
+  useEffect(() => {
+    if (savedAddresses.length > 0 && !selectedAddressId) {
+      const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
+        setFormData(prev => ({
+          ...prev,
+          customerName: `${defaultAddr.firstName} ${defaultAddr.lastName}`.trim(),
+          customerPhone: defaultAddr.phone,
+          address: defaultAddr.address,
+          city: defaultAddr.city,
+          district: defaultAddr.district,
+          postalCode: defaultAddr.postalCode || '',
+        }));
+      }
+    }
+  }, [savedAddresses]);
+
+  // Update form data when a saved address is selected
+  const handleSelectAddress = (addr: UserAddress) => {
+    setSelectedAddressId(addr.id);
+    setShowNewAddressForm(false);
+    setFormData(prev => ({
+      ...prev,
+      customerName: `${addr.firstName} ${addr.lastName}`.trim(),
+      customerPhone: addr.phone,
+      address: addr.address,
+      city: addr.city,
+      district: addr.district,
+      postalCode: addr.postalCode || '',
+    }));
+  };
 
   const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
   const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
@@ -635,61 +693,144 @@ export default function Checkout() {
                           </div>
                         </div>
                       )}
-                      
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="address" className="text-sm font-medium">Adres *</Label>
-                          <Input
-                            id="address"
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            placeholder="Sokak, Mahalle, Bina No, Daire No"
-                            data-testid="input-address"
-                            className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
-                          />
-                        </div>
 
-                        <div className="grid sm:grid-cols-2 gap-4">
+                      {/* Saved Addresses Section */}
+                      {user && savedAddresses.length > 0 && !showNewAddressForm && (
+                        <div className="space-y-3 mb-6">
+                          <Label className="text-sm font-medium text-muted-foreground">Kayıtlı Adreslerim</Label>
                           <div className="space-y-2">
-                            <Label htmlFor="city" className="text-sm font-medium">İl *</Label>
+                            {savedAddresses.map((addr) => (
+                              <button
+                                key={addr.id}
+                                type="button"
+                                onClick={() => handleSelectAddress(addr)}
+                                className={`w-full text-left p-4 rounded-xl border transition-all ${
+                                  selectedAddressId === addr.id 
+                                    ? 'border-white bg-white/10' 
+                                    : 'border-white/10 hover:border-white/30 bg-zinc-800/50'
+                                }`}
+                                data-testid={`address-option-${addr.id}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-medium">{addr.title}</span>
+                                      {addr.isDefault && (
+                                        <span className="text-xs bg-white/10 px-2 py-0.5 rounded">Varsayılan</span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      {addr.firstName} {addr.lastName}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      {addr.address}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {addr.district}, {addr.city}
+                                    </p>
+                                  </div>
+                                  {selectedAddressId === addr.id && (
+                                    <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNewAddressForm(true);
+                              setSelectedAddressId(null);
+                              setFormData(prev => ({
+                                ...prev,
+                                address: '',
+                                city: '',
+                                district: '',
+                                postalCode: '',
+                              }));
+                            }}
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
+                            data-testid="button-new-address"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                            Yeni Adres Ekle
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Manual Address Form - show when no saved addresses or when adding new */}
+                      {(!user || savedAddresses.length === 0 || showNewAddressForm) && (
+                        <div className="space-y-4">
+                          {showNewAddressForm && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowNewAddressForm(false);
+                                if (savedAddresses.length > 0) {
+                                  const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+                                  if (defaultAddr) handleSelectAddress(defaultAddr);
+                                }
+                              }}
+                              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors mb-4"
+                            >
+                              <ArrowRight className="w-4 h-4 rotate-180" />
+                              Kayıtlı Adreslerime Dön
+                            </button>
+                          )}
+                          <div className="space-y-2">
+                            <Label htmlFor="address" className="text-sm font-medium">Adres *</Label>
                             <Input
-                              id="city"
-                              name="city"
-                              value={formData.city}
+                              id="address"
+                              name="address"
+                              value={formData.address}
                               onChange={handleChange}
-                              data-testid="input-city"
+                              placeholder="Sokak, Mahalle, Bina No, Daire No"
+                              data-testid="input-address"
                               className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
-                              placeholder="İstanbul"
                             />
                           </div>
+
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="city" className="text-sm font-medium">İl *</Label>
+                              <Input
+                                id="city"
+                                name="city"
+                                value={formData.city}
+                                onChange={handleChange}
+                                data-testid="input-city"
+                                className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
+                                placeholder="İstanbul"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="district" className="text-sm font-medium">İlçe *</Label>
+                              <Input
+                                id="district"
+                                name="district"
+                                value={formData.district}
+                                onChange={handleChange}
+                                data-testid="input-district"
+                                className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
+                                placeholder="Kadıköy"
+                              />
+                            </div>
+                          </div>
+
                           <div className="space-y-2">
-                            <Label htmlFor="district" className="text-sm font-medium">İlçe *</Label>
+                            <Label htmlFor="postalCode" className="text-sm font-medium">Posta Kodu</Label>
                             <Input
-                              id="district"
-                              name="district"
-                              value={formData.district}
+                              id="postalCode"
+                              name="postalCode"
+                              value={formData.postalCode}
                               onChange={handleChange}
-                              data-testid="input-district"
+                              data-testid="input-postalCode"
                               className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
-                              placeholder="Kadıköy"
+                              placeholder="34000"
                             />
                           </div>
                         </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="postalCode" className="text-sm font-medium">Posta Kodu</Label>
-                          <Input
-                            id="postalCode"
-                            name="postalCode"
-                            value={formData.postalCode}
-                            onChange={handleChange}
-                            data-testid="input-postalCode"
-                            className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
-                            placeholder="34000"
-                          />
-                        </div>
-                      </div>
+                      )}
 
                       <div className="flex gap-3 mt-6">
                         <Button 
