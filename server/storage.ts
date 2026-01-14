@@ -8,6 +8,7 @@ import {
   orders,
   orderItems,
   users,
+  userAddresses,
   woocommerceSettings,
   woocommerceSyncLogs,
   favorites,
@@ -38,6 +39,8 @@ import {
   type InsertOrderItem,
   type User,
   type InsertUser,
+  type UserAddress,
+  type InsertUserAddress,
   type WoocommerceSettings,
   type InsertWoocommerceSettings,
   type WoocommerceSyncLog,
@@ -83,6 +86,15 @@ export interface IStorage {
   getUsers(search?: string): Promise<User[]>;
   updateUser(id: string, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
+
+  // User Addresses
+  getUserAddresses(userId: string): Promise<UserAddress[]>;
+  getUserAddress(id: string): Promise<UserAddress | undefined>;
+  getDefaultUserAddress(userId: string): Promise<UserAddress | undefined>;
+  createUserAddress(address: InsertUserAddress): Promise<UserAddress>;
+  updateUserAddress(id: string, address: Partial<InsertUserAddress>): Promise<UserAddress | undefined>;
+  deleteUserAddress(id: string): Promise<void>;
+  setDefaultAddress(userId: string, addressId: string): Promise<void>;
 
   getAdminStats(): Promise<AdminStats>;
   getAllProducts(): Promise<Product[]>;
@@ -203,6 +215,53 @@ export class DbStorage implements IStorage {
 
   async deleteUser(id: string): Promise<void> {
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  // User Addresses
+  async getUserAddresses(userId: string): Promise<UserAddress[]> {
+    return db.select().from(userAddresses).where(eq(userAddresses.userId, userId)).orderBy(desc(userAddresses.isDefault), desc(userAddresses.createdAt));
+  }
+
+  async getUserAddress(id: string): Promise<UserAddress | undefined> {
+    const [address] = await db.select().from(userAddresses).where(eq(userAddresses.id, id));
+    return address;
+  }
+
+  async getDefaultUserAddress(userId: string): Promise<UserAddress | undefined> {
+    const [address] = await db.select().from(userAddresses).where(and(eq(userAddresses.userId, userId), eq(userAddresses.isDefault, true)));
+    return address;
+  }
+
+  async createUserAddress(address: InsertUserAddress): Promise<UserAddress> {
+    // If this is the first address or marked as default, ensure it's the only default
+    if (address.isDefault) {
+      await db.update(userAddresses).set({ isDefault: false }).where(eq(userAddresses.userId, address.userId));
+    }
+    const [newAddress] = await db.insert(userAddresses).values(address).returning();
+    return newAddress;
+  }
+
+  async updateUserAddress(id: string, address: Partial<InsertUserAddress>): Promise<UserAddress | undefined> {
+    // If setting as default, unset other defaults first
+    if (address.isDefault) {
+      const existing = await this.getUserAddress(id);
+      if (existing) {
+        await db.update(userAddresses).set({ isDefault: false }).where(eq(userAddresses.userId, existing.userId));
+      }
+    }
+    const [updated] = await db.update(userAddresses).set({ ...address, updatedAt: new Date() }).where(eq(userAddresses.id, id)).returning();
+    return updated;
+  }
+
+  async deleteUserAddress(id: string): Promise<void> {
+    await db.delete(userAddresses).where(eq(userAddresses.id, id));
+  }
+
+  async setDefaultAddress(userId: string, addressId: string): Promise<void> {
+    // First, unset all defaults for this user
+    await db.update(userAddresses).set({ isDefault: false }).where(eq(userAddresses.userId, userId));
+    // Then set the specified address as default
+    await db.update(userAddresses).set({ isDefault: true }).where(eq(userAddresses.id, addressId));
   }
 
   async getAdminStats(): Promise<AdminStats> {
