@@ -25,7 +25,10 @@ import {
   ShoppingBag,
   CreditCard,
   Loader2,
-  Heart
+  Heart,
+  Plus,
+  Trash2,
+  Home
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
