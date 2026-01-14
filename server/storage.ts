@@ -151,6 +151,7 @@ export interface IStorage {
   updateCartItem(id: string, quantity: number): Promise<CartItem | undefined>;
   removeFromCart(id: string): Promise<void>;
   clearCart(sessionId: string): Promise<void>;
+  getUsersWithCartItems(): Promise<User[]>;
 
   getOrders(): Promise<Order[]>;
   getOrder(id: string): Promise<Order | undefined>;
@@ -520,6 +521,23 @@ export class DbStorage implements IStorage {
 
   async clearCart(sessionId: string): Promise<void> {
     await db.delete(cartItems).where(eq(cartItems.sessionId, sessionId));
+  }
+
+  async getUsersWithCartItems(): Promise<User[]> {
+    const result = await db
+      .selectDistinct({ 
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phone,
+        password: users.password,
+        createdAt: users.createdAt
+      })
+      .from(users)
+      .innerJoin(cartItems, eq(users.id, cartItems.sessionId))
+      .where(sql`${cartItems.quantity} > 0`);
+    return result as User[];
   }
 
   async getOrders(): Promise<Order[]> {

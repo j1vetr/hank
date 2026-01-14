@@ -17,7 +17,8 @@ import {
   sendAdminOrderNotificationEmail,
   sendPasswordResetEmail,
   sendReviewRequestEmail,
-  sendTestEmail 
+  sendTestEmail,
+  sendAbandonedCartEmail 
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 
@@ -651,6 +652,54 @@ export async function registerRoutes(
       res.json({ ...order, items });
     } catch (error) {
       res.status(500).json({ error: "Sipariş yüklenemedi" });
+    }
+  });
+
+  // Public Order Tracking API
+  app.get("/api/orders/track", async (req: Request, res) => {
+    try {
+      const { orderNumber, email } = req.query;
+      
+      if (!orderNumber || typeof orderNumber !== 'string') {
+        return res.status(400).json({ error: "Sipariş numarası gerekli" });
+      }
+
+      const order = await storage.getOrderByNumber(orderNumber);
+      if (!order) {
+        return res.status(404).json({ error: "Sipariş bulunamadı" });
+      }
+
+      // If email provided, verify it matches (optional security)
+      if (email && typeof email === 'string' && order.customerEmail.toLowerCase() !== email.toLowerCase()) {
+        return res.status(404).json({ error: "Sipariş bulunamadı" });
+      }
+
+      const items = await storage.getOrderItems(order.id);
+      
+      // Return limited info for public tracking
+      res.json({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        customerName: order.customerName,
+        createdAt: order.createdAt,
+        total: order.total,
+        shippingCost: order.shippingCost,
+        trackingNumber: order.trackingNumber,
+        trackingUrl: order.trackingUrl,
+        shippingCarrier: order.shippingCarrier,
+        shippingAddress: order.shippingAddress,
+        items: items.map(item => ({
+          id: item.id,
+          productName: item.productName,
+          variantDetails: item.variantDetails,
+          quantity: item.quantity,
+          subtotal: item.subtotal,
+        })),
+      });
+    } catch (error) {
+      console.error('[Order Track] Error:', error);
+      res.status(500).json({ error: "Sipariş bilgisi alınamadı" });
     }
   });
 
@@ -2357,6 +2406,133 @@ export async function registerRoutes(
       }
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Test e-postası gönderilemedi" });
+    }
+  });
+
+  // Abandoned Cart Reminder - Get users with cart items
+  app.get("/api/admin/abandoned-carts", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsersWithCartItems();
+      res.json(users);
+    } catch (error) {
+      console.error('[Admin] Abandoned carts error:', error);
+      res.status(500).json({ error: "Sepet bilgileri alınamadı" });
+    }
+  });
+
+  // Send cart reminder email to a specific user
+  app.post("/api/admin/abandoned-carts/:userId/remind", requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+      }
+
+      const cartItems = await storage.getCartItems(userId);
+      if (cartItems.length === 0) {
+        return res.status(400).json({ error: "Kullanıcının sepetinde ürün yok" });
+      }
+
+      // Get product details for cart items
+      const cartItemsWithDetails = await Promise.all(
+        cartItems.map(async (item) => {
+          const product = await storage.getProduct(item.productId);
+          const variant = item.variantId ? await storage.getProductVariant(item.variantId) : null;
+          return {
+            productName: product?.name || 'Ürün',
+            variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : '',
+            price: variant?.price || product?.basePrice || '0',
+            quantity: item.quantity,
+          };
+        })
+      );
+
+      const cartTotal = cartItemsWithDetails.reduce(
+        (sum, item) => sum + parseFloat(item.price) * item.quantity,
+        0
+      );
+
+      const result = await sendAbandonedCartEmail(
+        user.email,
+        user.firstName || 'Değerli Müşterimiz',
+        cartItemsWithDetails,
+        cartTotal
+      );
+
+      if (result.success) {
+        res.json({ success: true, message: "Sepet hatırlatma e-postası gönderildi" });
+      } else {
+        res.status(400).json({ success: false, error: result.error });
+      }
+    } catch (error: any) {
+      console.error('[Admin] Cart reminder error:', error);
+      res.status(500).json({ error: error.message || "E-posta gönderilemedi" });
+    }
+  });
+
+  // Send cart reminder to all users with items in cart
+  app.post("/api/admin/abandoned-carts/remind-all", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsersWithCartItems();
+      
+      if (users.length === 0) {
+        return res.json({ success: true, sent: 0, message: "Sepetinde ürün olan kullanıcı yok" });
+      }
+
+      let sent = 0;
+      let failed = 0;
+
+      for (const user of users) {
+        try {
+          const cartItems = await storage.getCartItems(user.id);
+          
+          const cartItemsWithDetails = await Promise.all(
+            cartItems.map(async (item) => {
+              const product = await storage.getProduct(item.productId);
+              const variant = item.variantId ? await storage.getProductVariant(item.variantId) : null;
+              return {
+                productName: product?.name || 'Ürün',
+                variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : '',
+                price: variant?.price || product?.basePrice || '0',
+                quantity: item.quantity,
+              };
+            })
+          );
+
+          const cartTotal = cartItemsWithDetails.reduce(
+            (sum, item) => sum + parseFloat(item.price) * item.quantity,
+            0
+          );
+
+          const result = await sendAbandonedCartEmail(
+            user.email,
+            user.firstName || 'Değerli Müşterimiz',
+            cartItemsWithDetails,
+            cartTotal
+          );
+
+          if (result.success) {
+            sent++;
+          } else {
+            failed++;
+          }
+        } catch (err) {
+          console.error(`[Admin] Failed to send cart reminder to ${user.email}:`, err);
+          failed++;
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        sent, 
+        failed, 
+        message: `${sent} kullanıcıya e-posta gönderildi${failed > 0 ? `, ${failed} başarısız` : ''}` 
+      });
+    } catch (error: any) {
+      console.error('[Admin] Bulk cart reminder error:', error);
+      res.status(500).json({ error: error.message || "E-postalar gönderilemedi" });
     }
   });
 

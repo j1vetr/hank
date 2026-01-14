@@ -32,6 +32,7 @@ const KVKK = lazy(() => import("@/pages/KVKK"));
 const Store = lazy(() => import("@/pages/Store"));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
 const PaymentFail = lazy(() => import("@/pages/PaymentFail"));
+const OrderTracking = lazy(() => import("@/pages/OrderTracking"));
 
 function PageLoader() {
   return (
@@ -59,6 +60,7 @@ function Router() {
         <Route path="/odeme" component={Checkout} />
         <Route path="/odeme-basarili" component={PaymentSuccess} />
         <Route path="/odeme-basarisiz" component={PaymentFail} />
+        <Route path="/siparis-takip" component={OrderTracking} />
         <Route path="/hesabim" component={Profile} />
         <Route path="/hakkimizda" component={About} />
         <Route path="/teslimat-kosullari" component={DeliveryTerms} />

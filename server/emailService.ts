@@ -136,7 +136,7 @@ function welcomeEmailTemplate(userName: string): string {
 }
 
 // Order Confirmation Template
-function orderConfirmationTemplate(order: Order, items: OrderItem[]): string {
+function orderConfirmationTemplate(order: Order, items: OrderItem[], siteUrl: string = 'https://hank.toov.com.tr'): string {
   const itemsHtml = items.map(item => `
     <div class="product-item">
       <div class="product-info">
@@ -148,11 +148,12 @@ function orderConfirmationTemplate(order: Order, items: OrderItem[]): string {
   `).join('');
   
   const shippingAddress = order.shippingAddress as { address: string; city: string; district: string; postalCode: string };
+  const trackingUrl = `${siteUrl}/siparis-takip?no=${order.orderNumber}`;
   
   return wrapTemplate(`
     <div class="content">
       <h1>Siparişiniz Alındı!</h1>
-      <p>Siparişiniz başarıyla oluşturuldu. Ödemeniz onaylandıktan sonra hazırlanmaya başlanacaktır.</p>
+      <p>Siparişiniz başarıyla oluşturuldu. Hazırlanmaya başlandığında size bilgi vereceğiz.</p>
       
       <div class="info-box">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
@@ -164,6 +165,9 @@ function orderConfirmationTemplate(order: Order, items: OrderItem[]): string {
             <p class="info-label">Tarih</p>
             <p class="info-value">${new Date(order.createdAt).toLocaleDateString('tr-TR')}</p>
           </div>
+        </div>
+        <div style="text-align: center; margin-top: 10px;">
+          <a href="${trackingUrl}" class="btn" style="display: inline-block;">Siparişimi Takip Et</a>
         </div>
       </div>
       
@@ -198,6 +202,10 @@ function orderConfirmationTemplate(order: Order, items: OrderItem[]): string {
         <p style="margin: 5px 0 0 0;">${shippingAddress.district}, ${shippingAddress.city} ${shippingAddress.postalCode}</p>
         <p style="margin: 10px 0 0 0;">${order.customerPhone}</p>
       </div>
+      
+      <p style="text-align: center; color: #71717a; font-size: 13px; margin-top: 20px;">
+        Sorularınız için <a href="mailto:destek@hank.com.tr" style="color: #ffffff;">destek@hank.com.tr</a> adresinden bize ulaşabilirsiniz.
+      </p>
     </div>
   `);
 }
@@ -363,6 +371,61 @@ function reviewRequestTemplate(userName: string, orderNumber: string, products: 
       
       <p style="text-align: center; color: #71717a; font-size: 13px;">
         Geri bildiriminiz bizim için çok değerli!
+      </p>
+    </div>
+  `);
+}
+
+// Abandoned Cart Reminder Template
+interface CartItem {
+  productName: string;
+  variantDetails?: string;
+  price: string;
+  quantity: number;
+  imageUrl?: string;
+}
+
+function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTotal: number, siteUrl: string = 'https://hank.toov.com.tr'): string {
+  const itemsHtml = cartItems.map(item => `
+    <div class="product-item">
+      <div class="product-info">
+        <p class="product-name">${item.productName}</p>
+        <p class="product-details">${item.variantDetails || ''} x ${item.quantity}</p>
+      </div>
+      <div class="product-price">${item.price}₺</div>
+    </div>
+  `).join('');
+  
+  return wrapTemplate(`
+    <div class="content">
+      <h1>Sepetiniz Sizi Bekliyor!</h1>
+      <p>Merhaba ${userName},</p>
+      <p>Sepetinizde harika ürünler var! Siparişinizi tamamlamayı mı unuttunuz?</p>
+      
+      <div class="info-box">
+        <p style="margin: 0 0 15px 0; color: #71717a; font-size: 13px; text-transform: uppercase;">SEPETİNİZDEKİ ÜRÜNLER</p>
+        ${itemsHtml}
+        <div class="divider"></div>
+        <div class="total-row grand-total">
+          <span class="total-label">Toplam</span>
+          <span class="total-value">${cartTotal.toFixed(2)}₺</span>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${siteUrl}/sepet" class="btn">Sepetime Git</a>
+      </div>
+      
+      <div class="info-box" style="background: linear-gradient(135deg, #262626 0%, #1f1f1f 100%);">
+        <p style="margin: 0; text-align: center;">
+          <span style="color: #22c55e; font-weight: 600;">2500₺ ve üzeri</span>
+          <span style="color: #a1a1aa;"> siparişlerde </span>
+          <span style="color: #22c55e; font-weight: 600;">kargo ücretsiz!</span>
+        </p>
+      </div>
+      
+      <p style="text-align: center; color: #71717a; font-size: 13px; margin-top: 20px;">
+        Stoklar sınırlı! Favori ürünlerinizi kaçırmayın.
       </p>
     </div>
   `);
@@ -565,6 +628,37 @@ export async function sendTestEmail(toEmail: string): Promise<EmailResult> {
     return { success: true };
   } catch (error: any) {
     console.error('[Email] Failed to send test email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function sendAbandonedCartEmail(
+  userEmail: string,
+  userName: string,
+  cartItems: CartItem[],
+  cartTotal: number
+): Promise<EmailResult> {
+  try {
+    const transporter = await createTransporter();
+    if (!transporter) {
+      return { success: false, error: 'SMTP yapılandırması eksik' };
+    }
+    
+    const settings = await storage.getSiteSettings();
+    const fromEmail = settings.smtp_user || 'no-reply@hank.com.tr';
+    const siteUrl = settings.site_url || 'https://hank.toov.com.tr';
+    
+    await transporter.sendMail({
+      from: `"HANK" <${fromEmail}>`,
+      to: userEmail,
+      subject: 'Sepetiniz Sizi Bekliyor! 🛒',
+      html: abandonedCartTemplate(userName, cartItems, cartTotal, siteUrl),
+    });
+    
+    console.log(`[Email] Abandoned cart reminder sent to ${userEmail}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Email] Failed to send abandoned cart email:', error);
     return { success: false, error: error.message };
   }
 }
