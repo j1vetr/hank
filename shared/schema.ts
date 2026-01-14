@@ -427,3 +427,38 @@ export const reviewRequests = pgTable("review_requests", {
 });
 
 export type ReviewRequest = typeof reviewRequests.$inferSelect;
+
+// Pending Payments for PayTR
+export const pendingPayments = pgTable("pending_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  merchantOid: text("merchant_oid").notNull().unique(),
+  sessionId: text("session_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone").notNull(),
+  shippingAddress: jsonb("shipping_address").$type<{
+    address: string;
+    city: string;
+    district: string;
+    postalCode: string;
+  }>().notNull(),
+  cartItems: jsonb("cart_items").$type<Array<{
+    productId: string;
+    variantId: string | null;
+    quantity: number;
+    productName: string;
+    variantDetails: string | null;
+    price: string;
+  }>>().notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
+  couponCode: text("coupon_code"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("pending").notNull(),
+  paytrToken: text("paytr_token"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export type PendingPayment = typeof pendingPayments.$inferSelect;

@@ -57,7 +57,9 @@ import {
   type EmailJob,
   type SiteSetting,
   type PasswordResetToken,
-  type ReviewRequest
+  type ReviewRequest,
+  pendingPayments,
+  type PendingPayment
 } from "@shared/schema";
 import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
 
@@ -146,6 +148,12 @@ export interface IStorage {
   
   getOrderItems(orderId: string): Promise<OrderItem[]>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
+
+  // Pending Payments for PayTR
+  createPendingPayment(payment: Omit<PendingPayment, 'id' | 'createdAt'>): Promise<PendingPayment>;
+  getPendingPaymentByMerchantOid(merchantOid: string): Promise<PendingPayment | undefined>;
+  updatePendingPaymentStatus(merchantOid: string, status: string): Promise<PendingPayment | undefined>;
+  deletePendingPayment(merchantOid: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1171,6 +1179,29 @@ export class DbStorage implements IStorage {
         gte(reviewRequests.createdAt, sevenDaysAgo)
       ))
       .orderBy(desc(reviewRequests.createdAt));
+  }
+
+  // Pending Payments for PayTR
+  async createPendingPayment(payment: Omit<PendingPayment, 'id' | 'createdAt'>): Promise<PendingPayment> {
+    const [newPayment] = await db.insert(pendingPayments).values(payment).returning();
+    return newPayment;
+  }
+
+  async getPendingPaymentByMerchantOid(merchantOid: string): Promise<PendingPayment | undefined> {
+    const [payment] = await db.select().from(pendingPayments).where(eq(pendingPayments.merchantOid, merchantOid));
+    return payment;
+  }
+
+  async updatePendingPaymentStatus(merchantOid: string, status: string): Promise<PendingPayment | undefined> {
+    const [updated] = await db.update(pendingPayments)
+      .set({ status })
+      .where(eq(pendingPayments.merchantOid, merchantOid))
+      .returning();
+    return updated;
+  }
+
+  async deletePendingPayment(merchantOid: string): Promise<void> {
+    await db.delete(pendingPayments).where(eq(pendingPayments.merchantOid, merchantOid));
   }
 }
 

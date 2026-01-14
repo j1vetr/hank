@@ -19,6 +19,7 @@ import {
   sendReviewRequestEmail,
   sendTestEmail 
 } from "./emailService";
+import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "client/public/uploads");
@@ -899,6 +900,325 @@ export async function registerRoutes(
       res.json(review || null);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch review" });
+    }
+  });
+
+  // PayTR Payment API
+  app.post("/api/payment/create", async (req: Request, res) => {
+    try {
+      const sessionId = req.sessionID;
+      const userId = (req.session as any).userId || null;
+      const cartItems = await storage.getCartItems(sessionId);
+      
+      if (cartItems.length === 0) {
+        return res.status(400).json({ error: "Sepet boş" });
+      }
+
+      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, couponCode } = req.body;
+
+      // Validate required fields
+      if (!customerName || !customerEmail || !customerPhone || !address || !city || !district) {
+        return res.status(400).json({ error: "Lütfen tüm alanları doldurun" });
+      }
+
+      // Calculate actual subtotal from cart items (server-side verification)
+      let serverSubtotal = 0;
+      const cartItemsForStorage: Array<{
+        productId: string;
+        variantId: string | null;
+        quantity: number;
+        productName: string;
+        variantDetails: string | null;
+        price: string;
+      }> = [];
+
+      const userBasket: Array<[string, string, number]> = [];
+
+      for (const cartItem of cartItems) {
+        const product = await storage.getProduct(cartItem.productId);
+        const variant = cartItem.variantId 
+          ? await storage.getProductVariant(cartItem.variantId)
+          : null;
+        if (product) {
+          const itemPrice = parseFloat(variant?.price || product.basePrice);
+          serverSubtotal += itemPrice * cartItem.quantity;
+          
+          cartItemsForStorage.push({
+            productId: product.id,
+            variantId: variant?.id || null,
+            quantity: cartItem.quantity,
+            productName: product.name,
+            variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
+            price: (variant?.price || product.basePrice),
+          });
+
+          // PayTR basket format: [name, price in kuruş, quantity]
+          userBasket.push([
+            product.name.substring(0, 50), // Max 50 chars for product name
+            Math.round(itemPrice * 100).toString(), // Price in kuruş
+            cartItem.quantity
+          ]);
+        }
+      }
+
+      // Handle coupon validation
+      let validatedCoupon = null;
+      let discountAmount = 0;
+      
+      if (couponCode) {
+        const couponResult = await storage.validateCoupon(couponCode, serverSubtotal, userId);
+        if (couponResult.valid && couponResult.coupon) {
+          validatedCoupon = couponResult.coupon;
+          if (validatedCoupon.discountType === 'percentage') {
+            discountAmount = (serverSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
+          } else {
+            discountAmount = parseFloat(validatedCoupon.discountValue);
+          }
+          discountAmount = Math.min(discountAmount, serverSubtotal);
+        }
+      }
+
+      // Calculate shipping and total
+      const FREE_SHIPPING_THRESHOLD = 2500;
+      const shippingCost = serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
+      const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
+
+      // Generate unique merchant order ID
+      const merchantOid = `HNK${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+      // Get user IP
+      const userIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || 
+                     req.socket.remoteAddress || 
+                     '127.0.0.1';
+
+      // Get base URL for success/fail URLs
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+
+      // Create pending payment record
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 1); // Expires in 1 hour
+
+      await storage.createPendingPayment({
+        merchantOid,
+        sessionId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        shippingAddress: { address, city, district, postalCode: postalCode || '' },
+        cartItems: cartItemsForStorage,
+        subtotal: serverSubtotal.toFixed(2),
+        shippingCost: shippingCost.toFixed(2),
+        discountAmount: discountAmount.toFixed(2),
+        couponCode: validatedCoupon?.code || null,
+        total: serverTotal.toFixed(2),
+        status: 'pending',
+        paytrToken: null,
+        expiresAt,
+      });
+
+      // Request PayTR token
+      const paytrResponse = await getPayTRToken({
+        merchantOid,
+        userIp,
+        email: customerEmail,
+        paymentAmount: Math.round(serverTotal * 100), // Convert to kuruş
+        userName: customerName,
+        userAddress: `${address}, ${district}, ${city}`,
+        userPhone: customerPhone,
+        userBasket,
+        okUrl: `${baseUrl}/odeme-basarili?oid=${merchantOid}`,
+        failUrl: `${baseUrl}/odeme-basarisiz?oid=${merchantOid}`,
+        noInstallment: '1', // Disable installments
+        currency: 'TL',
+        testMode: process.env.NODE_ENV === 'production' ? '0' : '1',
+        debugOn: '1',
+      });
+
+      if (paytrResponse.status === 'success' && paytrResponse.token) {
+        // Update pending payment with token
+        await storage.updatePendingPaymentStatus(merchantOid, 'token_received');
+        
+        res.json({
+          success: true,
+          token: paytrResponse.token,
+          merchantOid,
+          iframeUrl: `https://www.paytr.com/odeme/guvenli/${paytrResponse.token}`,
+        });
+      } else {
+        // Delete pending payment on failure
+        await storage.deletePendingPayment(merchantOid);
+        console.error('[PayTR] Token request failed:', paytrResponse.reason);
+        res.status(400).json({ 
+          error: 'Ödeme sistemi bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.',
+          reason: paytrResponse.reason 
+        });
+      }
+    } catch (error) {
+      console.error('[PayTR] Payment creation error:', error);
+      res.status(500).json({ error: "Ödeme işlemi başlatılamadı" });
+    }
+  });
+
+  // PayTR Callback (Notification URL) - receives payment results
+  app.post("/api/payment/callback", async (req: Request, res) => {
+    try {
+      const callbackData = req.body as PayTRCallbackData;
+      
+      console.log('[PayTR Callback] Received:', {
+        merchant_oid: callbackData.merchant_oid,
+        status: callbackData.status,
+        total_amount: callbackData.total_amount
+      });
+
+      // Verify hash
+      if (!verifyPayTRCallback(callbackData)) {
+        console.error('[PayTR Callback] Hash verification failed');
+        return res.send('PAYTR notification failed: bad hash');
+      }
+
+      const pendingPayment = await storage.getPendingPaymentByMerchantOid(callbackData.merchant_oid);
+      if (!pendingPayment) {
+        console.error('[PayTR Callback] Pending payment not found:', callbackData.merchant_oid);
+        return res.send('OK'); // Return OK to prevent retries
+      }
+
+      // Check if already processed
+      if (pendingPayment.status === 'completed' || pendingPayment.status === 'failed') {
+        console.log('[PayTR Callback] Payment already processed:', callbackData.merchant_oid);
+        return res.send('OK');
+      }
+
+      if (callbackData.status === 'success') {
+        // Payment successful - create the actual order
+        const orderNumber = callbackData.merchant_oid;
+
+        // Create order
+        const order = await storage.createOrder({
+          orderNumber,
+          customerName: pendingPayment.customerName,
+          customerEmail: pendingPayment.customerEmail,
+          customerPhone: pendingPayment.customerPhone,
+          shippingAddress: pendingPayment.shippingAddress,
+          subtotal: pendingPayment.subtotal,
+          shippingCost: pendingPayment.shippingCost,
+          discountAmount: pendingPayment.discountAmount || '0',
+          couponCode: pendingPayment.couponCode,
+          total: pendingPayment.total,
+          status: 'confirmed',
+          paymentMethod: 'credit_card',
+          paymentStatus: 'paid',
+        });
+
+        // Create order items and reduce stock
+        for (const item of pendingPayment.cartItems) {
+          await storage.createOrderItem({
+            orderId: order.id,
+            productId: item.productId,
+            variantId: item.variantId,
+            productName: item.productName,
+            variantDetails: item.variantDetails,
+            price: item.price,
+            quantity: item.quantity,
+            subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
+          });
+
+          // Reduce stock for the variant
+          if (item.variantId) {
+            const variant = await storage.getProductVariant(item.variantId);
+            if (variant) {
+              const newStock = Math.max(0, variant.stock - item.quantity);
+              await storage.updateProductVariant(item.variantId, { stock: newStock });
+              
+              await storage.createStockAdjustment({
+                variantId: item.variantId,
+                previousStock: variant.stock,
+                newStock: newStock,
+                adjustmentType: 'sale',
+                reason: `Sipariş: ${orderNumber}`,
+              });
+            }
+          }
+        }
+
+        // Handle coupon redemption
+        if (pendingPayment.couponCode) {
+          const coupon = await storage.getCouponByCode(pendingPayment.couponCode);
+          if (coupon) {
+            await storage.redeemCoupon(coupon.id, order.id, null, parseFloat(pendingPayment.discountAmount || '0'));
+            
+            // Update influencer commission if applicable
+            if (coupon.isInfluencerCode) {
+              let commission = 0;
+              const orderTotal = parseFloat(pendingPayment.total);
+              
+              switch (coupon.commissionType) {
+                case 'percentage':
+                  commission = (orderTotal * parseFloat(coupon.commissionValue || '0')) / 100;
+                  break;
+                case 'per_use':
+                  commission = parseFloat(coupon.commissionValue || '0');
+                  break;
+              }
+              
+              if (commission > 0) {
+                const currentCommission = parseFloat(coupon.totalCommissionEarned || '0');
+                await storage.updateCoupon(coupon.id, {
+                  totalCommissionEarned: (currentCommission + commission).toFixed(2),
+                });
+              }
+            }
+          }
+        }
+
+        // Clear cart
+        await storage.clearCart(pendingPayment.sessionId);
+
+        // Update pending payment status
+        await storage.updatePendingPaymentStatus(callbackData.merchant_oid, 'completed');
+
+        // Send confirmation emails
+        const orderItems = await storage.getOrderItems(order.id);
+        sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
+        sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
+
+        console.log('[PayTR Callback] Order created successfully:', orderNumber);
+      } else {
+        // Payment failed
+        await storage.updatePendingPaymentStatus(callbackData.merchant_oid, 'failed');
+        console.log('[PayTR Callback] Payment failed:', callbackData.merchant_oid, callbackData.failed_reason_msg);
+      }
+
+      // MUST return "OK" to PayTR
+      res.send('OK');
+    } catch (error) {
+      console.error('[PayTR Callback] Error:', error);
+      res.send('OK'); // Still return OK to prevent infinite retries
+    }
+  });
+
+  // Check payment status
+  app.get("/api/payment/status/:merchantOid", async (req: Request, res) => {
+    try {
+      const pendingPayment = await storage.getPendingPaymentByMerchantOid(req.params.merchantOid);
+      if (!pendingPayment) {
+        return res.status(404).json({ error: "Ödeme bulunamadı" });
+      }
+
+      // If completed, get the order
+      if (pendingPayment.status === 'completed') {
+        const order = await storage.getOrderByNumber(pendingPayment.merchantOid);
+        return res.json({
+          status: 'completed',
+          orderNumber: order?.orderNumber,
+          orderId: order?.id,
+        });
+      }
+
+      res.json({ status: pendingPayment.status });
+    } catch (error) {
+      res.status(500).json({ error: "Ödeme durumu alınamadı" });
     }
   });
 
