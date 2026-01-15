@@ -74,10 +74,10 @@ export default function NotFound() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.5 }}
-              className="mt-16 pt-8 border-t border-zinc-800"
+              className="mt-16 pt-8 border-t border-zinc-800 px-4"
             >
               <p className="text-zinc-500 text-sm mb-4">Popüler Sayfalar</p>
-              <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 max-w-2xl mx-auto">
                 {[
                   { href: '/kategori/tshirt', label: 'T-Shirt' },
                   { href: '/kategori/sort', label: 'Şort' },
@@ -86,7 +86,7 @@ export default function NotFound() {
                   { href: '/siparis-takip', label: 'Sipariş Takip' },
                 ].map((link) => (
                   <Link key={link.href} href={link.href}>
-                    <span className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-sm rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer">
+                    <span className="block text-center px-3 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs sm:text-sm rounded-lg border border-zinc-800 hover:border-zinc-700 transition-colors cursor-pointer whitespace-nowrap">
                       {link.label}
                     </span>
                   </Link>
