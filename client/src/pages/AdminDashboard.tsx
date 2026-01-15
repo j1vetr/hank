@@ -2486,8 +2486,12 @@ function AnalyticsPanel() {
 function InfluencerPanel() {
   const queryClient = useQueryClient();
   const [showInfluencerModal, setShowInfluencerModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingInfluencer, setEditingInfluencer] = useState<any>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [activeView, setActiveView] = useState<'list' | 'analytics'>('list');
+  const [bulkText, setBulkText] = useState('');
+  const [bulkError, setBulkError] = useState('');
 
   const { data: influencers = [], isLoading: influencersLoading } = useQuery({
     queryKey: ['admin-influencer-coupons'],
@@ -2574,6 +2578,52 @@ function InfluencerPanel() {
     },
   });
 
+  const bulkAddMutation = useMutation({
+    mutationFn: async (influencerList: any[]) => {
+      const res = await fetch('/api/admin/influencer-coupons/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ influencers: influencerList }),
+      });
+      if (!res.ok) throw new Error('Failed to bulk add influencers');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      setShowBulkModal(false);
+      setBulkText('');
+      setBulkError('');
+      alert(`${data.created?.length || 0} influencer eklendi, ${data.errors?.length || 0} hata oluştu`);
+    },
+  });
+
+  const handleBulkAdd = () => {
+    setBulkError('');
+    const lines = bulkText.trim().split('\n').filter(l => l.trim());
+    if (lines.length === 0) {
+      setBulkError('Lütfen en az bir satır girin');
+      return;
+    }
+    const parsedInfluencers = [];
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(',').map(p => p.trim());
+      if (parts.length < 2) {
+        setBulkError(`Satır ${i + 1}: En az isim ve kod gerekli (İsim, Kod)`);
+        return;
+      }
+      parsedInfluencers.push({
+        name: parts[0],
+        code: parts[1],
+        instagram: parts[2] || '',
+        customerDiscount: parts[3] ? parseInt(parts[3]) : 10,
+        commissionPercent: parts[4] ? parseInt(parts[4]) : 5,
+      });
+    }
+    bulkAddMutation.mutate(parsedInfluencers);
+  };
+
   const formatPrice = (price: string | number) => {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(price) || 0);
   };
@@ -2589,6 +2639,25 @@ function InfluencerPanel() {
 
   return (
     <div className="space-y-6">
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setActiveView('list')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            activeView === 'list' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+          }`}
+        >
+          Influencer Listesi
+        </button>
+        <button
+          onClick={() => setActiveView('analytics')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            activeView === 'analytics' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+          }`}
+        >
+          Aylık Analiz
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-2">
@@ -2632,6 +2701,13 @@ function InfluencerPanel() {
               ))}
             </select>
             <button
+              onClick={() => setShowBulkModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors border border-zinc-700"
+            >
+              <Upload className="w-4 h-4" />
+              Toplu Ekle
+            </button>
+            <button
               onClick={() => { setEditingInfluencer(null); setShowInfluencerModal(true); }}
               className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors"
             >
@@ -2641,7 +2717,7 @@ function InfluencerPanel() {
           </div>
         </div>
 
-        {influencersLoading ? (
+        {activeView === 'list' && (influencersLoading ? (
           <div className="p-8 flex justify-center">
             <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
           </div>
@@ -2746,10 +2822,10 @@ function InfluencerPanel() {
           <div className="p-8 text-center text-zinc-500">
             Henüz influencer kaydı yok. Yeni bir influencer ekleyerek başlayın.
           </div>
-        )}
+        ))}
       </div>
 
-      {analytics?.redemptions && analytics.redemptions.length > 0 && (
+      {activeView === 'list' && analytics?.redemptions && analytics.redemptions.length > 0 && (
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
           <div className="p-6 border-b border-zinc-800">
             <h3 className="text-lg font-semibold text-white">Son Kullanımlar</h3>
@@ -2789,6 +2865,64 @@ function InfluencerPanel() {
         </div>
       )}
 
+      {activeView === 'analytics' && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="p-6 border-b border-zinc-800">
+            <h3 className="text-lg font-semibold text-white">Aylık Performans Analizi</h3>
+          </div>
+          {analyticsLoading ? (
+            <div className="p-8 flex justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+            </div>
+          ) : analytics?.monthlyData && analytics.monthlyData.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-zinc-800/50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Ay</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kullanım Sayısı</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Toplam Gelir</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Toplam Komisyon</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {analytics.monthlyData.map((m: any) => {
+                    const [year, month] = m.month.split('-');
+                    const monthLabel = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
+                    return (
+                      <tr key={m.month} className="hover:bg-zinc-800/30">
+                        <td className="px-6 py-4 text-sm font-medium text-white">{monthLabel}</td>
+                        <td className="px-6 py-4 text-sm text-white">{m.count}</td>
+                        <td className="px-6 py-4 text-sm text-green-400">{formatPrice(m.revenue)}</td>
+                        <td className="px-6 py-4 text-sm text-yellow-400">{formatPrice(m.commission)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-zinc-800/30">
+                  <tr>
+                    <td className="px-6 py-4 text-sm font-bold text-white">Toplam</td>
+                    <td className="px-6 py-4 text-sm font-bold text-white">
+                      {analytics.monthlyData.reduce((sum: number, m: any) => sum + m.count, 0)}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-green-400">
+                      {formatPrice(analytics.monthlyData.reduce((sum: number, m: any) => sum + m.revenue, 0))}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-yellow-400">
+                      {formatPrice(analytics.monthlyData.reduce((sum: number, m: any) => sum + m.commission, 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-zinc-500">
+              Henüz analiz verisi yok
+            </div>
+          )}
+        </div>
+      )}
+
       {showInfluencerModal && (
         <InfluencerModal
           influencer={editingInfluencer}
@@ -2796,6 +2930,60 @@ function InfluencerPanel() {
           onSave={(data) => saveInfluencerMutation.mutate(data)}
           isSaving={saveInfluencerMutation.isPending}
         />
+      )}
+
+      {showBulkModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Toplu Influencer Ekle</h3>
+              <button onClick={() => { setShowBulkModal(false); setBulkText(''); setBulkError(''); }} className="text-zinc-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-white mb-2">Format:</h4>
+                <p className="text-xs text-zinc-400 mb-2">Her satıra bir influencer, virgülle ayrılmış:</p>
+                <code className="text-xs text-green-400 block bg-zinc-900 p-2 rounded">
+                  İsim, Kod, Instagram, Müşteri İndirimi (%), Komisyon (%)<br/>
+                  Örnek: Ayşe Yılmaz, AYSE10, @ayseyilmaz, 10, 5
+                </code>
+                <p className="text-xs text-zinc-500 mt-2">* İsim ve Kod zorunlu, diğerleri opsiyonel (varsayılan: %10 indirim, %5 komisyon)</p>
+              </div>
+              <textarea
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+                placeholder="Ayşe Yılmaz, AYSE10, @ayseyilmaz, 10, 5&#10;Mehmet Kaya, MEHMET15, @mehmetkaya, 15, 7&#10;Ali Demir, ALI20, @alidemir, 20, 10"
+                className="w-full h-48 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 font-mono"
+              />
+              {bulkError && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-sm text-red-400">
+                  {bulkError}
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowBulkModal(false); setBulkText(''); setBulkError(''); }}
+                className="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleBulkAdd}
+                disabled={bulkAddMutation.isPending || !bulkText.trim()}
+                className="px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
+              >
+                {bulkAddMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Ekle'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
