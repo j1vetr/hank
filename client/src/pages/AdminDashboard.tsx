@@ -1256,31 +1256,43 @@ function ProductModal({
             )}
           </div>
           
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-zinc-300">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="w-4 h-4"
-              />
-              Aktif
-            </label>
-            <label className="flex items-center gap-2 text-zinc-300">
+          <div className="flex flex-wrap gap-6">
+            {/* Active/Inactive Toggle Switch */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-zinc-400">Ürün Durumu:</span>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                className={`relative w-14 h-7 rounded-full transition-colors ${
+                  formData.isActive ? 'bg-emerald-500' : 'bg-zinc-600'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform shadow ${
+                    formData.isActive ? 'translate-x-7' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+              <span className={`text-sm font-medium ${formData.isActive ? 'text-emerald-400' : 'text-red-400'}`}>
+                {formData.isActive ? 'Aktif' : 'Pasif'}
+              </span>
+            </div>
+            
+            <label className="flex items-center gap-2 text-zinc-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.isFeatured}
                 onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-                className="w-4 h-4"
+                className="w-4 h-4 rounded bg-zinc-700 border-zinc-600"
               />
               Öne Çıkan
             </label>
-            <label className="flex items-center gap-2 text-zinc-300">
+            <label className="flex items-center gap-2 text-zinc-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.isNew}
                 onChange={(e) => setFormData({ ...formData, isNew: e.target.checked })}
-                className="w-4 h-4"
+                className="w-4 h-4 rounded bg-zinc-700 border-zinc-600"
               />
               Yeni
             </label>
