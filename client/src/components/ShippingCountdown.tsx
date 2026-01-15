@@ -47,7 +47,7 @@ export function ShippingCountdown() {
         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-700/50 flex items-center justify-center">
           <Truck className="w-5 h-5 text-white/60" />
         </div>
-        <p className="text-xs sm:text-sm text-white/80">
+        <p className="text-sm sm:text-base text-white/80">
           <span className="text-white font-bold">{pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}</span> içinde sipariş ver, aynı gün kargoda!
         </p>
       </div>
