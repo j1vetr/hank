@@ -897,9 +897,22 @@ function ProductModal({
   onSave: (product: Partial<Product>) => void;
   isSaving: boolean;
 }) {
+  const generateSlug = (name: string) => {
+    const turkishMap: { [key: string]: string } = {
+      'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G', 'ı': 'i', 'İ': 'I',
+      'ö': 'o', 'Ö': 'O', 'ş': 's', 'Ş': 'S', 'ü': 'u', 'Ü': 'U'
+    };
+    return name
+      .split('')
+      .map(char => turkishMap[char] || char)
+      .join('')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   const [formData, setFormData] = useState({
     name: product?.name || '',
-    slug: product?.slug || '',
     description: product?.description || '',
     sku: product?.sku || '',
     basePrice: product?.basePrice || '',
@@ -1020,6 +1033,7 @@ function ProductModal({
     onSave({
       ...product,
       ...formData,
+      slug: product?.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
     });
   };
@@ -1076,18 +1090,6 @@ function ProductModal({
             </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Slug</label>
-            <input
-              type="text"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
-              required
-              data-testid="input-product-slug"
-            />
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-2">Açıklama</label>
             <textarea
@@ -1476,9 +1478,22 @@ function CategoryModal({
   onSave: (category: Partial<Category>) => void;
   isSaving: boolean;
 }) {
+  const generateSlug = (name: string) => {
+    const turkishMap: { [key: string]: string } = {
+      'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G', 'ı': 'i', 'İ': 'I',
+      'ö': 'o', 'Ö': 'O', 'ş': 's', 'Ş': 'S', 'ü': 'u', 'Ü': 'U'
+    };
+    return name
+      .split('')
+      .map(char => turkishMap[char] || char)
+      .join('')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   const [formData, setFormData] = useState({
     name: category?.name || '',
-    slug: category?.slug || '',
     image: category?.image || '',
     displayOrder: category?.displayOrder || 0,
   });
@@ -1488,6 +1503,7 @@ function CategoryModal({
     onSave({
       ...category,
       ...formData,
+      slug: category?.slug || generateSlug(formData.name),
     });
   };
 
@@ -1513,18 +1529,6 @@ function CategoryModal({
               className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
               required
               data-testid="input-category-name"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Slug</label>
-            <input
-              type="text"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
-              required
-              data-testid="input-category-slug"
             />
           </div>
           
