@@ -214,15 +214,6 @@ export default function Home() {
       <Header />
 
       <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
-        {/* Temporary Notice Banner */}
-        <div className="absolute top-20 left-0 right-0 z-50 flex justify-center px-4">
-          <div className="bg-red-600/90 backdrop-blur-sm text-white px-6 py-3 rounded-lg shadow-lg border border-red-500/50">
-            <p className="text-sm sm:text-base font-medium text-center">
-              ⚠️ Satış geçici olarak kapalıdır
-            </p>
-          </div>
-        </div>
-
         {heroImages.map((img, index) => (
           <div
             key={index}
