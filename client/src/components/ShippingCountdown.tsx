@@ -2,46 +2,44 @@ import { useState, useEffect } from 'react';
 import { Truck, Clock } from 'lucide-react';
 
 export function ShippingCountdown() {
-  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number } | null>(null);
-  const [nextShippingDay, setNextShippingDay] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+  const [isWeekend, setIsWeekend] = useState(false);
 
   useEffect(() => {
     const calculateTime = () => {
       const now = new Date();
-      const day = now.getDay();
+      const day = now.getDay(); // 0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi
       const hour = now.getHours();
-
-      const isShippingDay = day === 1 || day === 5;
       const cutoffHour = 16;
 
-      if (isShippingDay && hour < cutoffHour) {
+      // Hafta içi mi? (Pazartesi-Cuma = 1-5)
+      const isWeekday = day >= 1 && day <= 5;
+
+      if (isWeekday && hour < cutoffHour) {
+        // Hafta içi ve 16:00'dan önce - geri sayım göster
         const cutoff = new Date(now);
         cutoff.setHours(cutoffHour, 0, 0, 0);
         const diff = cutoff.getTime() - now.getTime();
 
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        setTimeLeft({ hours, minutes });
-        setNextShippingDay(null);
+        setTimeLeft({ hours, minutes, seconds });
+        setIsWeekend(false);
       } else {
+        // Hafta sonu veya 16:00'dan sonra
         setTimeLeft(null);
-        const nextDay = day === 1 || (day > 1 && day < 5) ? 'Cuma' : 'Pazartesi';
-        setNextShippingDay(nextDay);
+        setIsWeekend(true);
       }
     };
 
     calculateTime();
-    const interval = setInterval(calculateTime, 60000);
+    const interval = setInterval(calculateTime, 1000); // Her saniye güncelle
     return () => clearInterval(interval);
   }, []);
 
-  const formatTime = (hours: number, minutes: number) => {
-    if (hours > 0) {
-      return `${hours} saat ${minutes} dakika`;
-    }
-    return `${minutes} dakika`;
-  };
+  const pad = (n: number) => n.toString().padStart(2, '0');
 
   if (timeLeft) {
     return (
@@ -52,15 +50,17 @@ export function ShippingCountdown() {
           </div>
           <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
         </div>
-        <p className="text-xs sm:text-sm">
-          <span className="text-emerald-400 font-bold">{formatTime(timeLeft.hours, timeLeft.minutes)}</span>
-          <span className="text-white/70"> içinde sipariş verirsen aynı gün kargoda!</span>
-        </p>
+        <div className="flex flex-col">
+          <span className="text-emerald-400 font-bold text-sm sm:text-base">
+            {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
+          </span>
+          <span className="text-white/70 text-xs sm:text-sm">içinde sipariş ver, aynı gün kargoda!</span>
+        </div>
       </div>
     );
   }
 
-  if (nextShippingDay) {
+  if (isWeekend) {
     return (
       <div className="flex items-center gap-3">
         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-700/50 flex items-center justify-center">
@@ -68,10 +68,10 @@ export function ShippingCountdown() {
         </div>
         <div className="flex flex-col">
           <span className="text-white/80 text-xs sm:text-sm">
-            Sonraki aynı gün kargo
+            Aynı gün kargo
           </span>
           <span className="text-white font-medium text-sm">
-            {nextShippingDay} 16:00'a kadar
+            Pazartesi 16:00'a kadar verilen siparişlerde
           </span>
         </div>
       </div>
@@ -83,18 +83,20 @@ export function ShippingCountdown() {
 
 export function ShippingCountdownBanner() {
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
-  const [nextShippingDay, setNextShippingDay] = useState<string | null>(null);
+  const [isWeekend, setIsWeekend] = useState(false);
 
   useEffect(() => {
     const calculateTime = () => {
       const now = new Date();
-      const day = now.getDay();
+      const day = now.getDay(); // 0 = Pazar, 1 = Pazartesi, ..., 6 = Cumartesi
       const hour = now.getHours();
-
-      const isShippingDay = day === 1 || day === 5;
       const cutoffHour = 16;
 
-      if (isShippingDay && hour < cutoffHour) {
+      // Hafta içi mi? (Pazartesi-Cuma = 1-5)
+      const isWeekday = day >= 1 && day <= 5;
+
+      if (isWeekday && hour < cutoffHour) {
+        // Hafta içi ve 16:00'dan önce - geri sayım göster
         const cutoff = new Date(now);
         cutoff.setHours(cutoffHour, 0, 0, 0);
         const diff = cutoff.getTime() - now.getTime();
@@ -104,11 +106,11 @@ export function ShippingCountdownBanner() {
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
         setTimeLeft({ hours, minutes, seconds });
-        setNextShippingDay(null);
+        setIsWeekend(false);
       } else {
+        // Hafta sonu veya 16:00'dan sonra
         setTimeLeft(null);
-        const nextDay = day === 1 || (day > 1 && day < 5) ? 'Cuma' : 'Pazartesi';
-        setNextShippingDay(nextDay);
+        setIsWeekend(true);
       }
     };
 
@@ -138,7 +140,7 @@ export function ShippingCountdownBanner() {
       <p className="text-xs sm:text-sm font-medium tracking-wide">
         <span className="inline-flex items-center gap-2">
           <Truck className="w-4 h-4" />
-          Aynı gün kargo: <span className="font-bold">{nextShippingDay}</span> 16:00'a kadar verilen siparişlerde
+          Aynı gün kargo: <span className="font-bold">Pazartesi</span> 16:00'a kadar verilen siparişlerde
         </span>
       </p>
     </div>
