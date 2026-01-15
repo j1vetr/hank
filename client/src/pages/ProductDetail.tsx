@@ -202,6 +202,9 @@ export default function ProductDetail() {
     ? product.availableColors 
     : [];
 
+  const totalStock = product?.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) ?? 0;
+  const isCompletelyOutOfStock = product?.variants && product.variants.length > 0 && totalStock === 0;
+
   const category = product ? categories.find(c => c.id === product.categoryId) : null;
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
@@ -720,15 +723,19 @@ export default function ProductDetail() {
 
                 <div className="flex items-center gap-3 pt-2">
                   <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
+                    whileHover={!isCompletelyOutOfStock ? { scale: 1.01 } : {}}
+                    whileTap={!isCompletelyOutOfStock ? { scale: 0.99 } : {}}
                     onClick={handleAddToCart}
-                    disabled={isAdding}
-                    className="flex-1 py-3.5 bg-zinc-800 hover:bg-zinc-700 text-white font-medium text-sm uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={isAdding || isCompletelyOutOfStock}
+                    className={`flex-1 py-3.5 font-medium text-sm uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+                      isCompletelyOutOfStock 
+                        ? 'bg-red-900/50 text-red-400 cursor-not-allowed' 
+                        : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                    }`}
                     data-testid="button-add-to-cart"
                   >
                     {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    {isAdding ? 'Ekleniyor...' : 'Sepete Ekle'}
+                    {isCompletelyOutOfStock ? 'TÜKENDİ' : isAdding ? 'Ekleniyor...' : 'Sepete Ekle'}
                   </motion.button>
 
                   <motion.button

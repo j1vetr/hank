@@ -48,6 +48,9 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
     ? Array.from(new Set(product.variants.map(v => v.colorHex).filter(Boolean)))
     : [];
 
+  const totalStock = product.variants?.reduce((sum, v) => sum + (v.stock || 0), 0) ?? 0;
+  const isOutOfStock = product.variants && product.variants.length > 0 && totalStock === 0;
+
   const handleQuickView = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -86,7 +89,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-              {product.isNew && (
+              {product.isNew && !isOutOfStock && (
                 <motion.span
                   className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 tracking-wider rounded"
                   animate={{ 
@@ -97,6 +100,14 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                 >
                   YENİ
                 </motion.span>
+              )}
+
+              {isOutOfStock && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <span className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 tracking-wider rounded">
+                    TÜKENDİ
+                  </span>
+                </div>
               )}
 
               <motion.button
