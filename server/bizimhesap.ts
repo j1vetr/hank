@@ -49,10 +49,16 @@ export async function sendInvoiceToBizimHesap(
       const netAmount = itemTotal / (1 + KDV_RATE / 100);
       const taxAmount = itemTotal - netAmount;
 
+      // Build product name with variant details
+      let fullProductName = item.productName || "Ürün";
+      if (item.variantDetails) {
+        fullProductName += ` - ${item.variantDetails}`;
+      }
+
       return {
         productId: item.productId || item.id,
-        productName: item.productName,
-        note: item.variantDetails || "",
+        productName: fullProductName,
+        note: "",
         barcode: "",
         taxRate: `${KDV_RATE}.00`,
         quantity: item.quantity,
@@ -64,6 +70,28 @@ export async function sendInvoiceToBizimHesap(
         total: itemTotal.toFixed(2),
       };
     });
+
+    // Add shipping cost as separate line item if applicable
+    const shippingCost = parseFloat(order.shippingCost || "0");
+    if (shippingCost > 0) {
+      const shippingNet = shippingCost / (1 + KDV_RATE / 100);
+      const shippingTax = shippingCost - shippingNet;
+
+      details.push({
+        productId: "KARGO",
+        productName: "Kargo Ücreti",
+        note: "",
+        barcode: "",
+        taxRate: `${KDV_RATE}.00`,
+        quantity: 1,
+        unitPrice: shippingNet.toFixed(2),
+        grossPrice: shippingNet.toFixed(2),
+        discount: "0.00",
+        net: shippingNet.toFixed(2),
+        tax: shippingTax.toFixed(2),
+        total: shippingCost.toFixed(2),
+      });
+    }
 
     const totalWithTax = parseFloat(order.total);
     const netTotal = totalWithTax / (1 + KDV_RATE / 100);
