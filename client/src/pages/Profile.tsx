@@ -57,6 +57,9 @@ interface Order {
   paymentMethod: string;
   paymentStatus: string;
   createdAt: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  shippingCarrier?: string;
   items?: OrderItem[];
 }
 
@@ -943,6 +946,48 @@ export default function Profile() {
                     );
                   })()}
                 </div>
+
+                {selectedOrder.status === 'shipped' && (
+                  <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-500/30 rounded-xl p-5">
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      <img 
+                        src="https://www.dhl.com/content/dam/dhl/global/core/images/logos/dhl-logo.svg" 
+                        alt="DHL" 
+                        className="h-6"
+                      />
+                      <span className="text-yellow-400 font-medium text-sm">Express</span>
+                    </div>
+                    
+                    <div className="text-center mb-3">
+                      <p className="text-xs text-zinc-400 uppercase tracking-wider mb-1">Kargo Takip Numarası</p>
+                      <p className="text-xl font-mono font-bold text-white tracking-widest">
+                        {selectedOrder.trackingNumber || 'Bekleniyor...'}
+                      </p>
+                    </div>
+                    
+                    {selectedOrder.trackingNumber && (
+                      <a
+                        href={selectedOrder.trackingUrl || `https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${selectedOrder.trackingNumber}&submit=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg font-bold text-sm transition-colors"
+                      >
+                        <Truck className="w-4 h-4" />
+                        DHL'DE TAKİP ET
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {selectedOrder.trackingNumber && selectedOrder.status !== 'shipped' && (
+                  <div className="p-4 bg-zinc-800/50 rounded-xl">
+                    <p className="text-xs text-zinc-400 uppercase tracking-wider mb-1">Kargo Takip Numarası</p>
+                    <p className="text-lg font-mono font-bold text-white">{selectedOrder.trackingNumber}</p>
+                    {selectedOrder.shippingCarrier && (
+                      <p className="text-sm text-zinc-500 mt-1">{selectedOrder.shippingCarrier}</p>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <h4 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Ürünler</h4>

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,8 @@ import {
   XCircle,
   MapPin,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 
 interface OrderDetail {
@@ -104,11 +106,22 @@ export default function OrderTracking() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [location] = useLocation();
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Auto-fill from URL and auto-search
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const noParam = urlParams.get('no');
     
-    if (!orderNumber.trim()) {
+    if (noParam) {
+      setOrderNumber(noParam);
+      // Auto-search when order number is in URL
+      searchOrder(noParam);
+    }
+  }, []);
+
+  const searchOrder = async (searchOrderNumber: string) => {
+    if (!searchOrderNumber.trim()) {
       setError('Sipariş numarası girin');
       return;
     }
@@ -118,10 +131,7 @@ export default function OrderTracking() {
     setOrder(null);
 
     try {
-      const params = new URLSearchParams({ orderNumber: orderNumber.trim() });
-      if (email.trim()) {
-        params.append('email', email.trim());
-      }
+      const params = new URLSearchParams({ orderNumber: searchOrderNumber.trim() });
       
       const res = await fetch(`/api/orders/track?${params.toString()}`);
       const data = await res.json();
@@ -136,6 +146,11 @@ export default function OrderTracking() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    searchOrder(orderNumber);
   };
 
   const currentStatus = order ? statusConfig[order.status] || statusConfig.pending : null;
@@ -282,7 +297,40 @@ export default function OrderTracking() {
                   </div>
                 )}
 
-                {order.trackingNumber && (
+                {order.status === 'shipped' && (
+                  <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-500/30 rounded-xl p-6 mb-6">
+                    <div className="flex items-center justify-center gap-3 mb-4">
+                      <img 
+                        src="https://www.dhl.com/content/dam/dhl/global/core/images/logos/dhl-logo.svg" 
+                        alt="DHL" 
+                        className="h-8"
+                      />
+                      <span className="text-yellow-400 font-medium">Express</span>
+                    </div>
+                    
+                    <div className="text-center mb-4">
+                      <p className="text-xs text-zinc-400 uppercase tracking-wider mb-2">Kargo Takip Numarası</p>
+                      <p className="text-2xl font-mono font-bold text-white tracking-widest">
+                        {order.trackingNumber || 'Bekleniyor...'}
+                      </p>
+                    </div>
+                    
+                    {order.trackingNumber && (
+                      <a
+                        href={order.trackingUrl || `https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${order.trackingNumber}&submit=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg font-bold transition-colors"
+                      >
+                        <Truck className="w-5 h-5" />
+                        DHL'DE TAKİP ET
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {order.trackingNumber && order.status !== 'shipped' && (
                   <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4 mb-6">
                     <p className="text-sm text-zinc-400 mb-1">Kargo Takip Numarası</p>
                     <div className="flex items-center justify-between">

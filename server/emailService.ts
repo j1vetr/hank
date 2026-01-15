@@ -210,19 +210,57 @@ function orderConfirmationTemplate(order: Order, items: OrderItem[], siteUrl: st
   `);
 }
 
+// Preparing Notification Template
+function preparingNotificationTemplate(order: Order): string {
+  return wrapTemplate(`
+    <div class="content">
+      <h1>Siparişiniz Hazırlanıyor!</h1>
+      <p>Güzel haberler! Siparişiniz şu anda depomuzda özenle hazırlanıyor.</p>
+      
+      <div class="info-box">
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <p class="info-label">Sipariş No</p>
+            <p class="info-value">#${order.orderNumber}</p>
+          </div>
+          <div style="text-align: right;">
+            <p class="info-label">Toplam</p>
+            <p class="info-value">${order.total}₺</p>
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #18181b, #27272a); border-radius: 12px; margin: 20px 0;">
+        <p style="margin: 0; color: #a1a1aa; font-size: 14px;">Tahmini Kargo Süresi</p>
+        <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 24px; font-weight: bold;">1-2 İş Günü</p>
+      </div>
+      
+      <p style="text-align: center; color: #71717a; font-size: 13px;">
+        Siparişiniz kargoya verildiğinde size tekrar bilgi vereceğiz.
+      </p>
+    </div>
+  `);
+}
+
 // Shipping Notification Template
 function shippingNotificationTemplate(order: Order): string {
+  const dhlTrackingUrl = order.trackingNumber 
+    ? `https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${order.trackingNumber}&submit=1`
+    : null;
+  const trackingUrl = order.trackingUrl || dhlTrackingUrl;
+  
   return wrapTemplate(`
     <div class="content">
       <h1>Siparişiniz Kargoya Verildi!</h1>
       <p>Harika haberlerimiz var! Siparişiniz paketlendi ve kargoya teslim edildi.</p>
       
-      <div class="tracking-box">
-        <p style="margin: 0; color: #71717a; font-size: 13px;">KARGO TAKİP NUMARASI</p>
-        <p class="tracking-number">${order.trackingNumber || 'Henüz belirlenmedi'}</p>
-        ${order.shippingCarrier ? `<p style="margin: 5px 0 0 0; color: #a1a1aa;">${order.shippingCarrier}</p>` : ''}
-        ${order.trackingUrl ? `
-          <a href="${order.trackingUrl}" class="btn" style="margin-top: 15px;">Kargo Takibi</a>
+      <div class="tracking-box" style="text-align: center; padding: 25px; background: linear-gradient(135deg, #18181b, #27272a); border-radius: 12px; border: 1px solid #3f3f46;">
+        <img src="https://www.dhl.com/content/dam/dhl/global/core/images/logos/dhl-logo.svg" alt="DHL" style="height: 40px; margin-bottom: 15px;" />
+        <p style="margin: 0; color: #71717a; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">KARGO TAKİP NUMARASI</p>
+        <p class="tracking-number" style="font-size: 28px; font-weight: bold; color: #ffffff; margin: 10px 0; letter-spacing: 2px;">${order.trackingNumber || 'Henüz belirlenmedi'}</p>
+        ${order.shippingCarrier ? `<p style="margin: 5px 0 0 0; color: #a1a1aa;">${order.shippingCarrier}</p>` : '<p style="margin: 5px 0 0 0; color: #fbbf24;">DHL Express</p>'}
+        ${trackingUrl ? `
+          <a href="${trackingUrl}" class="btn" style="display: inline-block; margin-top: 20px; padding: 14px 32px; background: #fbbf24; color: #000000; text-decoration: none; border-radius: 8px; font-weight: bold;">KARGOMU TAKİP ET</a>
         ` : ''}
       </div>
       
@@ -240,7 +278,7 @@ function shippingNotificationTemplate(order: Order): string {
       </div>
       
       <p style="text-align: center; color: #71717a; font-size: 13px;">
-        Kargo takip numaranızı kullanarak siparişinizi takip edebilirsiniz.
+        Kargo takip numaranızı kullanarak siparişinizi DHL üzerinden takip edebilirsiniz.
       </p>
     </div>
   `);
@@ -480,6 +518,31 @@ export async function sendOrderConfirmationEmail(order: Order, items: OrderItem[
     return { success: true };
   } catch (error: any) {
     console.error('[Email] Failed to send order confirmation:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function sendPreparingNotificationEmail(order: Order): Promise<EmailResult> {
+  try {
+    const transporter = await createTransporter();
+    if (!transporter) {
+      return { success: false, error: 'SMTP yapılandırması eksik' };
+    }
+    
+    const settings = await storage.getSiteSettings();
+    const fromEmail = settings.smtp_user || 'no-reply@hank.com.tr';
+    
+    await transporter.sendMail({
+      from: `"HANK" <${fromEmail}>`,
+      to: order.customerEmail,
+      subject: `Siparişiniz Hazırlanıyor - #${order.orderNumber}`,
+      html: preparingNotificationTemplate(order),
+    });
+    
+    console.log(`[Email] Preparing notification sent to ${order.customerEmail}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Email] Failed to send preparing notification:', error);
     return { success: false, error: error.message };
   }
 }

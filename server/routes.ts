@@ -13,6 +13,7 @@ import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./ima
 import { 
   sendWelcomeEmail, 
   sendOrderConfirmationEmail, 
+  sendPreparingNotificationEmail,
   sendShippingNotificationEmail, 
   sendAdminOrderNotificationEmail,
   sendPasswordResetEmail,
@@ -1672,13 +1673,39 @@ export async function registerRoutes(
 
   app.patch("/api/admin/orders/:id/status", requireAdmin, async (req, res) => {
     try {
-      const { status } = req.body;
-      const order = await storage.updateOrderStatus(req.params.id, status);
+      const { status, trackingNumber } = req.body;
+      
+      // If shipped status, update tracking info as well
+      let updateData: any = { status };
+      if (status === 'shipped' && trackingNumber) {
+        const dhlTrackingUrl = `https://www.dhl.com/tr-tr/home/tracking.html?tracking-id=${trackingNumber}&submit=1`;
+        updateData = {
+          ...updateData,
+          trackingNumber,
+          shippingCarrier: 'DHL Express',
+          trackingUrl: dhlTrackingUrl,
+        };
+      }
+      
+      const order = await storage.updateOrder(req.params.id, updateData);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
+      
+      // Send status change emails
+      if (status === 'processing') {
+        sendPreparingNotificationEmail(order).catch(err => 
+          console.error('[Email] Preparing notification failed:', err)
+        );
+      } else if (status === 'shipped') {
+        sendShippingNotificationEmail(order).catch(err => 
+          console.error('[Email] Shipping notification failed:', err)
+        );
+      }
+      
       res.json(order);
     } catch (error) {
+      console.error('Order status update error:', error);
       res.status(400).json({ error: "Failed to update order status" });
     }
   });

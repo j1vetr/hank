@@ -1603,13 +1603,21 @@ function OrderDetailModal({ order, onClose, onRefresh }: { order: Order; onClose
   const handleStatusUpdate = async () => {
     setIsUpdating(true);
     try {
+      const payload: any = { status };
+      
+      // Include tracking number when changing to shipped
+      if (status === 'shipped' && trackingNumber) {
+        payload.trackingNumber = trackingNumber;
+      }
+      
       await fetch(`/api/admin/orders/${order.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(payload),
         credentials: 'include',
       });
       onRefresh?.();
+      onClose();
     } catch (error) {
       console.error('Status update failed:', error);
     } finally {
