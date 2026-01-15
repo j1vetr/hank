@@ -44,7 +44,7 @@ export async function sendInvoiceToBizimHesap(
     const invoiceDate = new Date().toISOString();
     const KDV_RATE = 20;
 
-    const details: InvoiceDetail[] = orderItems.map((item) => {
+    const details: InvoiceDetail[] = orderItems.map((item, index) => {
       const itemTotal = parseFloat(item.subtotal);
       const netAmount = itemTotal / (1 + KDV_RATE / 100);
       const taxAmount = itemTotal - netAmount;
@@ -56,7 +56,7 @@ export async function sendInvoiceToBizimHesap(
       }
 
       return {
-        productId: item.productId || item.id,
+        productId: `HANK-${index + 1}`,
         productName: fullProductName,
         note: "",
         barcode: "",
