@@ -793,8 +793,28 @@ export async function registerRoutes(
     try {
       const validated = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(validated);
+      
+      // Auto-create variants for all size/color combinations
+      const sizes = product.availableSizes || [];
+      const colors = product.availableColors || [];
+      
+      if (sizes.length > 0 && colors.length > 0) {
+        for (const size of sizes) {
+          for (const color of colors as Array<{name: string, hex: string}>) {
+            await storage.createProductVariant({
+              productId: product.id,
+              size: size,
+              color: color.name,
+              stock: 0,
+              price: product.basePrice,
+            });
+          }
+        }
+      }
+      
       res.status(201).json(product);
     } catch (error) {
+      console.error('Product creation error:', error);
       res.status(400).json({ error: "Invalid product data" });
     }
   });
