@@ -827,6 +827,32 @@ export async function registerRoutes(
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
+      
+      // Auto-create missing variants for new size/color combinations
+      const sizes = product.availableSizes || [];
+      const colors = product.availableColors || [];
+      
+      if (sizes.length > 0 && colors.length > 0) {
+        const existingVariants = await storage.getProductVariants(product.id);
+        
+        for (const size of sizes) {
+          for (const color of colors as Array<{name: string, hex: string}>) {
+            // Check if variant already exists
+            const exists = existingVariants.some(v => v.size === size && v.color === color.name);
+            if (!exists) {
+              await storage.createProductVariant({
+                productId: product.id,
+                size: size,
+                color: color.name,
+                stock: 0,
+                price: product.basePrice,
+              });
+              console.log(`Created missing variant: ${size} / ${color.name} for product ${product.id}`);
+            }
+          }
+        }
+      }
+      
       console.log('Updated product result:', JSON.stringify(product, null, 2));
       res.json(product);
     } catch (error) {
