@@ -153,6 +153,7 @@ export default function AdminDashboard() {
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: adminUser, isLoading: userLoading } = useQuery({
@@ -526,14 +527,24 @@ export default function AdminDashboard() {
                     data-testid="input-search-products"
                   />
                 </div>
-                <button
-                  onClick={() => { setEditingProduct(null); setShowProductModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-zinc-200 transition-colors"
-                  data-testid="button-add-product"
-                >
-                  <Plus className="w-4 h-4" />
-                  Yeni Ürün
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowBulkPriceModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg font-medium hover:bg-zinc-700 transition-colors border border-zinc-700"
+                    data-testid="button-bulk-price"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Toplu Düzen
+                  </button>
+                  <button
+                    onClick={() => { setEditingProduct(null); setShowProductModal(true); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-zinc-200 transition-colors"
+                    data-testid="button-add-product"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Yeni Ürün
+                  </button>
+                </div>
               </div>
 
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
@@ -869,6 +880,158 @@ export default function AdminDashboard() {
           onClose={() => setViewingUser(null)}
         />
       )}
+
+      {showBulkPriceModal && (
+        <BulkPriceModal
+          categories={categories}
+          onClose={() => setShowBulkPriceModal(false)}
+          onSuccess={() => {
+            setShowBulkPriceModal(false);
+            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BulkPriceModal({ 
+  categories, 
+  onClose, 
+  onSuccess 
+}: { 
+  categories: Category[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [priceAction, setPriceAction] = useState<'set' | 'increase' | 'decrease' | 'percent_increase' | 'percent_decrease'>('set');
+  const [priceValue, setPriceValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; message: string; updated?: number } | null>(null);
+
+  const handleSubmit = async () => {
+    if (!selectedCategory || !priceValue) return;
+    
+    setIsLoading(true);
+    setResult(null);
+    
+    try {
+      const res = await fetch('/api/admin/products/bulk-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          categoryId: selectedCategory,
+          action: priceAction,
+          value: parseFloat(priceValue),
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setResult({ success: false, message: data.error || 'Hata oluştu' });
+      } else {
+        setResult({ success: true, message: `${data.updated} ürün güncellendi`, updated: data.updated });
+        setTimeout(() => {
+          onSuccess();
+        }, 1500);
+      }
+    } catch (error) {
+      setResult({ success: false, message: 'Bağlantı hatası' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">Toplu Fiyat Düzenleme</h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Kategori Seçin</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
+            >
+              <option value="">Kategori seçin...</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">İşlem</label>
+            <select
+              value={priceAction}
+              onChange={(e) => setPriceAction(e.target.value as any)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
+            >
+              <option value="set">Sabit fiyat belirle</option>
+              <option value="increase">Fiyatı artır (TL)</option>
+              <option value="decrease">Fiyatı azalt (TL)</option>
+              <option value="percent_increase">Yüzde artır (%)</option>
+              <option value="percent_decrease">Yüzde azalt (%)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
+              {priceAction === 'set' ? 'Yeni Fiyat (TL)' : 
+               priceAction.includes('percent') ? 'Yüzde (%)' : 'Miktar (TL)'}
+            </label>
+            <input
+              type="number"
+              value={priceValue}
+              onChange={(e) => setPriceValue(e.target.value)}
+              placeholder={priceAction === 'set' ? '999.99' : priceAction.includes('percent') ? '10' : '50'}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
+              min="0"
+              step="0.01"
+            />
+          </div>
+          
+          {result && (
+            <div className={`p-3 rounded-lg text-sm ${
+              result.success 
+                ? 'bg-green-500/20 border border-green-500/50 text-green-400' 
+                : 'bg-red-500/20 border border-red-500/50 text-red-400'
+            }`}>
+              {result.message}
+            </div>
+          )}
+        </div>
+        
+        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading || !selectedCategory || !priceValue}
+            className="px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              'Uygula'
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

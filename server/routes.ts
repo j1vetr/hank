@@ -871,6 +871,63 @@ export async function registerRoutes(
     }
   });
 
+  // Bulk price update by category
+  app.post("/api/admin/products/bulk-price", requireAdmin, async (req, res) => {
+    try {
+      const { categoryId, action, value } = req.body;
+      
+      if (!categoryId || !action || value === undefined) {
+        return res.status(400).json({ error: "categoryId, action and value are required" });
+      }
+      
+      // Get all products in the category
+      const allProducts = await storage.getProducts();
+      const categoryProducts = allProducts.filter(p => p.categoryId === categoryId);
+      
+      if (categoryProducts.length === 0) {
+        return res.status(400).json({ error: "Bu kategoride ürün bulunamadı" });
+      }
+      
+      let updated = 0;
+      
+      for (const product of categoryProducts) {
+        let newPrice: number;
+        const currentPrice = parseFloat(product.basePrice);
+        
+        switch (action) {
+          case 'set':
+            newPrice = value;
+            break;
+          case 'increase':
+            newPrice = currentPrice + value;
+            break;
+          case 'decrease':
+            newPrice = Math.max(0, currentPrice - value);
+            break;
+          case 'percent_increase':
+            newPrice = currentPrice * (1 + value / 100);
+            break;
+          case 'percent_decrease':
+            newPrice = currentPrice * (1 - value / 100);
+            break;
+          default:
+            continue;
+        }
+        
+        // Round to 2 decimal places
+        newPrice = Math.round(newPrice * 100) / 100;
+        
+        await storage.updateProduct(product.id, { basePrice: String(newPrice) });
+        updated++;
+      }
+      
+      res.json({ success: true, updated });
+    } catch (error) {
+      console.error('Bulk price update error:', error);
+      res.status(500).json({ error: "Toplu fiyat güncellemesi başarısız" });
+    }
+  });
+
   // Delete all products (for WooCommerce re-import)
   app.delete("/api/admin/products-all", requireAdmin, async (req, res) => {
     try {
