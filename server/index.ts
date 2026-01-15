@@ -25,7 +25,6 @@ app.use(
     store: new PgStore({
       pool: pgPool,
       tableName: 'user_sessions',
-      createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET || "hank-secret-key-change-in-production",
     resave: false,

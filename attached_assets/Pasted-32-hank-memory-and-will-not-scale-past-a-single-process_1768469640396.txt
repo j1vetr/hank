@@ -1,0 +1,41 @@
+32|hank    | memory, and will not scale past a single process.
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | [PayTR Callback] Hash verification failed
+32|hank    | Error: ENOENT: no such file or directory, stat '/var/www/hank/dist/public/index.html'
+
+/root/.pm2/logs/hank-out.log last 15 lines:
+32|hank    | ekilde harmanlayarak stilinize yenilik katar. Özgün tasarımı, iki farklı rengiyle cesur ve göz alıcı uyumu bir araya getirirken, modern bir görünüm sunar. Her detayında titizlikle düşünülmüş grafik unsurlar, atletin estetik yapısını güçlendirir ve dikkat çekici görsel bütünlük oluşturur. Geniş yaka detayı, boyun hatlarınızı zarif bir şekilde vurgularken, ferah bir görünüm kazandırır.\nMODEL: IFBB PRO SADIK KESİCİ\nBOY: 1.71 KİLO: 85 BEDEN: M\nBEDEN TABLOSU:\nBOY:  S: 85cm   M: 85cm   L: 87cm    XL: 89cm\nGÖĞÜS: S: 53cm  M: 55cm.  L:57cm  XL: 59cm\n","sku":"2003","categoryId":"57c7b5fd-9887-4aa6-ace6-4c8ad5471361","basePrice":"599.92","images":["/uploads/products/tank-top-atlet-realbodybuilding-siyah-1767930958771-1.webp","/uploads/products/tank-top-atlet-realbodybuilding-siyah-1767930958977-2.webp","/uploads/products/tank-top-atlet-realbodybuilding-siyah-1767930959178-3.webp","/uploads/products/tank-top-atlet-realbodybuilding-siyah-1767930959385-4.webp","/uploads/products/tank-top-atlet-realbodybuilding-siyah-1767930959568-5.webp","/uploads/products/tank-top-atlet-realbodybuilding-siyah-1767930959760-6.webp"],"availableSizes":["S","M","L","XL"],"availableColors":[],"isActive":true,"isFeatured":false,"isNew":false,"createdAt":"2026-01-09T06:55:59.900Z","updatedAt":"2026-01-09T06:55:59.900Z"},{"id":"54e0f73b-69ec-4912-9aee-c1aa9073f287","name":"TANK TOP ATLET \"REALBODYBUILDING\" BEYAZ","slug":"tank-top-atlet-realbodybuilding-beyaz","description":"Hank kolsuz atletler, zarafeti ve dinamizmi mükemmel bir şekilde harmanlayarak stilinize yenilik katar. Özgün tasarımı, iki farklı rengiyle cesur ve göz alıcı uyumu bir araya getirirken, modern bir görünüm sunar. Her detayında titizlikle düşünülmüş grafik unsurlar, atletin estetik yapısını güçlendirir ve dikkat çekici görsel bütünlük oluşturur. Geniş yaka detayı, boyun hatlarınızı zarif bir şekilde vurgularken, ferah bir görünüm kazandırır.\nMODEL: IFBB PRO SADIK KESİCİ\nBOY: 1.71 KİLO: 85 BEDEN: M\nBEDEN TABLOSU:\nBOY:  S: 85cm   M: 85cm   L: 87cm    XL: 89cm\nGÖĞÜS: S: 53cm  M: 55cm.  L:57cm  XL: 59cm\n","sku":"2004","categoryId":"57c7b5fd-9887-4aa6-ace6-4c8ad5471361","basePrice":"599.92","images":["/uploads/products/tank-top-atlet-realbodybuilding-beyaz-1767930956298-1.webp","/uploads/products/tank-top-atlet-realbodybuilding-beyaz-1767930956476-2.webp","/uploads/products/tank-top-atlet-realbodybuilding-beyaz-1767930956652-3.webp","/uploads/products/tank-top-atlet-realbodybuilding-beyaz-1767930956829-4.webp","/uploads/products/tank-top-atlet-realbodybuilding-beyaz-1767930957018-5.webp","/uploads/products/tank-top-atlet-realbodybuilding-beyaz-1767930957205-6.webp"],"availableSizes":["S","M","L","XL"],"availableColors":[],"isActive":true,"isFeatured":false,"isNew":false,"createdAt":"2026-01-09T06:55:57.337Z","updatedAt":"2026-01-09T06:55:57.337Z"}]
+32|hank    | 12:33:37 PM [express] serving on port 9291
+
+32|hank  | Error: ENOENT: no such file or directory, open '/var/www/hank/dist/table.sql'
+32|hank  |     at async open (node:internal/fs/promises:639:25)
+32|hank  |     at async Object.readFile (node:internal/fs/promises:1246:14)
+32|hank  |     at async r._rawEnsureSessionStoreTable (/var/www/hank/dist/index.cjs:70:28756)
+32|hank  |     at async r._asyncQuery (/var/www/hank/dist/index.cjs:70:29841)
+32|hank  | Error: ENOENT: no such file or directory, open '/var/www/hank/dist/table.sql'
+32|hank  |     at async open (node:internal/fs/promises:639:25)
+32|hank  |     at async Object.readFile (node:internal/fs/promises:1246:14)
+32|hank  |     at async r._rawEnsureSessionStoreTable (/var/www/hank/dist/index.cjs:70:28756)
+32|hank  |     at async r._asyncQuery (/var/www/hank/dist/index.cjs:70:29841)
+32|hank  | Error: ENOENT: no such file or directory, open '/var/www/hank/dist/table.sql'
+32|hank  |     at async open (node:internal/fs/promises:639:25)
+32|hank  |     at async Object.readFile (node:internal/fs/promises:1246:14)
+32|hank  |     at async r._rawEnsureSessionStoreTable (/var/www/hank/dist/index.cjs:70:28756)
+32|hank  |     at async r._asyncQuery (/var/www/hank/dist/index.cjs:70:29841)
+32|hank  | Error: ENOENT: no such file or directory, open '/var/www/hank/dist/table.sql'
+32|hank  |     at async open (node:internal/fs/promises:639:25)
+32|hank  |     at async Object.readFile (node:internal/fs/promises:1246:14)
+32|hank  |     at async r._rawEnsureSessionStoreTable (/var/www/hank/dist/index.cjs:70:28756)
+32|hank  |     at async r._asyncQuery (/var/www/hank/dist/index.cjs:70:29841)
+
