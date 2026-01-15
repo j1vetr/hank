@@ -44,18 +44,12 @@ export function ShippingCountdown() {
   if (timeLeft) {
     return (
       <div className="flex items-center gap-3">
-        <div className="relative flex-shrink-0">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-            <Truck className="w-5 h-5 text-emerald-400" />
-          </div>
-          <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-700/50 flex items-center justify-center">
+          <Truck className="w-5 h-5 text-white/60" />
         </div>
-        <div className="flex flex-col">
-          <span className="text-emerald-400 font-bold text-sm sm:text-base">
-            {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
-          </span>
-          <span className="text-white/70 text-xs sm:text-sm">içinde sipariş ver, aynı gün kargoda!</span>
-        </div>
+        <p className="text-xs sm:text-sm text-white/80">
+          <span className="text-white font-bold">{pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}</span> içinde sipariş ver, aynı gün kargoda!
+        </p>
       </div>
     );
   }
