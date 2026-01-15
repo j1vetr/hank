@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Heart, Loader2, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
@@ -31,7 +31,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const { data: favoriteIds = [] } = useFavoriteIds();
@@ -182,4 +182,4 @@ export function ProductCard({ product }: ProductCardProps) {
       />
     </>
   );
-}
+});

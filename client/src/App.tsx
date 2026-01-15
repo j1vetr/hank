@@ -6,14 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/AuthProvider";
 import { CartProvider } from "@/components/CartProvider";
 import { CartModalProvider } from "@/hooks/useCartModal";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, memo } from "react";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
-import Home from "@/pages/Home";
-import Category from "@/pages/Category";
-import ProductDetail from "@/pages/ProductDetail";
-import NotFound from "@/pages/not-found";
+const Home = lazy(() => import("@/pages/Home"));
+const Category = lazy(() => import("@/pages/Category"));
+const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
+const NotFound = lazy(() => import("@/pages/not-found"));
 
 const Login = lazy(() => import("@/pages/Login"));
 const Register = lazy(() => import("@/pages/Register"));

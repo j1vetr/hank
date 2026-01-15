@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9QQV26SHPY"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-9QQV26SHPY');
-    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <meta name="description" content="Premium fitness ve bodybuilding giyim markası. Güç, performans ve stil bir arada. HANK ile antrenmanlarınızda fark yaratın." />
@@ -32,12 +24,53 @@
     <meta name="twitter:image" content="https://hank.com.tr/uploads/branding/og-image.png" />
 
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preconnect to external domains for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    
+    <!-- DNS prefetch for additional domains -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    
+    <!-- Optimized font loading with display=swap for faster render -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    
+    <!-- Inline critical CSS for faster first paint -->
+    <style>
+      body{margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;background:#000;color:#fff}
+      #root{min-height:100vh}
+      .loading-spinner{display:flex;justify-content:center;align-items:center;height:100vh}
+    </style>
   </head>
   <body class="dark">
-    <div id="root"></div>
+    <div id="root">
+      <div class="loading-spinner">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="18" stroke="#333" stroke-width="4"/>
+          <path d="M20 2a18 18 0 0 1 18 18" stroke="#fff" stroke-width="4" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite"/>
+          </path>
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Defer non-critical scripts -->
+    <script defer src="https://www.googletagmanager.com/gtag/js?id=G-9QQV26SHPY"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-9QQV26SHPY', { send_page_view: false });
+      if (document.readyState === 'complete') {
+        gtag('event', 'page_view');
+      } else {
+        window.addEventListener('load', function() {
+          gtag('event', 'page_view');
+        });
+      }
+    </script>
   </body>
 </html>
