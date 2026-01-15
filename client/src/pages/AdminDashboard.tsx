@@ -2602,6 +2602,17 @@ function InventoryPanel() {
             <h3 className="text-lg font-semibold text-white mb-3 md:mb-0">Stok Yönetimi</h3>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+                queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors border border-zinc-700"
+              data-testid="button-refresh-inventory"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Yenile
+            </button>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input
