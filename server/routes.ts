@@ -2837,5 +2837,114 @@ Sitemap: ${baseUrl}/sitemap.xml
     res.json(cache.getStats());
   });
 
+  // Database Management Endpoints - for clearing specific tables
+  app.get("/api/admin/database/stats", requireAdmin, async (req, res) => {
+    try {
+      const [ordersCount, cartItemsCount, pendingPaymentsCount, reviewsCount, couponUsageCount] = await Promise.all([
+        storage.getOrdersCount(),
+        storage.getCartItemsCount(),
+        storage.getPendingPaymentsCount(),
+        storage.getReviewsCount(),
+        storage.getCouponUsageCount(),
+      ]);
+      
+      res.json({
+        orders: ordersCount,
+        cartItems: cartItemsCount,
+        pendingPayments: pendingPaymentsCount,
+        reviews: reviewsCount,
+        couponUsage: couponUsageCount,
+      });
+    } catch (error) {
+      console.error('[Database] Stats error:', error);
+      res.status(500).json({ error: "Veritabanı istatistikleri alınamadı" });
+    }
+  });
+
+  app.post("/api/admin/database/clear/:table", requireAdmin, async (req: Request, res) => {
+    try {
+      const { table } = req.params;
+      const { confirmCode } = req.body;
+      
+      // Require confirmation code
+      if (confirmCode !== 'SIFIRLA') {
+        return res.status(400).json({ error: "Onay kodu hatalı. 'SIFIRLA' yazmalısınız." });
+      }
+      
+      // List of safe-to-clear tables (NOT users, products, product_variants, categories)
+      const allowedTables = ['orders', 'order_items', 'cart_items', 'pending_payments', 'reviews', 'review_requests', 'coupon_usage', 'stock_adjustments'];
+      
+      if (!allowedTables.includes(table)) {
+        return res.status(403).json({ error: "Bu tablo silinemez" });
+      }
+      
+      let deletedCount = 0;
+      
+      switch (table) {
+        case 'orders':
+          // First delete order items, then orders
+          await storage.clearOrderItems();
+          deletedCount = await storage.clearOrders();
+          break;
+        case 'order_items':
+          deletedCount = await storage.clearOrderItems();
+          break;
+        case 'cart_items':
+          deletedCount = await storage.clearAllCartItems();
+          break;
+        case 'pending_payments':
+          deletedCount = await storage.clearPendingPayments();
+          break;
+        case 'reviews':
+          deletedCount = await storage.clearReviews();
+          break;
+        case 'review_requests':
+          deletedCount = await storage.clearReviewRequests();
+          break;
+        case 'coupon_usage':
+          deletedCount = await storage.clearCouponUsage();
+          // Also reset coupon usage counts
+          await storage.resetCouponUsageCounts();
+          break;
+        case 'stock_adjustments':
+          deletedCount = await storage.clearStockAdjustments();
+          break;
+        default:
+          return res.status(400).json({ error: "Geçersiz tablo adı" });
+      }
+      
+      console.log(`[Database] Table ${table} cleared by admin. ${deletedCount} records deleted.`);
+      res.json({ success: true, table, deletedCount });
+    } catch (error) {
+      console.error('[Database] Clear error:', error);
+      res.status(500).json({ error: "Tablo temizlenemedi" });
+    }
+  });
+
+  // Clear all sales data (orders, order_items, pending_payments, coupon_usage)
+  app.post("/api/admin/database/clear-all-sales", requireAdmin, async (req: Request, res) => {
+    try {
+      const { confirmCode } = req.body;
+      
+      if (confirmCode !== 'TUM_SATISLARI_SIL') {
+        return res.status(400).json({ error: "Onay kodu hatalı. 'TUM_SATISLARI_SIL' yazmalısınız." });
+      }
+      
+      // Clear in order of dependencies
+      await storage.clearOrderItems();
+      await storage.clearOrders();
+      await storage.clearPendingPayments();
+      await storage.clearCouponUsage();
+      await storage.resetCouponUsageCounts();
+      await storage.clearAllCartItems();
+      
+      console.log('[Database] All sales data cleared by admin');
+      res.json({ success: true, message: "Tüm satış verileri silindi" });
+    } catch (error) {
+      console.error('[Database] Clear all sales error:', error);
+      res.status(500).json({ error: "Satış verileri silinemedi" });
+    }
+  });
+
   return httpServer;
 }

@@ -1280,6 +1280,88 @@ export class DbStorage implements IStorage {
   async deletePendingPayment(merchantOid: string): Promise<void> {
     await db.delete(pendingPayments).where(eq(pendingPayments.merchantOid, merchantOid));
   }
+
+  // Database Management - Count methods
+  async getOrdersCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(orders);
+    return result?.count || 0;
+  }
+
+  async getCartItemsCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(cartItems);
+    return result?.count || 0;
+  }
+
+  async getPendingPaymentsCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(pendingPayments);
+    return result?.count || 0;
+  }
+
+  async getReviewsCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(productReviews);
+    return result?.count || 0;
+  }
+
+  async getCouponUsageCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(couponRedemptions);
+    return result?.count || 0;
+  }
+
+  // Database Management - Clear methods
+  async clearOrders(): Promise<number> {
+    const countResult = await this.getOrdersCount();
+    await db.delete(orders);
+    return countResult;
+  }
+
+  async clearOrderItems(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(orderItems);
+    const count = result?.count || 0;
+    await db.delete(orderItems);
+    return count;
+  }
+
+  async clearAllCartItems(): Promise<number> {
+    const countResult = await this.getCartItemsCount();
+    await db.delete(cartItems);
+    return countResult;
+  }
+
+  async clearPendingPayments(): Promise<number> {
+    const countResult = await this.getPendingPaymentsCount();
+    await db.delete(pendingPayments);
+    return countResult;
+  }
+
+  async clearReviews(): Promise<number> {
+    const countResult = await this.getReviewsCount();
+    await db.delete(productReviews);
+    return countResult;
+  }
+
+  async clearReviewRequests(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(reviewRequests);
+    const count = result?.count || 0;
+    await db.delete(reviewRequests);
+    return count;
+  }
+
+  async clearCouponUsage(): Promise<number> {
+    const countResult = await this.getCouponUsageCount();
+    await db.delete(couponRedemptions);
+    return countResult;
+  }
+
+  async resetCouponUsageCounts(): Promise<void> {
+    await db.update(coupons).set({ usageCount: 0, totalCommissionEarned: '0' });
+  }
+
+  async clearStockAdjustments(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(stockAdjustments);
+    const count = result?.count || 0;
+    await db.delete(stockAdjustments);
+    return count;
+  }
 }
 
 export const storage = new DbStorage();
