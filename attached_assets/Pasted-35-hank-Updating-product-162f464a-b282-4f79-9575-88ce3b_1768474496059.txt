@@ -1,0 +1,39 @@
+35|hank  | Updating product: 162f464a-b282-4f79-9575-88ce3bc1448f with data: {
+35|hank  |   "id": "162f464a-b282-4f79-9575-88ce3bc1448f",
+35|hank  |   "name": "TEST",
+35|hank  |   "slug": "TEST",
+35|hank  |   "description": "TEST",
+35|hank  |   "sku": "HNK-TST",
+35|hank  |   "categoryId": "336a86d1-50ae-4956-9f14-aa1f25261e73",
+35|hank  |   "basePrice": "1.00",
+35|hank  |   "images": [
+35|hank  |     "/uploads/products/1768470136118-466607629.webp"
+35|hank  |   ],
+35|hank  |   "availableSizes": [
+35|hank  |     "M",
+35|hank  |     "S"
+35|hank  |   ],
+35|hank  |   "availableColors": [
+35|hank  |     {
+35|hank  |       "hex": "#FFFFFF",
+35|hank  |       "name": "Beyaz"
+35|hank  |     }
+35|hank  |   ],
+35|hank  |   "isActive": false,
+35|hank  |   "isFeatured": false,
+35|hank  |   "isNew": false,
+35|hank  |   "createdAt": "2026-01-15T12:42:16.311Z",
+35|hank  |   "updatedAt": "2026-01-15T12:42:16.311Z"
+35|hank  | }
+35|hank  | Product update error: TypeError: e.toISOString is not a function
+35|hank  |     at xo.mapToDriverValue (/var/www/hank/dist/index.cjs:124:36924)
+35|hank  |     at /var/www/hank/dist/index.cjs:124:13681
+35|hank  |     at Array.map (<anonymous>)
+35|hank  |     at t.buildQueryFromSourceParams (/var/www/hank/dist/index.cjs:124                                                                                                                                                             :12658)
+35|hank  |     at /var/www/hank/dist/index.cjs:124:12998
+35|hank  |     at Array.map (<anonymous>)
+35|hank  |     at t.buildQueryFromSourceParams (/var/www/hank/dist/index.cjs:124                                                                                                                                                             :12658)
+35|hank  |     at /var/www/hank/dist/index.cjs:124:12998
+35|hank  |     at Array.map (<anonymous>)
+35|hank  |     at t.buildQueryFromSourceParams (/var/www/hank/dist/index.cjs:124                                                                                                                                                             :12658)
+35|hank  | 1:54:21 PM [express] PATCH /api/admin/products/162f464a-b282-4f79-957                                                                                                                                                             5-88ce3bc1448f 400 in 2ms :: {"error":"Failed to update product"}

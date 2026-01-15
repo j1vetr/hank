@@ -386,7 +386,9 @@ export class DbStorage implements IStorage {
   }
 
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined> {
-    const [updated] = await db.update(products).set(product).where(eq(products.id, id)).returning();
+    // Remove fields that shouldn't be updated (auto-managed or sent as strings from frontend)
+    const { createdAt, updatedAt, id: productId, ...updateData } = product as any;
+    const [updated] = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
     return updated;
   }
 
