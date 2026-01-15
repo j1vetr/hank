@@ -1,13 +1,14 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, db } from "./storage";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons } from "@shared/schema";
 import "./types";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 import { 
@@ -2419,6 +2420,129 @@ export async function registerRoutes(
       res.json(coupon);
     } catch (error) {
       res.status(500).json({ error: "Failed to mark as paid" });
+    }
+  });
+
+  // Bulk add influencers
+  app.post("/api/admin/influencer-coupons/bulk", requireAdmin, async (req, res) => {
+    try {
+      const { influencers } = req.body;
+      if (!Array.isArray(influencers) || influencers.length === 0) {
+        return res.status(400).json({ error: "No influencers provided" });
+      }
+
+      const results = [];
+      for (const inf of influencers) {
+        try {
+          const coupon = await storage.createCoupon({
+            code: inf.code.toUpperCase(),
+            description: `${inf.name || inf.code} - Influencer Kodu`,
+            discountType: 'percentage',
+            discountValue: String(inf.customerDiscount || 10),
+            isActive: true,
+            isInfluencerCode: true,
+            influencerName: inf.name || inf.code,
+            influencerInstagram: inf.instagram || null,
+            commissionType: 'percentage',
+            commissionValue: String(inf.commissionPercent || 5),
+          });
+          results.push({ code: inf.code, success: true, id: coupon.id });
+        } catch (err: any) {
+          results.push({ code: inf.code, success: false, error: err.message });
+        }
+      }
+
+      res.json({ results, success: results.filter(r => r.success).length, failed: results.filter(r => !r.success).length });
+    } catch (error) {
+      console.error('Bulk influencer add error:', error);
+      res.status(500).json({ error: "Failed to add influencers" });
+    }
+  });
+
+  // Influencer analytics - monthly usage
+  app.get("/api/admin/influencer-analytics", requireAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate, couponId } = req.query;
+      
+      // Get all influencer coupons with their redemptions
+      const influencerCoupons = await storage.getInfluencerCoupons();
+      
+      // Get redemption details with order info
+      const redemptionsQuery = await db.select({
+        redemption: couponRedemptions,
+        order: orders,
+        coupon: coupons,
+      })
+      .from(couponRedemptions)
+      .leftJoin(orders, eq(couponRedemptions.orderId, orders.id))
+      .leftJoin(coupons, eq(couponRedemptions.couponId, coupons.id))
+      .where(eq(coupons.isInfluencerCode, true))
+      .orderBy(desc(couponRedemptions.createdAt));
+
+      // Filter by date if provided
+      let filteredRedemptions = redemptionsQuery;
+      if (startDate) {
+        const start = new Date(startDate as string);
+        filteredRedemptions = filteredRedemptions.filter(r => new Date(r.redemption.createdAt) >= start);
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        filteredRedemptions = filteredRedemptions.filter(r => new Date(r.redemption.createdAt) <= end);
+      }
+      if (couponId) {
+        filteredRedemptions = filteredRedemptions.filter(r => r.coupon?.id === couponId);
+      }
+
+      // Group by month
+      const monthlyData: Record<string, { month: string; count: number; revenue: number; commission: number }> = {};
+      
+      for (const r of filteredRedemptions) {
+        const date = new Date(r.redemption.createdAt);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { month: monthKey, count: 0, revenue: 0, commission: 0 };
+        }
+        
+        monthlyData[monthKey].count += 1;
+        monthlyData[monthKey].revenue += parseFloat(r.order?.total || '0');
+        
+        // Calculate commission
+        const coupon = r.coupon;
+        if (coupon && coupon.commissionType === 'percentage') {
+          monthlyData[monthKey].commission += (parseFloat(r.order?.total || '0') * parseFloat(coupon.commissionValue || '0')) / 100;
+        } else if (coupon && coupon.commissionType === 'per_use') {
+          monthlyData[monthKey].commission += parseFloat(coupon.commissionValue || '0');
+        }
+      }
+
+      // Convert to array and sort
+      const monthlyArray = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+
+      res.json({
+        influencers: influencerCoupons,
+        monthlyData: monthlyArray,
+        redemptions: filteredRedemptions.map(r => ({
+          id: r.redemption.id,
+          couponId: r.redemption.couponId,
+          couponCode: r.coupon?.code,
+          influencerName: r.coupon?.influencerName,
+          orderId: r.order?.id,
+          orderNumber: r.order?.orderNumber,
+          orderTotal: r.order?.total,
+          discountAmount: r.redemption.discountAmount,
+          createdAt: r.redemption.createdAt,
+        })),
+        totals: {
+          totalRedemptions: filteredRedemptions.length,
+          totalRevenue: filteredRedemptions.reduce((sum, r) => sum + parseFloat(r.order?.total || '0'), 0),
+          totalCommission: Object.values(monthlyData).reduce((sum, m) => sum + m.commission, 0),
+        },
+      });
+    } catch (error) {
+      console.error('Influencer analytics error:', error);
+      res.status(500).json({ error: "Failed to fetch influencer analytics" });
     }
   });
 

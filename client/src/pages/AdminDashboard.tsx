@@ -44,7 +44,11 @@ import {
   Send,
   Server,
   Database,
-  RotateCcw
+  RotateCcw,
+  UserCircle,
+  Download,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface Product {
@@ -116,7 +120,7 @@ interface ProductVariant {
   stock: number;
 }
 
-type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'settings' | 'database';
+type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'influencers' | 'settings' | 'database';
 
 interface WooSettings {
   id: string;
@@ -313,6 +317,7 @@ export default function AdminDashboard() {
     { id: 'inventory' as TabType, icon: Warehouse, label: 'Stok Yönetimi' },
     { id: 'orders' as TabType, icon: ShoppingCart, label: 'Siparişler' },
     { id: 'marketing' as TabType, icon: Megaphone, label: 'Pazarlama' },
+    { id: 'influencers' as TabType, icon: UserCircle, label: 'Influencer' },
     { id: 'users' as TabType, icon: Users, label: 'Kullanıcılar' },
     { id: 'woocommerce' as TabType, icon: Link2, label: 'WooCommerce' },
     { id: 'settings' as TabType, icon: Settings, label: 'Ayarlar' },
@@ -815,6 +820,10 @@ export default function AdminDashboard() {
 
           {activeTab === 'marketing' && (
             <MarketingPanel />
+          )}
+
+          {activeTab === 'influencers' && (
+            <InfluencerPanel />
           )}
           
           {activeTab === 'settings' && (
