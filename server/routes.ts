@@ -21,6 +21,7 @@ import {
   sendAbandonedCartEmail 
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
+import { sendInvoiceToBizimHesap } from "./bizimhesap";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "client/public/uploads");
@@ -1360,6 +1361,9 @@ export async function registerRoutes(
         const orderItems = await storage.getOrderItems(order.id);
         sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
         sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
+
+        // Send invoice to BizimHesap
+        sendInvoiceToBizimHesap(order, orderItems).catch(err => console.error('[BizimHesap] Invoice failed:', err));
 
         console.log('[PayTR Callback] Order created successfully:', orderNumber);
       } else {

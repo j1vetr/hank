@@ -98,6 +98,14 @@ RESTful API endpoints under `/api/`:
 - **Fail URL**: https://hank.com.tr/odeme-basarisiz
 - **Payment Mode**: Credit card only (taksit disabled)
 
+### BizimHesap Invoice Integration
+- **API Endpoint**: https://bizimhesap.com/api/b2b/addinvoice
+- **Invoice Type**: 3 (Satış Faturası)
+- **KDV Rate**: %20 (prices are KDV inclusive)
+- **Auto-trigger**: Invoices are automatically sent after successful PayTR payment
+- **No discounts shown**: Total amount sent directly without discount breakdown
+- **Currency**: TL
+
 ## External Dependencies
 
 ### Database
