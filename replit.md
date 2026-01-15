@@ -91,6 +91,13 @@ RESTful API endpoints under `/api/`:
 - **Email Templates**: Dark athletic luxury theme matching brand identity
 - **Free Shipping Threshold**: 2500 TL
 
+### Payment System (PayTR)
+- **Production Domain**: hank.com.tr
+- **Callback URL**: https://hank.com.tr/api/payment/callback
+- **Success URL**: https://hank.com.tr/odeme-basarili
+- **Fail URL**: https://hank.com.tr/odeme-basarisiz
+- **Payment Mode**: Credit card only (taksit disabled)
+
 ## External Dependencies
 
 ### Database

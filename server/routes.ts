@@ -1169,10 +1169,10 @@ export async function registerRoutes(
                      req.socket.remoteAddress || 
                      '127.0.0.1';
 
-      // Get base URL for success/fail URLs
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host || 'localhost:5000';
-      const baseUrl = `${protocol}://${host}`;
+      // Get base URL for success/fail URLs - use production domain for PayTR
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://hank.com.tr' 
+        : `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host || 'localhost:5000'}`;
 
       // Create pending payment record
       const expiresAt = new Date();

@@ -136,7 +136,7 @@ function welcomeEmailTemplate(userName: string): string {
 }
 
 // Order Confirmation Template
-function orderConfirmationTemplate(order: Order, items: OrderItem[], siteUrl: string = 'https://hank.toov.com.tr'): string {
+function orderConfirmationTemplate(order: Order, items: OrderItem[], siteUrl: string = 'https://hank.com.tr'): string {
   const itemsHtml = items.map(item => `
     <div class="product-item">
       <div class="product-info">
@@ -385,7 +385,7 @@ interface CartItem {
   imageUrl?: string;
 }
 
-function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTotal: number, siteUrl: string = 'https://hank.toov.com.tr'): string {
+function abandonedCartTemplate(userName: string, cartItems: CartItem[], cartTotal: number, siteUrl: string = 'https://hank.com.tr'): string {
   const itemsHtml = cartItems.map(item => `
     <div class="product-item">
       <div class="product-info">
@@ -646,7 +646,7 @@ export async function sendAbandonedCartEmail(
     
     const settings = await storage.getSiteSettings();
     const fromEmail = settings.smtp_user || 'no-reply@hank.com.tr';
-    const siteUrl = settings.site_url || 'https://hank.toov.com.tr';
+    const siteUrl = settings.site_url || 'https://hank.com.tr';
     
     await transporter.sendMail({
       from: `"HANK" <${fromEmail}>`,
