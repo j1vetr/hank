@@ -247,6 +247,9 @@ export default function Checkout() {
       if (!formData.address.trim()) errors.push('Adres gerekli');
       if (!formData.city.trim()) errors.push('İl gerekli');
       if (!formData.district.trim()) errors.push('İlçe gerekli');
+      if (createAccount && accountPassword.length < 6) {
+        errors.push('Şifre en az 6 karakter olmalı');
+      }
     }
 
     if (errors.length > 0) {
@@ -309,6 +312,8 @@ export default function Checkout() {
           district: formData.district,
           postalCode: formData.postalCode,
           couponCode: appliedCoupon?.code || null,
+          createAccount: !user && createAccount,
+          accountPassword: !user && createAccount ? accountPassword : null,
         }),
         credentials: 'include',
       });
@@ -831,6 +836,61 @@ export default function Checkout() {
                               placeholder="34000"
                             />
                           </div>
+                        </div>
+                      )}
+
+                      {/* Account Creation Option - Only for guest users */}
+                      {!user && (
+                        <div className="mt-6 p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl">
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={createAccount}
+                              onChange={(e) => setCreateAccount(e.target.checked)}
+                              className="mt-1 w-5 h-5 rounded border-white/20 bg-zinc-800 text-white focus:ring-white focus:ring-offset-0"
+                              data-testid="checkbox-create-account"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <UserPlus className="w-4 h-4 text-blue-400" />
+                                <span className="font-medium text-white">Üye olmak ister misiniz?</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Siparişlerinizi kolayca takip edin, adreslerinizi kaydedin ve özel kampanyalardan haberdar olun.
+                              </p>
+                            </div>
+                          </label>
+                          
+                          <AnimatePresence>
+                            {createAccount && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mt-4 overflow-hidden"
+                              >
+                                <div className="space-y-2">
+                                  <Label htmlFor="accountPassword" className="text-sm font-medium">Şifre Belirleyin *</Label>
+                                  <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                      id="accountPassword"
+                                      type="password"
+                                      value={accountPassword}
+                                      onChange={(e) => setAccountPassword(e.target.value)}
+                                      placeholder="En az 6 karakter"
+                                      data-testid="input-account-password"
+                                      className="h-12 pl-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
+                                      minLength={6}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Sipariş tamamlandığında hesabınız otomatik oluşturulacak.
+                                  </p>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       )}
 

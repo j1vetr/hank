@@ -483,6 +483,8 @@ export const pendingPayments = pgTable("pending_payments", {
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").default("pending").notNull(),
   paytrToken: text("paytr_token"),
+  createAccount: boolean("create_account").default(false),
+  accountPasswordHash: text("account_password_hash"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
 });

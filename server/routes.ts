@@ -1093,11 +1093,25 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Sepet boş" });
       }
 
-      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, couponCode } = req.body;
+      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, couponCode, createAccount, accountPassword } = req.body;
 
       // Validate required fields
       if (!customerName || !customerEmail || !customerPhone || !address || !city || !district) {
         return res.status(400).json({ error: "Lütfen tüm alanları doldurun" });
+      }
+
+      // Validate password if creating account
+      let accountPasswordHash = null;
+      if (createAccount && accountPassword) {
+        if (accountPassword.length < 6) {
+          return res.status(400).json({ error: "Şifre en az 6 karakter olmalı" });
+        }
+        // Check if email already exists
+        const existingUser = await storage.getUserByEmail(customerEmail);
+        if (existingUser) {
+          return res.status(400).json({ error: "Bu e-posta adresi zaten kayıtlı. Giriş yaparak devam edebilirsiniz." });
+        }
+        accountPasswordHash = await bcrypt.hash(accountPassword, 10);
       }
 
       // Calculate actual subtotal from cart items (server-side verification)
@@ -1194,6 +1208,8 @@ export async function registerRoutes(
         total: serverTotal.toFixed(2),
         status: 'pending',
         paytrToken: null,
+        createAccount: createAccount || false,
+        accountPasswordHash: accountPasswordHash,
         expiresAt,
       });
 
@@ -1364,6 +1380,62 @@ export async function registerRoutes(
 
         // Send invoice to BizimHesap
         sendInvoiceToBizimHesap(order, orderItems).catch(err => console.error('[BizimHesap] Invoice failed:', err));
+
+        // Create user account if requested during checkout
+        if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
+          try {
+            // Check if user doesn't already exist
+            const existingUser = await storage.getUserByEmail(pendingPayment.customerEmail);
+            if (!existingUser) {
+              // Parse name to firstName and lastName
+              const nameParts = pendingPayment.customerName.trim().split(' ');
+              const firstName = nameParts[0] || '';
+              const lastName = nameParts.slice(1).join(' ') || '';
+              
+              const shippingAddr = pendingPayment.shippingAddress as {
+                address: string;
+                city: string;
+                district: string;
+                postalCode: string;
+              };
+
+              // Create the user
+              const newUser = await storage.createUser({
+                email: pendingPayment.customerEmail,
+                password: pendingPayment.accountPasswordHash, // Already hashed
+                firstName,
+                lastName,
+                phone: pendingPayment.customerPhone,
+                address: shippingAddr.address,
+                city: shippingAddr.city,
+                district: shippingAddr.district,
+                postalCode: shippingAddr.postalCode || null,
+              });
+
+              // Create saved address
+              await storage.createUserAddress({
+                userId: newUser.id,
+                title: 'Teslimat Adresi',
+                firstName,
+                lastName,
+                phone: pendingPayment.customerPhone,
+                address: shippingAddr.address,
+                city: shippingAddr.city,
+                district: shippingAddr.district,
+                postalCode: shippingAddr.postalCode || null,
+                isDefault: true,
+              });
+
+              // Send welcome email
+              sendWelcomeEmail(newUser).catch(err => console.error('[Email] Welcome email failed:', err));
+
+              console.log('[PayTR Callback] User account created:', newUser.email);
+            }
+          } catch (userError) {
+            console.error('[PayTR Callback] Failed to create user account:', userError);
+            // Don't fail the order, just log the error
+          }
+        }
 
         console.log('[PayTR Callback] Order created successfully:', orderNumber);
       } else {
