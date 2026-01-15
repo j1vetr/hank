@@ -48,7 +48,8 @@ import {
   UserCircle,
   Download,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Check
 } from 'lucide-react';
 
 interface Product {
@@ -2478,6 +2479,324 @@ function AnalyticsPanel() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function InfluencerPanel() {
+  const queryClient = useQueryClient();
+  const [showInfluencerModal, setShowInfluencerModal] = useState(false);
+  const [editingInfluencer, setEditingInfluencer] = useState<any>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+  const { data: influencers = [], isLoading: influencersLoading } = useQuery({
+    queryKey: ['admin-influencer-coupons'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/influencer-coupons', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch influencer coupons');
+      return res.json();
+    },
+  });
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['admin-influencer-analytics', selectedMonth],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedMonth) {
+        const [year, month] = selectedMonth.split('-');
+        params.set('startDate', `${year}-${month}-01`);
+        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+        params.set('endDate', `${year}-${month}-${lastDay}`);
+      }
+      const res = await fetch(`/api/admin/influencer-analytics?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch analytics');
+      return res.json();
+    },
+  });
+
+  const deleteInfluencerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/coupons/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete influencer coupon');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+    },
+  });
+
+  const saveInfluencerMutation = useMutation({
+    mutationFn: async (influencer: any) => {
+      const isEdit = !!influencer.id;
+      const couponData = {
+        code: influencer.code,
+        discountType: influencer.discountType || 'percentage',
+        discountValue: influencer.discountValue || '0',
+        isActive: influencer.isActive,
+        isInfluencerCode: true,
+        influencerName: influencer.name,
+        influencerInstagram: influencer.instagramHandle,
+        commissionType: influencer.commissionType,
+        commissionValue: influencer.commissionValue,
+      };
+      const res = await fetch(`/api/admin/coupons${isEdit ? `/${influencer.id}` : ''}`, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(couponData),
+      });
+      if (!res.ok) throw new Error('Failed to save influencer coupon');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-analytics'] });
+      setShowInfluencerModal(false);
+      setEditingInfluencer(null);
+    },
+  });
+
+  const markInfluencerPaidMutation = useMutation({
+    mutationFn: async ({ id }: { id: string; isPaid: boolean }) => {
+      const res = await fetch(`/api/admin/influencer-coupons/${id}/pay`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to update payment status');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+    },
+  });
+
+  const formatPrice = (price: string | number) => {
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(price) || 0);
+  };
+
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const label = date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
+    months.push({ value, label });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Users className="w-5 h-5 text-purple-400" />
+            <span className="text-sm text-zinc-400">Toplam Influencer</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{influencers.length}</p>
+        </div>
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <TrendingUp className="w-5 h-5 text-green-400" />
+            <span className="text-sm text-zinc-400">Toplam Kullanım</span>
+          </div>
+          <p className="text-2xl font-bold text-white">
+            {analytics?.totals?.totalRedemptions || influencers.reduce((sum: number, i: any) => sum + (i.usageCount || 0), 0)}
+          </p>
+        </div>
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <DollarSign className="w-5 h-5 text-yellow-400" />
+            <span className="text-sm text-zinc-400">Toplam Komisyon</span>
+          </div>
+          <p className="text-2xl font-bold text-white">
+            {formatPrice(analytics?.totals?.totalCommission || influencers.reduce((sum: number, i: any) => sum + parseFloat(i.totalCommissionEarned || '0'), 0))}
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">Influencer Yönetimi</h3>
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white"
+            >
+              <option value="">Tüm Zamanlar</option>
+              {months.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => { setEditingInfluencer(null); setShowInfluencerModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Yeni Influencer
+            </button>
+          </div>
+        </div>
+
+        {influencersLoading ? (
+          <div className="p-8 flex justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+          </div>
+        ) : influencers.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-zinc-800/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Influencer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kod</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">İndirim</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Komisyon</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kullanım</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kazanç</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Ödeme</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {influencers.map((influencer: any) => (
+                  <tr key={influencer.id} className="hover:bg-zinc-800/30">
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="text-sm font-medium text-white">{influencer.influencerName || '-'}</p>
+                        {influencer.influencerInstagram && (
+                          <a 
+                            href={`https://instagram.com/${influencer.influencerInstagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-purple-400 hover:text-purple-300"
+                          >
+                            {influencer.influencerInstagram}
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-sm bg-zinc-800 px-2 py-1 rounded text-white">{influencer.code}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-white">
+                      {influencer.discountType === 'percentage' 
+                        ? `%${influencer.discountValue}` 
+                        : formatPrice(influencer.discountValue)
+                      }
+                    </td>
+                    <td className="px-6 py-4 text-sm text-zinc-400">
+                      {influencer.commissionType === 'percentage' 
+                        ? `%${influencer.commissionValue}` 
+                        : influencer.commissionType === 'per_use'
+                        ? `${formatPrice(influencer.commissionValue)}/kullanım`
+                        : formatPrice(influencer.commissionValue)
+                      }
+                    </td>
+                    <td className="px-6 py-4 text-sm text-white">
+                      {influencer.usageCount || 0}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-green-400">
+                      {formatPrice(influencer.totalCommissionEarned || 0)}
+                    </td>
+                    <td className="px-6 py-4">
+                      {influencer.isPaid ? (
+                        <span className="px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded">
+                          Ödendi
+                        </span>
+                      ) : parseFloat(influencer.totalCommissionEarned || '0') > 0 ? (
+                        <button
+                          onClick={() => markInfluencerPaidMutation.mutate({ id: influencer.id, isPaid: true })}
+                          className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/30"
+                        >
+                          Öde
+                        </button>
+                      ) : (
+                        <span className="px-2 py-1 text-xs bg-zinc-700 text-zinc-400 rounded">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => { setEditingInfluencer(influencer); setShowInfluencerModal(true); }}
+                          className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Bu influencer kaydını silmek istediğinize emin misiniz?')) {
+                              deleteInfluencerMutation.mutate(influencer.id);
+                            }
+                          }}
+                          className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-zinc-500">
+            Henüz influencer kaydı yok. Yeni bir influencer ekleyerek başlayın.
+          </div>
+        )}
+      </div>
+
+      {analytics?.redemptions && analytics.redemptions.length > 0 && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="p-6 border-b border-zinc-800">
+            <h3 className="text-lg font-semibold text-white">Son Kullanımlar</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-zinc-800/50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Tarih</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Influencer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kod</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Sipariş</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Sipariş Tutarı</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">İndirim</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {analytics.redemptions.slice(0, 20).map((r: any) => (
+                  <tr key={r.id} className="hover:bg-zinc-800/30">
+                    <td className="px-6 py-4 text-sm text-zinc-400">
+                      {new Date(r.createdAt).toLocaleDateString('tr-TR', { 
+                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-white">{r.influencerName || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-xs bg-zinc-800 px-2 py-1 rounded text-white">{r.couponCode}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-blue-400">#{r.orderNumber}</td>
+                    <td className="px-6 py-4 text-sm text-white">{formatPrice(r.orderTotal || 0)}</td>
+                    <td className="px-6 py-4 text-sm text-green-400">{formatPrice(r.discountAmount || 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showInfluencerModal && (
+        <InfluencerModal
+          influencer={editingInfluencer}
+          onClose={() => { setShowInfluencerModal(false); setEditingInfluencer(null); }}
+          onSave={(data) => saveInfluencerMutation.mutate(data)}
+          isSaving={saveInfluencerMutation.isPending}
+        />
+      )}
     </div>
   );
 }
