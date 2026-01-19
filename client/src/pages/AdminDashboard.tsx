@@ -201,7 +201,7 @@ export default function AdminDashboard() {
     enabled: !!adminUser,
   });
 
-  const { data: orders = [] } = useQuery<Order[]>({
+  const { data: orders = [], refetch: refetchOrders } = useQuery<Order[]>({
     queryKey: ['admin', 'orders'],
     queryFn: async () => {
       const response = await fetch('/api/admin/orders');
@@ -211,6 +211,12 @@ export default function AdminDashboard() {
     refetchInterval: 30000,
     refetchIntervalInBackground: true,
   });
+
+  useEffect(() => {
+    if (activeTab === 'orders' && adminUser) {
+      refetchOrders();
+    }
+  }, [activeTab, adminUser, refetchOrders]);
 
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ['admin', 'users', searchQuery],
