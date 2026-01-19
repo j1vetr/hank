@@ -145,7 +145,14 @@ interface WooSyncLog {
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab && ['dashboard', 'products', 'categories', 'orders', 'users', 'woocommerce', 'analytics', 'inventory', 'marketing', 'influencers', 'settings', 'database'].includes(tab)) {
+      return tab as TabType;
+    }
+    return 'dashboard';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);

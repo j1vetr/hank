@@ -247,8 +247,8 @@ export default function AdminOrderDetail() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <p className="text-white text-lg mb-4">Sipariş bulunamadı</p>
-          <Link href="/toov-admin" className="text-purple-400 hover:underline">
-            Admin Panele Dön
+          <Link href="/toov-admin?tab=orders" className="text-purple-400 hover:underline">
+            Siparişlere Dön
           </Link>
         </div>
       </div>
@@ -258,9 +258,9 @@ export default function AdminOrderDetail() {
   return (
     <div className="min-h-screen bg-black">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <Link href="/toov-admin" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
+        <Link href="/toov-admin?tab=orders" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
           <ChevronLeft className="w-5 h-5" />
-          Admin Panele Dön
+          Siparişlere Dön
         </Link>
 
         <div className="flex flex-col lg:flex-row gap-6">
