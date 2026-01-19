@@ -85,6 +85,11 @@ RESTful API endpoints under `/api/`:
 - **Order Cancellation**: Automatically restores stock when orders are cancelled
 - **Low Stock Alerts**: Admin dashboard highlights low stock variants
 
+### Product/Variant Consistency (Critical Fix)
+- When processing cart items with variants, always use variant's `productId` to fetch product details
+- This prevents product name mismatch in invoices (e.g., pants showing as t-shirt)
+- Applied to: payment creation, order creation, and abandoned cart emails
+
 ### Email Notifications
 - **SMTP Configuration**: Stored in database via `settings` table (not .env)
 - **Configured SMTP**: host=mail.toov.com.tr, user=no-reply@toov.com.tr

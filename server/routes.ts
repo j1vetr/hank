@@ -1233,10 +1233,14 @@ export async function registerRoutes(
       const userBasket: Array<[string, string, number]> = [];
 
       for (const cartItem of cartItems) {
-        const product = await storage.getProduct(cartItem.productId);
         const variant = cartItem.variantId 
           ? await storage.getProductVariant(cartItem.variantId)
           : null;
+        
+        // If variant exists, get the product from variant's productId to ensure consistency
+        const actualProductId = variant?.productId || cartItem.productId;
+        const product = await storage.getProduct(actualProductId);
+        
         if (product) {
           const itemPrice = parseFloat(variant?.price || product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
@@ -1620,10 +1624,12 @@ export async function registerRoutes(
       // Calculate actual subtotal from cart items (server-side verification)
       let serverSubtotal = 0;
       for (const cartItem of cartItems) {
-        const product = await storage.getProduct(cartItem.productId);
         const variant = cartItem.variantId 
           ? await storage.getProductVariant(cartItem.variantId)
           : null;
+        // Use variant's productId if available to ensure consistency
+        const actualProductId = variant?.productId || cartItem.productId;
+        const product = await storage.getProduct(actualProductId);
         if (product) {
           const itemPrice = parseFloat(variant?.price || product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
@@ -1704,10 +1710,12 @@ export async function registerRoutes(
 
       // Create order items and reduce stock
       for (const cartItem of cartItems) {
-        const product = await storage.getProduct(cartItem.productId);
         const variant = cartItem.variantId 
           ? await storage.getProductVariant(cartItem.variantId)
           : null;
+        // Use variant's productId if available to ensure consistency
+        const actualProductId = variant?.productId || cartItem.productId;
+        const product = await storage.getProduct(actualProductId);
 
         if (product) {
           await storage.createOrderItem({
@@ -2778,8 +2786,10 @@ export async function registerRoutes(
       // Get product details for cart items
       const cartItemsWithDetails = await Promise.all(
         cartItems.map(async (item) => {
-          const product = await storage.getProduct(item.productId);
           const variant = item.variantId ? await storage.getProductVariant(item.variantId) : null;
+          // Use variant's productId if available to ensure consistency
+          const actualProductId = variant?.productId || item.productId;
+          const product = await storage.getProduct(actualProductId);
           return {
             productName: product?.name || 'Ürün',
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : '',
@@ -2830,8 +2840,10 @@ export async function registerRoutes(
           
           const cartItemsWithDetails = await Promise.all(
             cartItems.map(async (item) => {
-              const product = await storage.getProduct(item.productId);
               const variant = item.variantId ? await storage.getProductVariant(item.variantId) : null;
+              // Use variant's productId if available to ensure consistency
+              const actualProductId = variant?.productId || item.productId;
+              const product = await storage.getProduct(actualProductId);
               return {
                 productName: product?.name || 'Ürün',
                 variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : '',
