@@ -44,10 +44,21 @@ export async function sendInvoiceToBizimHesap(
     const invoiceDate = new Date().toISOString();
     const KDV_RATE = 20;
 
+    // Calculate original subtotal (sum of item subtotals)
+    const originalSubtotal = orderItems.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
+    
+    // Get discount from order and calculate discount ratio
+    const discountAmount = parseFloat(order.discountAmount || '0');
+    const discountRatio = originalSubtotal > 0 ? discountAmount / originalSubtotal : 0;
+
     const details: InvoiceDetail[] = orderItems.map((item, index) => {
-      const itemTotal = parseFloat(item.subtotal);
-      const netAmount = itemTotal / (1 + KDV_RATE / 100);
-      const taxAmount = itemTotal - netAmount;
+      // Apply proportional discount to each item
+      const originalItemTotal = parseFloat(item.subtotal);
+      const itemDiscount = originalItemTotal * discountRatio;
+      const discountedItemTotal = originalItemTotal - itemDiscount;
+      
+      const netAmount = discountedItemTotal / (1 + KDV_RATE / 100);
+      const taxAmount = discountedItemTotal - netAmount;
 
       // Build product name with variant details
       let fullProductName = item.productName || "Ürün";
@@ -67,7 +78,7 @@ export async function sendInvoiceToBizimHesap(
         discount: "0.00",
         net: netAmount.toFixed(2),
         tax: taxAmount.toFixed(2),
-        total: itemTotal.toFixed(2),
+        total: discountedItemTotal.toFixed(2),
       };
     });
 
