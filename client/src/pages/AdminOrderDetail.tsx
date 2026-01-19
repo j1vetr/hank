@@ -26,6 +26,7 @@ interface OrderItem {
   variantId?: string;
   variantDetails?: string;
   sku?: string;
+  productImage?: string;
   quantity: number;
   price: string;
   subtotal: string;
@@ -324,20 +325,31 @@ export default function AdminOrderDetail() {
               <div className="space-y-4">
                 {order.items?.map((item, index) => (
                   <div key={item.id || index} className="bg-zinc-800/50 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="text-white font-medium">{item.productName}</p>
-                        {item.variantDetails && (
-                          <p className="text-zinc-400 text-sm mt-1">{item.variantDetails}</p>
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex gap-4 flex-1">
+                        {item.productImage && (
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-zinc-700 shrink-0">
+                            <img 
+                              src={item.productImage} 
+                              alt={item.productName}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         )}
-                        {item.sku && (
-                          <p className="text-zinc-500 text-xs mt-1 flex items-center gap-1">
-                            <Hash className="w-3 h-3" />
-                            SKU: {item.sku}
-                          </p>
-                        )}
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{item.productName}</p>
+                          {item.variantDetails && (
+                            <p className="text-zinc-400 text-sm mt-1">{item.variantDetails}</p>
+                          )}
+                          {item.sku && (
+                            <p className="text-zinc-500 text-xs mt-1 flex items-center gap-1">
+                              <Hash className="w-3 h-3" />
+                              SKU: {item.sku}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <p className="text-white font-medium">{item.quantity} x {parseFloat(item.price).toFixed(2)}₺</p>
                         <p className="text-zinc-400 text-sm">{parseFloat(item.subtotal).toFixed(2)}₺</p>
                       </div>

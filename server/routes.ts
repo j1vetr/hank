@@ -1603,23 +1603,31 @@ export async function registerRoutes(
       }
       const items = await storage.getOrderItems(order.id);
       
-      // Enrich items with SKU from variants
-      const itemsWithSku = await Promise.all(
+      // Enrich items with SKU and product image
+      const itemsWithDetails = await Promise.all(
         items.map(async (item) => {
           let sku = null;
+          let productImage = null;
+          
           if (item.variantId) {
             const variant = await storage.getProductVariant(item.variantId);
             sku = variant?.sku || null;
+            if (variant?.productId) {
+              const product = await storage.getProduct(variant.productId);
+              productImage = product?.images?.[0] || null;
+              if (!sku) sku = product?.sku || null;
+            }
           }
-          if (!sku && item.productId) {
+          if (!productImage && item.productId) {
             const product = await storage.getProduct(item.productId);
-            sku = product?.sku || null;
+            productImage = product?.images?.[0] || null;
+            if (!sku) sku = product?.sku || null;
           }
-          return { ...item, sku };
+          return { ...item, sku, productImage };
         })
       );
       
-      res.json({ ...order, items: itemsWithSku });
+      res.json({ ...order, items: itemsWithDetails });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch order" });
     }
