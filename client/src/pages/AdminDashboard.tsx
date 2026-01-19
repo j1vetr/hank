@@ -694,12 +694,16 @@ export default function AdminDashboard() {
                       <tr key={order.id} className="border-t border-zinc-800 hover:bg-zinc-800/30" data-testid={`row-order-${order.id}`}>
                         <td className="px-6 py-4 font-mono text-white">{order.orderNumber}</td>
                         <td className="px-6 py-4">
-                          <div>
+                          <Link href={`/toov-admin/orders/${order.id}`} className="block hover:opacity-80 transition-opacity cursor-pointer">
                             <p className="font-medium text-white">{order.customerName}</p>
                             <p className="text-sm text-zinc-500">{order.customerEmail}</p>
-                          </div>
+                          </Link>
                         </td>
-                        <td className="px-6 py-4 font-semibold text-white">{order.total}₺</td>
+                        <td className="px-6 py-4">
+                          <Link href={`/toov-admin/orders/${order.id}`} className="font-semibold text-white hover:opacity-80 transition-opacity cursor-pointer">
+                            {order.total}₺
+                          </Link>
+                        </td>
                         <td className="px-6 py-4">
                           <select
                             value={order.status}
