@@ -2294,6 +2294,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/coupons/by-code/:code", requireAdmin, async (req, res) => {
+    try {
+      const coupon = await storage.getCouponByCode(req.params.code);
+      if (!coupon) return res.status(404).json({ error: "Coupon not found" });
+      res.json(coupon);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch coupon" });
+    }
+  });
+
   // Public coupon validation
   app.post("/api/coupons/validate", async (req, res) => {
     try {

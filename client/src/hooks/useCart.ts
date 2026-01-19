@@ -54,6 +54,8 @@ export function useCartProvider() {
       if (!res.ok) return [];
       return res.json();
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const addMutation = useMutation({

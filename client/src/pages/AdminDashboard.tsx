@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   LayoutDashboard, 
@@ -173,6 +173,7 @@ export default function AdminDashboard() {
       return response.json();
     },
     enabled: !!adminUser,
+    refetchInterval: 30000,
   });
 
   const { data: products = [] } = useQuery<Product[]>({
@@ -200,6 +201,8 @@ export default function AdminDashboard() {
       return response.json();
     },
     enabled: !!adminUser,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: true,
   });
 
   const { data: users = [] } = useQuery<User[]>({
@@ -716,13 +719,13 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex justify-end">
-                            <button
-                              onClick={() => setViewingOrder(order)}
-                              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                            <Link
+                              href={`/toov-admin/orders/${order.id}`}
+                              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white inline-block"
                               data-testid={`button-view-order-${order.id}`}
                             >
                               <Eye className="w-4 h-4" />
-                            </button>
+                            </Link>
                           </div>
                         </td>
                       </tr>
