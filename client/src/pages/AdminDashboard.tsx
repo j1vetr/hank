@@ -2903,7 +2903,7 @@ function InfluencerPanel() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {influencers.map((influencer: any) => (
+                {[...influencers].sort((a: any, b: any) => (b.usageCount || 0) - (a.usageCount || 0)).map((influencer: any) => (
                   <tr key={influencer.id} className="hover:bg-zinc-800/30">
                     <td className="px-6 py-4">
                       <div>
@@ -3791,7 +3791,7 @@ function MarketingPanel() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800">
-                  {influencers.map((inf: any) => (
+                  {[...influencers].sort((a: any, b: any) => (b.usageCount || 0) - (a.usageCount || 0)).map((inf: any) => (
                     <tr key={inf.id} className="hover:bg-zinc-800/30">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
