@@ -3011,6 +3011,26 @@ export async function registerRoutes(
     }
   });
 
+  // Send invoice to BizimHesap manually
+  app.post("/api/admin/orders/:id/send-invoice", requireAdmin, async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
+      
+      const orderItems = await storage.getOrderItems(order.id);
+      const result = await sendInvoiceToBizimHesap(order, orderItems);
+      
+      if (result.success) {
+        res.json({ success: true, message: "Fatura BizimHesap'a gönderildi", guid: result.guid, url: result.url });
+      } else {
+        res.status(400).json({ error: result.error || "Fatura gönderilemedi" });
+      }
+    } catch (error) {
+      console.error('[BizimHesap] Manual invoice error:', error);
+      res.status(500).json({ error: "Fatura gönderilemedi" });
+    }
+  });
+
   // Send review request email
   app.post("/api/admin/orders/:id/send-review-request", requireAdmin, async (req, res) => {
     try {
