@@ -1487,8 +1487,19 @@ export async function registerRoutes(
         sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
         sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
 
+        // Fetch variant SKUs for invoice
+        const variantSkus = new Map<string, string>();
+        for (const item of orderItems) {
+          if (item.variantId) {
+            const variant = await storage.getProductVariant(item.variantId);
+            if (variant?.sku) {
+              variantSkus.set(item.variantId, variant.sku);
+            }
+          }
+        }
+
         // Send invoice to BizimHesap
-        sendInvoiceToBizimHesap(order, orderItems).catch(err => console.error('[BizimHesap] Invoice failed:', err));
+        sendInvoiceToBizimHesap(order, orderItems, variantSkus).catch(err => console.error('[BizimHesap] Invoice failed:', err));
 
         // Create user account if requested during checkout
         if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
@@ -3018,7 +3029,19 @@ export async function registerRoutes(
       if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
       
       const orderItems = await storage.getOrderItems(order.id);
-      const result = await sendInvoiceToBizimHesap(order, orderItems);
+      
+      // Fetch variant SKUs for invoice
+      const variantSkus = new Map<string, string>();
+      for (const item of orderItems) {
+        if (item.variantId) {
+          const variant = await storage.getProductVariant(item.variantId);
+          if (variant?.sku) {
+            variantSkus.set(item.variantId, variant.sku);
+          }
+        }
+      }
+      
+      const result = await sendInvoiceToBizimHesap(order, orderItems, variantSkus);
       
       if (result.success) {
         res.json({ success: true, message: "Fatura BizimHesap'a gönderildi", guid: result.guid, url: result.url });

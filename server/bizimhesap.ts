@@ -26,7 +26,8 @@ interface InvoiceDetail {
 
 export async function sendInvoiceToBizimHesap(
   order: Order,
-  orderItems: OrderItem[]
+  orderItems: OrderItem[],
+  variantSkus?: Map<string, string>
 ): Promise<{ success: boolean; guid?: string; url?: string; error?: string }> {
   if (!FIRM_ID) {
     console.error("[BizimHesap] BIZIMHESAP_FIRM_ID is not configured");
@@ -66,8 +67,12 @@ export async function sendInvoiceToBizimHesap(
         fullProductName += ` - ${item.variantDetails}`;
       }
 
+      // Get SKU from variant if available, otherwise use a unique ID
+      const sku = item.variantId && variantSkus?.get(item.variantId);
+      const productCode = sku || `HANK-${order.orderNumber}-${index + 1}`;
+
       return {
-        productId: item.productId ? item.productId.substring(0, 20) : `ITEM-${Date.now()}-${index}`,
+        productId: productCode,
         productName: fullProductName,
         note: "",
         barcode: "",
