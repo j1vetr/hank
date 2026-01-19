@@ -1602,7 +1602,24 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Order not found" });
       }
       const items = await storage.getOrderItems(order.id);
-      res.json({ ...order, items });
+      
+      // Enrich items with SKU from variants
+      const itemsWithSku = await Promise.all(
+        items.map(async (item) => {
+          let sku = null;
+          if (item.variantId) {
+            const variant = await storage.getProductVariant(item.variantId);
+            sku = variant?.sku || null;
+          }
+          if (!sku && item.productId) {
+            const product = await storage.getProduct(item.productId);
+            sku = product?.sku || null;
+          }
+          return { ...item, sku };
+        })
+      );
+      
+      res.json({ ...order, items: itemsWithSku });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch order" });
     }
