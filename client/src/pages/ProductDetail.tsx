@@ -714,11 +714,15 @@ export default function ProductDetail() {
                     </button>
                   </div>
 
-                  {product.sku && (
-                    <span className="text-xs text-muted-foreground" data-testid="text-sku">
-                      SKU: {product.sku}
-                    </span>
-                  )}
+                  {(() => {
+                    const selectedVariant = selectedSize ? product.variants?.find(v => v.size === selectedSize) : null;
+                    const displaySku = selectedVariant?.sku || product.sku;
+                    return displaySku ? (
+                      <span className="text-xs text-muted-foreground" data-testid="text-sku">
+                        Stok Kodu: {displaySku}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
 
                 <div className="flex items-center gap-3 pt-2">
