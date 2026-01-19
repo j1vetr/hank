@@ -67,7 +67,7 @@ export async function sendInvoiceToBizimHesap(
       }
 
       return {
-        productId: `HANK-${index + 1}`,
+        productId: item.productId ? item.productId.substring(0, 20) : `ITEM-${Date.now()}-${index}`,
         productName: fullProductName,
         note: "",
         barcode: "",
