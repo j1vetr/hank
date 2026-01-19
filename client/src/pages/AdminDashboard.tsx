@@ -3373,7 +3373,7 @@ function InventoryPanel() {
                           </td>
                           <td className="px-6 py-4 text-sm text-zinc-400">{v.size || '-'}</td>
                           <td className="px-6 py-4 text-sm text-zinc-400">{v.color || '-'}</td>
-                          <td className="px-6 py-4 text-sm text-white">{v.price} TL</td>
+                          <td className="px-6 py-4 text-sm text-white">{v.product?.basePrice || v.price} TL</td>
                           <td className="px-6 py-4">
                             <input
                               type="number"
