@@ -223,7 +223,7 @@ export default function Cart() {
                             </div>
 
                             <p className="font-bold text-base sm:text-lg shrink-0" data-testid={`text-price-${item.id}`}>
-                              {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
+                              {(parseFloat(item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
                             </p>
                           </div>
                         </div>

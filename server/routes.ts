@@ -1242,7 +1242,7 @@ export async function registerRoutes(
         const product = await storage.getProduct(actualProductId);
         
         if (product) {
-          const itemPrice = parseFloat(variant?.price || product.basePrice);
+          const itemPrice = parseFloat(product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
           
           cartItemsForStorage.push({
@@ -1251,7 +1251,7 @@ export async function registerRoutes(
             quantity: cartItem.quantity,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: (variant?.price || product.basePrice),
+            price: product.basePrice,
           });
 
           // PayTR basket format: [name, price in kuruş, quantity]
@@ -1648,7 +1648,7 @@ export async function registerRoutes(
         const actualProductId = variant?.productId || cartItem.productId;
         const product = await storage.getProduct(actualProductId);
         if (product) {
-          const itemPrice = parseFloat(variant?.price || product.basePrice);
+          const itemPrice = parseFloat(product.basePrice);
           serverSubtotal += itemPrice * cartItem.quantity;
         }
       }
@@ -1741,9 +1741,9 @@ export async function registerRoutes(
             variantId: variant?.id,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: variant?.price || product.basePrice,
+            price: product.basePrice,
             quantity: cartItem.quantity,
-            subtotal: ((parseFloat(variant?.price || product.basePrice) * cartItem.quantity).toFixed(2)),
+            subtotal: ((parseFloat(product.basePrice) * cartItem.quantity).toFixed(2)),
           });
 
           // Reduce stock for the variant
@@ -2810,7 +2810,7 @@ export async function registerRoutes(
           return {
             productName: product?.name || 'Ürün',
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : '',
-            price: variant?.price || product?.basePrice || '0',
+            price: product?.basePrice || '0',
             quantity: item.quantity,
           };
         })
@@ -2864,7 +2864,7 @@ export async function registerRoutes(
               return {
                 productName: product?.name || 'Ürün',
                 variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : '',
-                price: variant?.price || product?.basePrice || '0',
+                price: product?.basePrice || '0',
                 quantity: item.quantity,
               };
             })
