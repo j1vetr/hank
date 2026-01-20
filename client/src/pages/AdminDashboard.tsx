@@ -5658,7 +5658,16 @@ function CreateQuoteModal({
                       return (
                         <tr key={index}>
                           <td className="px-4 py-3">
-                            <p className="text-white text-sm">{item.productName}</p>
+                            <div className="flex items-center gap-3">
+                              {item.productImage ? (
+                                <img src={item.productImage} alt="" className="w-10 h-10 object-cover rounded border border-zinc-700" />
+                              ) : (
+                                <div className="w-10 h-10 bg-zinc-800 rounded border border-zinc-700 flex items-center justify-center">
+                                  <Package className="w-4 h-4 text-zinc-500" />
+                                </div>
+                              )}
+                              <p className="text-white text-sm">{item.productName}</p>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <input

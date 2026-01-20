@@ -6,6 +6,7 @@ import crypto from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import PDFDocument from "pdfkit";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc } from "drizzle-orm";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons } from "@shared/schema";
@@ -3841,6 +3842,166 @@ Sitemap: ${baseUrl}/sitemap.xml
     } catch (error) {
       console.error('[Quotes] Get one error:', error);
       res.status(500).json({ error: "Teklif alınamadı" });
+    }
+  });
+
+  // Generate PDF for quote
+  app.get("/api/admin/quotes/:id/pdf", requireAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Teklif bulunamadı" });
+      }
+      
+      const dealer = await storage.getDealer(quote.dealerId);
+      const items = await storage.getQuoteItems(quote.id);
+      
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Teklif-${quote.quoteNumber}.pdf"`);
+      
+      doc.pipe(res);
+      
+      // Header with TOOV branding
+      doc.fontSize(28).font('Helvetica-Bold').fillColor('#000000').text('TOOV', 50, 50);
+      doc.fontSize(10).font('Helvetica').fillColor('#666666').text('Spor Giyim', 50, 80);
+      
+      // Quote title
+      doc.fontSize(24).font('Helvetica-Bold').fillColor('#000000').text('TEKLİF', 350, 50, { align: 'right' });
+      doc.fontSize(12).font('Helvetica').fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
+      
+      doc.moveDown(2);
+      
+      // Dealer info box
+      const yStart = 120;
+      doc.rect(50, yStart, 250, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#333333').text('BAYİ BİLGİLERİ', 60, yStart + 10);
+      doc.fontSize(11).font('Helvetica').fillColor('#000000').text(dealer?.name || 'Bilinmeyen', 60, yStart + 30);
+      if (dealer?.contactPerson) {
+        doc.fontSize(9).fillColor('#666666').text(dealer.contactPerson, 60, yStart + 45);
+      }
+      if (dealer?.email) {
+        doc.fontSize(9).text(dealer.email, 60, yStart + 60);
+      }
+      if (dealer?.phone) {
+        doc.fontSize(9).text(dealer.phone, 60, yStart + 75);
+      }
+      
+      // Quote details box
+      doc.rect(310, yStart, 235, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#333333').text('TEKLİF DETAYLARI', 320, yStart + 10);
+      doc.fontSize(9).font('Helvetica').fillColor('#666666');
+      doc.text('Oluşturulma:', 320, yStart + 30);
+      doc.fillColor('#000000').text(new Date(quote.createdAt).toLocaleDateString('tr-TR'), 420, yStart + 30);
+      doc.fillColor('#666666').text('Geçerlilik:', 320, yStart + 45);
+      doc.fillColor('#000000').text(quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-', 420, yStart + 45);
+      doc.fillColor('#666666').text('Ödeme:', 320, yStart + 60);
+      const paymentLabel = { cash: 'Peşin', net15: '15 Gün', net30: '30 Gün', net45: '45 Gün', net60: '60 Gün' }[quote.paymentTerms || ''] || '-';
+      doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
+      doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
+      doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
+      
+      // Products table
+      const tableTop = yStart + 130;
+      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text('ÜRÜNLER', 50, tableTop);
+      
+      // Table header
+      const headerY = tableTop + 25;
+      doc.rect(50, headerY, 495, 25).fillAndStroke('#333333', '#333333');
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#ffffff');
+      doc.text('Ürün', 60, headerY + 8);
+      doc.text('Adet', 280, headerY + 8, { width: 50, align: 'center' });
+      doc.text('Birim Fiyat', 330, headerY + 8, { width: 70, align: 'right' });
+      doc.text('İskonto', 400, headerY + 8, { width: 50, align: 'center' });
+      doc.text('Toplam', 450, headerY + 8, { width: 85, align: 'right' });
+      
+      // Table rows
+      let currentY = headerY + 25;
+      const rowHeight = 50;
+      
+      for (const item of items) {
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 50;
+        }
+        
+        const bgColor = items.indexOf(item) % 2 === 0 ? '#ffffff' : '#fafafa';
+        doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
+        
+        // Product image placeholder or actual image
+        if (item.productImage) {
+          try {
+            const imagePath = item.productImage.startsWith('/') 
+              ? path.join(process.cwd(), 'public', item.productImage)
+              : path.join(process.cwd(), item.productImage);
+            if (fs.existsSync(imagePath)) {
+              doc.image(imagePath, 55, currentY + 5, { width: 40, height: 40 });
+            }
+          } catch (e) {
+            // Skip image if not accessible
+          }
+        }
+        
+        // Product details
+        doc.fontSize(10).font('Helvetica').fillColor('#000000');
+        doc.text(item.productName.substring(0, 30), 100, currentY + 12, { width: 170 });
+        if (item.variantDetails) {
+          doc.fontSize(8).fillColor('#666666').text(item.variantDetails, 100, currentY + 28);
+        }
+        
+        doc.fontSize(10).fillColor('#000000');
+        doc.text(item.quantity.toString(), 280, currentY + 18, { width: 50, align: 'center' });
+        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 330, currentY + 18, { width: 70, align: 'right' });
+        
+        if (parseFloat(item.discountPercent) > 0) {
+          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 18, { width: 50, align: 'center' });
+        } else {
+          doc.fillColor('#999999').text('-', 400, currentY + 18, { width: 50, align: 'center' });
+        }
+        
+        doc.font('Helvetica-Bold').fillColor('#000000');
+        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 450, currentY + 18, { width: 85, align: 'right' });
+        
+        currentY += rowHeight;
+      }
+      
+      // Totals section
+      currentY += 10;
+      doc.rect(350, currentY, 195, 80).fillAndStroke('#f5f5f5', '#e0e0e0');
+      
+      doc.fontSize(10).font('Helvetica').fillColor('#666666');
+      doc.text('Ara Toplam:', 360, currentY + 15);
+      doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 460, currentY + 15, { width: 75, align: 'right' });
+      
+      if (parseFloat(quote.discountTotal) > 0) {
+        doc.fillColor('#22c55e').text('İskonto:', 360, currentY + 35);
+        doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 460, currentY + 35, { width: 75, align: 'right' });
+      }
+      
+      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
+      doc.text('GENEL TOPLAM:', 360, currentY + 55);
+      doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 460, currentY + 55, { width: 75, align: 'right' });
+      
+      // Notes
+      if (quote.notes) {
+        currentY += 100;
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 50;
+        }
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#333333').text('NOTLAR', 50, currentY);
+        doc.fontSize(9).font('Helvetica').fillColor('#666666').text(quote.notes, 50, currentY + 15, { width: 495 });
+      }
+      
+      // Footer
+      doc.fontSize(8).font('Helvetica').fillColor('#999999');
+      doc.text('TOOV Spor Giyim | www.toov.com.tr | info@toov.com.tr', 50, 780, { align: 'center', width: 495 });
+      
+      doc.end();
+    } catch (error) {
+      console.error('[Quotes] PDF generation error:', error);
+      res.status(500).json({ error: "PDF oluşturulamadı" });
     }
   });
 
