@@ -40,6 +40,13 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// User Sessions for express-session
+export const userSessions = pgTable("user_sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});
+
 // User Addresses
 export const userAddresses = pgTable("user_addresses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
