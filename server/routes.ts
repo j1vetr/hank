@@ -3929,17 +3929,28 @@ Sitemap: ${baseUrl}/sitemap.xml
         const bgColor = items.indexOf(item) % 2 === 0 ? '#ffffff' : '#fafafa';
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
         
-        // Product image placeholder or actual image
+        // Product image - handle both local paths and URLs
         if (item.productImage) {
           try {
-            const imagePath = item.productImage.startsWith('/') 
-              ? path.join(process.cwd(), 'public', item.productImage)
-              : path.join(process.cwd(), item.productImage);
-            if (fs.existsSync(imagePath)) {
-              doc.image(imagePath, 55, currentY + 5, { width: 40, height: 40 });
+            if (item.productImage.startsWith('http://') || item.productImage.startsWith('https://')) {
+              // For external URLs, fetch the image first
+              const imageResponse = await fetch(item.productImage);
+              if (imageResponse.ok) {
+                const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+                doc.image(imageBuffer, 55, currentY + 5, { width: 40, height: 40 });
+              }
+            } else {
+              // For local paths
+              const imagePath = item.productImage.startsWith('/') 
+                ? path.join(process.cwd(), 'public', item.productImage)
+                : path.join(process.cwd(), item.productImage);
+              if (fs.existsSync(imagePath)) {
+                doc.image(imagePath, 55, currentY + 5, { width: 40, height: 40 });
+              }
             }
           } catch (e) {
-            // Skip image if not accessible
+            // Skip image if not accessible - continue without image
+            console.log('[PDF] Image load failed:', item.productImage, e);
           }
         }
         
