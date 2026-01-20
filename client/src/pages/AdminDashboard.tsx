@@ -3305,6 +3305,30 @@ function InventoryPanel() {
           </div>
           <div className="flex items-center gap-3">
             <button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/admin/inventory/fix-variants', {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    alert(data.message);
+                    queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+                  } else {
+                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                  }
+                } catch (error) {
+                  alert('Varyant kontrolü başarısız');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors"
+              data-testid="button-fix-variants"
+            >
+              <Search className="w-4 h-4" />
+              Eksik Varyantları Kontrol Et
+            </button>
+            <button
               onClick={() => {
                 queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
                 queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });

@@ -2545,6 +2545,77 @@ export async function registerRoutes(
     }
   });
 
+  // Fix missing variants - creates variants for all products that have missing size variants
+  app.post("/api/admin/inventory/fix-variants", requireAdmin, async (req, res) => {
+    try {
+      const products = await storage.getProducts();
+      const allVariants = await storage.getAllVariantsWithProducts();
+      
+      let createdCount = 0;
+      const createdVariants: { productName: string; size: string; sku: string | null }[] = [];
+
+      for (const product of products) {
+        if (!product.availableSizes || product.availableSizes.length === 0) continue;
+        
+        const productVariants = allVariants.filter(v => v.productId === product.id);
+        const existingSizes = productVariants.map(v => v.size).filter(Boolean);
+        const definedSizes = product.availableSizes as string[];
+        const colors = product.availableColors || [];
+        const baseSku = product.sku || '';
+
+        for (const size of definedSizes) {
+          if (colors.length > 0) {
+            // Check for each color
+            for (const color of colors as Array<{name: string, hex: string}>) {
+              const exists = productVariants.some(v => v.size === size && v.color === color.name);
+              if (!exists) {
+                const variantSku = baseSku ? `${baseSku}-${size}` : null;
+                await storage.createProductVariant({
+                  productId: product.id,
+                  size: size,
+                  color: color.name,
+                  sku: variantSku,
+                  stock: 0,
+                  price: product.basePrice,
+                });
+                createdCount++;
+                createdVariants.push({ productName: product.name, size, sku: variantSku });
+              }
+            }
+          } else {
+            // No colors, just check size
+            const exists = existingSizes.includes(size);
+            if (!exists) {
+              const variantSku = baseSku ? `${baseSku}-${size}` : null;
+              await storage.createProductVariant({
+                productId: product.id,
+                size: size,
+                color: null,
+                sku: variantSku,
+                stock: 0,
+                price: product.basePrice,
+              });
+              createdCount++;
+              createdVariants.push({ productName: product.name, size, sku: variantSku });
+            }
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        createdCount,
+        createdVariants,
+        message: createdCount > 0 
+          ? `${createdCount} eksik varyant oluşturuldu` 
+          : 'Tüm varyantlar mevcut, eksik bulunamadı',
+      });
+    } catch (error) {
+      console.error('Fix variants error:', error);
+      res.status(500).json({ error: "Failed to fix missing variants" });
+    }
+  });
+
   // Order Management Routes (enhanced)
   app.get("/api/admin/orders/:id/notes", requireAdmin, async (req, res) => {
     try {
