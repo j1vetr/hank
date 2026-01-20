@@ -199,7 +199,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab && ['dashboard', 'products', 'categories', 'orders', 'users', 'woocommerce', 'analytics', 'inventory', 'marketing', 'influencers', 'settings', 'database'].includes(tab)) {
+    if (tab && ['dashboard', 'products', 'categories', 'orders', 'users', 'woocommerce', 'analytics', 'inventory', 'marketing', 'influencers', 'dealers', 'quotes', 'settings', 'database'].includes(tab)) {
       return tab as TabType;
     }
     return 'dashboard';
@@ -4991,7 +4991,7 @@ function DealersPanel() {
   const filteredDealers = dealers.filter(d =>
     d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.contactPerson.toLowerCase().includes(searchQuery.toLowerCase())
+    (d.contactPerson || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -5053,7 +5053,7 @@ function DealersPanel() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-zinc-300">{dealer.contactPerson}</td>
+                  <td className="px-6 py-4 text-zinc-300">{dealer.contactPerson || '-'}</td>
                   <td className="px-6 py-4">
                     <div className="space-y-1">
                       <p className="text-sm text-zinc-300 flex items-center gap-1">
@@ -5395,7 +5395,9 @@ function QuotesPanel() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-white">{quote.dealer?.name || 'Bilinmeyen'}</p>
-                      <p className="text-xs text-zinc-500">{quote.dealer?.contactPerson}</p>
+                      {quote.dealer?.contactPerson && (
+                        <p className="text-xs text-zinc-500">{quote.dealer.contactPerson}</p>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}>
@@ -5831,10 +5833,14 @@ function QuoteDetailModal({
         body: JSON.stringify({ status })
       });
       if (!res.ok) throw new Error('Update failed');
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'quote', quoteId] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
+    },
+    onError: () => {
+      alert('Durum güncellenirken hata oluştu');
     }
   });
 
@@ -5887,8 +5893,10 @@ function QuoteDetailModal({
           <div className="grid grid-cols-2 gap-6">
             <div className="bg-zinc-800/50 rounded-lg p-4">
               <p className="text-sm text-zinc-400 mb-1">Bayi</p>
-              <p className="text-white font-medium">{quote.dealer?.name}</p>
-              <p className="text-sm text-zinc-400">{quote.dealer?.contactPerson}</p>
+              <p className="text-white font-medium">{quote.dealer?.name || 'Bilinmeyen'}</p>
+              {quote.dealer?.contactPerson && (
+                <p className="text-sm text-zinc-400">{quote.dealer.contactPerson}</p>
+              )}
               {quote.dealer?.email && (
                 <p className="text-sm text-zinc-500">{quote.dealer.email}</p>
               )}
