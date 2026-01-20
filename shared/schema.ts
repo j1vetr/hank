@@ -490,3 +490,77 @@ export const pendingPayments = pgTable("pending_payments", {
 });
 
 export type PendingPayment = typeof pendingPayments.$inferSelect;
+
+// Dealers (Bayiler)
+export const dealers = pgTable("dealers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  contactPerson: text("contact_person").notNull(),
+  address: text("address"),
+  status: text("status").default("active").notNull(), // 'active' | 'inactive'
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDealerSchema = createInsertSchema(dealers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDealer = z.infer<typeof insertDealerSchema>;
+export type Dealer = typeof dealers.$inferSelect;
+
+// Quotes (Teklifler)
+export const quotes = pgTable("quotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  quoteNumber: text("quote_number").notNull().unique(),
+  dealerId: varchar("dealer_id").references(() => dealers.id, { onDelete: "cascade" }).notNull(),
+  status: text("status").default("draft").notNull(), // 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+  validUntil: timestamp("valid_until"),
+  paymentTerms: text("payment_terms"), // 'cash' | 'net15' | 'net30' | 'net45' | 'net60'
+  notes: text("notes"),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).default("0").notNull(),
+  discountTotal: decimal("discount_total", { precision: 10, scale: 2 }).default("0").notNull(),
+  grandTotal: decimal("grand_total", { precision: 10, scale: 2 }).default("0").notNull(),
+  includesVat: boolean("includes_vat").default(true).notNull(),
+  sentAt: timestamp("sent_at"),
+  acceptedAt: timestamp("accepted_at"),
+  rejectedAt: timestamp("rejected_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertQuoteSchema = createInsertSchema(quotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertQuote = z.infer<typeof insertQuoteSchema>;
+export type Quote = typeof quotes.$inferSelect;
+
+// Quote Items (Teklif Kalemleri)
+export const quoteItems = pgTable("quote_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  quoteId: varchar("quote_id").references(() => quotes.id, { onDelete: "cascade" }).notNull(),
+  productId: varchar("product_id").references(() => products.id).notNull(),
+  variantId: varchar("variant_id").references(() => productVariants.id),
+  productName: text("product_name").notNull(),
+  productImage: text("product_image"),
+  variantDetails: text("variant_details"),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).default("0").notNull(),
+  lineTotal: decimal("line_total", { precision: 10, scale: 2 }).notNull(),
+});
+
+export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({
+  id: true,
+});
+
+export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
+export type QuoteItem = typeof quoteItems.$inferSelect;
