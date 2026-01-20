@@ -555,6 +555,30 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-3">
                   <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/admin/inventory/fix-variants', {
+                          method: 'POST',
+                          credentials: 'include',
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          alert(data.message);
+                          queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+                        } else {
+                          alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                        }
+                      } catch (error) {
+                        alert('Senkronizasyon başarısız');
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-500 transition-colors"
+                    data-testid="button-sync-all-variants"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Bedenleri Senkronize Et
+                  </button>
+                  <button
                     onClick={() => setShowBulkPriceModal(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg font-medium hover:bg-zinc-700 transition-colors border border-zinc-700"
                     data-testid="button-bulk-price"
@@ -625,30 +649,6 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex justify-end gap-2">
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch(`/api/admin/products/${product.id}/sync-variants`, {
-                                    method: 'POST',
-                                    credentials: 'include',
-                                  });
-                                  const data = await res.json();
-                                  if (data.success) {
-                                    alert(data.message);
-                                    queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
-                                  } else {
-                                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
-                                  }
-                                } catch (error) {
-                                  alert('Senkronizasyon başarısız');
-                                }
-                              }}
-                              className="p-2 hover:bg-purple-500/20 rounded-lg transition-colors text-zinc-400 hover:text-purple-400"
-                              title="Bedenleri Senkronize Et"
-                              data-testid={`button-sync-product-${product.id}`}
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </button>
                             <button
                               onClick={() => { setEditingProduct(product); setShowProductModal(true); }}
                               className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
