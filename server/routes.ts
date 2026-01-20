@@ -2545,6 +2545,91 @@ export async function registerRoutes(
     }
   });
 
+  // Sync variants for a single product
+  app.post("/api/admin/products/:id/sync-variants", requireAdmin, async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      if (!product) {
+        return res.status(404).json({ error: "Ürün bulunamadı" });
+      }
+
+      const productVariants = await storage.getProductVariants(product.id);
+      const definedSizes = (product.availableSizes as string[]) || [];
+      const colors = (product.availableColors as Array<{name: string, hex: string}>) || [];
+      const baseSku = product.sku || '';
+
+      let createdCount = 0;
+      let deletedCount = 0;
+
+      // If no sizes defined, delete all variants
+      if (definedSizes.length === 0) {
+        for (const variant of productVariants) {
+          await storage.deleteProductVariant(variant.id);
+          deletedCount++;
+        }
+      } else {
+        // Delete variants with sizes not in defined sizes
+        for (const variant of productVariants) {
+          if (variant.size && !definedSizes.includes(variant.size)) {
+            await storage.deleteProductVariant(variant.id);
+            deletedCount++;
+          }
+        }
+
+        // Create missing variants for defined sizes
+        for (const size of definedSizes) {
+          if (colors.length > 0) {
+            for (const color of colors) {
+              const exists = productVariants.some(v => v.size === size && v.color === color.name);
+              if (!exists) {
+                const variantSku = baseSku ? `${baseSku}-${size}` : null;
+                await storage.createProductVariant({
+                  productId: product.id,
+                  size: size,
+                  color: color.name,
+                  sku: variantSku,
+                  stock: 0,
+                  price: product.basePrice,
+                });
+                createdCount++;
+              }
+            }
+          } else {
+            const exists = productVariants.some(v => v.size === size);
+            if (!exists) {
+              const variantSku = baseSku ? `${baseSku}-${size}` : null;
+              await storage.createProductVariant({
+                productId: product.id,
+                size: size,
+                color: null,
+                sku: variantSku,
+                stock: 0,
+                price: product.basePrice,
+              });
+              createdCount++;
+            }
+          }
+        }
+      }
+
+      let message = '';
+      if (createdCount > 0 && deletedCount > 0) {
+        message = `${createdCount} varyant oluşturuldu, ${deletedCount} varyant silindi`;
+      } else if (createdCount > 0) {
+        message = `${createdCount} varyant oluşturuldu`;
+      } else if (deletedCount > 0) {
+        message = `${deletedCount} varyant silindi`;
+      } else {
+        message = 'Varyantlar zaten senkronize';
+      }
+
+      res.json({ success: true, createdCount, deletedCount, message });
+    } catch (error) {
+      console.error('Sync variants error:', error);
+      res.status(500).json({ error: "Varyant senkronizasyonu başarısız" });
+    }
+  });
+
   // Fix missing variants - syncs variants with product's defined sizes
   app.post("/api/admin/inventory/fix-variants", requireAdmin, async (req, res) => {
     try {

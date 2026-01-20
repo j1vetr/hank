@@ -626,6 +626,30 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4">
                           <div className="flex justify-end gap-2">
                             <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/admin/products/${product.id}/sync-variants`, {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                  });
+                                  const data = await res.json();
+                                  if (data.success) {
+                                    alert(data.message);
+                                    queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+                                  } else {
+                                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                                  }
+                                } catch (error) {
+                                  alert('Senkronizasyon başarısız');
+                                }
+                              }}
+                              className="p-2 hover:bg-purple-500/20 rounded-lg transition-colors text-zinc-400 hover:text-purple-400"
+                              title="Bedenleri Senkronize Et"
+                              data-testid={`button-sync-product-${product.id}`}
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => { setEditingProduct(product); setShowProductModal(true); }}
                               className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
                               data-testid={`button-edit-product-${product.id}`}
