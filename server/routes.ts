@@ -3863,8 +3863,8 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       doc.pipe(res);
       
-      // Header with TOOV branding
-      doc.fontSize(28).font('Helvetica-Bold').fillColor('#000000').text('TOOV', 50, 50);
+      // Header with HANK branding
+      doc.fontSize(28).font('Helvetica-Bold').fillColor('#000000').text('HANK', 50, 50);
       doc.fontSize(10).font('Helvetica').fillColor('#666666').text('Spor Giyim', 50, 80);
       
       // Quote title
@@ -4007,7 +4007,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Footer
       doc.fontSize(8).font('Helvetica').fillColor('#999999');
-      doc.text('TOOV Spor Giyim | www.toov.com.tr | info@toov.com.tr', 50, 780, { align: 'center', width: 495 });
+      doc.text('HANK Spor Giyim | www.hank.com.tr | info@hank.com.tr', 50, 780, { align: 'center', width: 495 });
       
       doc.end();
     } catch (error) {
