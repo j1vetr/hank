@@ -225,23 +225,29 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
         
         // Product image - fetch from production URL
+        console.log('[PDF] Item productImage:', item.productImage);
         if (item.productImage) {
           try {
             let imageUrl = item.productImage;
             if (imageUrl.startsWith('/uploads/')) {
               imageUrl = `https://hank.com.tr${imageUrl}`;
             }
+            console.log('[PDF] Fetching image from:', imageUrl);
             
             if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
               const imageResponse = await fetch(imageUrl);
+              console.log('[PDF] Image response status:', imageResponse.status);
               if (imageResponse.ok) {
                 const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+                console.log('[PDF] Image buffer size:', imageBuffer.length);
                 doc.image(imageBuffer, 55, currentY + 7, { width: 40, height: 40 });
               }
             }
           } catch (e) {
             console.log('[PDF] Image load failed:', item.productImage, e);
           }
+        } else {
+          console.log('[PDF] No productImage for item:', item.productName);
         }
         
         // Product details with SKU
@@ -4161,6 +4167,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
         
         // Product image - fetch from production URL
+        console.log('[PDF-Route] Item productImage:', item.productImage);
         if (item.productImage) {
           try {
             let imageUrl = item.productImage;
@@ -4168,19 +4175,24 @@ Sitemap: ${baseUrl}/sitemap.xml
             if (imageUrl.startsWith('/uploads/')) {
               imageUrl = `https://hank.com.tr${imageUrl}`;
             }
+            console.log('[PDF-Route] Fetching image from:', imageUrl);
             
             if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
               const imageResponse = await fetch(imageUrl);
+              console.log('[PDF-Route] Image response status:', imageResponse.status);
               if (imageResponse.ok) {
                 const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+                console.log('[PDF-Route] Image buffer size:', imageBuffer.length);
                 doc.image(imageBuffer, 55, currentY + 7, { width: 40, height: 40 });
               } else {
-                console.log('[PDF] Image fetch failed:', imageUrl, imageResponse.status);
+                console.log('[PDF-Route] Image fetch failed:', imageUrl, imageResponse.status);
               }
             }
           } catch (e) {
-            console.log('[PDF] Image load failed:', item.productImage, e);
+            console.log('[PDF-Route] Image load failed:', item.productImage, e);
           }
+        } else {
+          console.log('[PDF-Route] No productImage for item:', item.productName);
         }
         
         // Product details with SKU
