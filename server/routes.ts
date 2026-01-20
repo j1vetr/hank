@@ -24,6 +24,46 @@ import {
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  validateAndRotateRefreshToken,
+  revokeRefreshToken,
+  setAuthCookies,
+  clearAuthCookies,
+  type JwtPayload
+} from "./jwt";
+
+async function getAuthPayload(req: Request, res: Response): Promise<JwtPayload | null> {
+  const accessToken = req.cookies?.access_token;
+  
+  if (accessToken) {
+    const payload = verifyAccessToken(accessToken);
+    if (payload) {
+      return payload;
+    }
+  }
+  
+  const refreshToken = req.cookies?.refresh_token;
+  if (refreshToken) {
+    // Use rotation to revoke old token and issue new one
+    const result = await validateAndRotateRefreshToken(
+      refreshToken,
+      req.headers['user-agent'],
+      req.ip
+    );
+    if (result) {
+      const newAccessToken = generateAccessToken(result.payload);
+      const isProduction = process.env.NODE_ENV === 'production';
+      // Set both new access token and rotated refresh token
+      setAuthCookies(res, newAccessToken, result.newRefreshToken, isProduction);
+      return result.payload;
+    }
+  }
+  
+  return null;
+}
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "client/public/uploads");
@@ -248,7 +288,7 @@ export async function registerRoutes(
     }
   });
 
-  // Admin Authentication
+  // Admin Authentication with JWT
   app.post("/api/admin/login", async (req: Request, res) => {
     try {
       const { username, password } = req.body;
@@ -258,25 +298,45 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      req.session.adminId = user.id;
+      const payload = { adminUserId: user.id, email: user.username, type: 'admin' as const };
+      const accessToken = generateAccessToken(payload);
+      const refreshToken = await generateRefreshToken(
+        payload,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      setAuthCookies(res, accessToken, refreshToken, isProduction);
+
       res.json({ success: true, user: { id: user.id, username: user.username } });
     } catch (error) {
+      console.error('Admin login error:', error);
       res.status(500).json({ error: "Login failed" });
     }
   });
 
-  app.post("/api/admin/logout", (req: Request, res) => {
-    req.session.destroy(() => {
+  app.post("/api/admin/logout", async (req: Request, res) => {
+    try {
+      const refreshToken = req.cookies?.refresh_token;
+      if (refreshToken) {
+        await revokeRefreshToken(refreshToken);
+      }
+      clearAuthCookies(res);
       res.json({ success: true });
-    });
+    } catch (error) {
+      clearAuthCookies(res);
+      res.json({ success: true });
+    }
   });
 
   app.get("/api/admin/me", async (req: Request, res) => {
-    if (!req.session.adminId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'admin' || !payload.adminUserId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    const user = await storage.getAdminUser(req.session.adminId);
+    const user = await storage.getAdminUser(payload.adminUserId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -285,10 +345,12 @@ export async function registerRoutes(
   });
 
   // Middleware for admin routes
-  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-    if (!req.session.adminId) {
+  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'admin' || !payload.adminUserId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
+    (req as any).adminId = payload.adminUserId;
     next();
   };
 
@@ -426,7 +488,16 @@ export async function registerRoutes(
         postalCode,
       });
 
-      req.session.userId = user.id;
+      // Set JWT cookies for the new user
+      const payload = { userId: user.id, email: user.email, type: 'user' as const };
+      const accessToken = generateAccessToken(payload);
+      const refreshToken = await generateRefreshToken(
+        payload,
+        req.headers['user-agent'],
+        req.ip
+      );
+      const isProduction = process.env.NODE_ENV === 'production';
+      setAuthCookies(res, accessToken, refreshToken, isProduction);
       
       // If address info is provided, create a saved address
       if (address && city && district && firstName && lastName && phone) {
@@ -466,27 +537,48 @@ export async function registerRoutes(
         return res.status(401).json({ error: "E-posta veya şifre hatalı" });
       }
 
-      req.session.userId = user.id;
+      const payload = { userId: user.id, email: user.email, type: 'user' as const };
+      const accessToken = generateAccessToken(payload);
+      const refreshToken = await generateRefreshToken(
+        payload,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      setAuthCookies(res, accessToken, refreshToken, isProduction);
+
       res.json({ 
         success: true, 
         user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } 
       });
     } catch (error) {
+      console.error('User login error:', error);
       res.status(500).json({ error: "Giriş işlemi başarısız" });
     }
   });
 
-  app.post("/api/auth/logout", (req: Request, res) => {
-    req.session.userId = undefined;
-    res.json({ success: true });
+  app.post("/api/auth/logout", async (req: Request, res) => {
+    try {
+      const refreshToken = req.cookies?.refresh_token;
+      if (refreshToken) {
+        await revokeRefreshToken(refreshToken);
+      }
+      clearAuthCookies(res);
+      res.json({ success: true });
+    } catch (error) {
+      clearAuthCookies(res);
+      res.json({ success: true });
+    }
   });
 
   app.get("/api/auth/me", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
-    const user = await storage.getUser(req.session.userId);
+    const user = await storage.getUser(payload.userId);
     if (!user) {
       return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     }
@@ -495,13 +587,14 @@ export async function registerRoutes(
   });
 
   app.patch("/api/auth/profile", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
     try {
       const { firstName, lastName, phone } = req.body;
-      const updated = await storage.updateUser(req.session.userId, { firstName, lastName, phone });
+      const updated = await storage.updateUser(payload.userId, { firstName, lastName, phone });
       if (!updated) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
@@ -513,12 +606,13 @@ export async function registerRoutes(
 
   // User Addresses API
   app.get("/api/auth/addresses", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
     try {
-      const addresses = await storage.getUserAddresses(req.session.userId);
+      const addresses = await storage.getUserAddresses(payload.userId);
       res.json(addresses);
     } catch (error) {
       res.status(500).json({ error: "Adresler yüklenemedi" });
@@ -526,7 +620,8 @@ export async function registerRoutes(
   });
 
   app.post("/api/auth/addresses", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
@@ -534,11 +629,11 @@ export async function registerRoutes(
       const { title, firstName, lastName, phone, address, city, district, postalCode, isDefault } = req.body;
       
       // Check if this is the first address - if so, make it default
-      const existingAddresses = await storage.getUserAddresses(req.session.userId);
+      const existingAddresses = await storage.getUserAddresses(payload.userId);
       const shouldBeDefault = existingAddresses.length === 0 ? true : !!isDefault;
       
       const newAddress = await storage.createUserAddress({
-        userId: req.session.userId,
+        userId: payload.userId,
         title: title || 'Adresim',
         firstName,
         lastName,
@@ -556,13 +651,14 @@ export async function registerRoutes(
   });
 
   app.patch("/api/auth/addresses/:id", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
     try {
       const existingAddress = await storage.getUserAddress(req.params.id);
-      if (!existingAddress || existingAddress.userId !== req.session.userId) {
+      if (!existingAddress || existingAddress.userId !== payload.userId) {
         return res.status(404).json({ error: "Adres bulunamadı" });
       }
 
@@ -585,13 +681,14 @@ export async function registerRoutes(
   });
 
   app.delete("/api/auth/addresses/:id", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
     try {
       const existingAddress = await storage.getUserAddress(req.params.id);
-      if (!existingAddress || existingAddress.userId !== req.session.userId) {
+      if (!existingAddress || existingAddress.userId !== payload.userId) {
         return res.status(404).json({ error: "Adres bulunamadı" });
       }
 
@@ -603,17 +700,18 @@ export async function registerRoutes(
   });
 
   app.patch("/api/auth/addresses/:id/default", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
     try {
       const existingAddress = await storage.getUserAddress(req.params.id);
-      if (!existingAddress || existingAddress.userId !== req.session.userId) {
+      if (!existingAddress || existingAddress.userId !== payload.userId) {
         return res.status(404).json({ error: "Adres bulunamadı" });
       }
 
-      await storage.setDefaultAddress(req.session.userId, req.params.id);
+      await storage.setDefaultAddress(payload.userId, req.params.id);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Varsayılan adres ayarlanamadı" });
@@ -621,12 +719,13 @@ export async function registerRoutes(
   });
 
   app.get("/api/orders/my", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
     try {
-      const user = await storage.getUser(req.session.userId);
+      const user = await storage.getUser(payload.userId);
       if (!user) {
         return res.status(404).json({ error: "Kullanıcı bulunamadı" });
       }
@@ -638,7 +737,8 @@ export async function registerRoutes(
   });
 
   app.get("/api/orders/my/:id", async (req: Request, res) => {
-    if (!req.session.userId) {
+    const payload = await getAuthPayload(req, res);
+    if (!payload || payload.type !== 'user' || !payload.userId) {
       return res.status(401).json({ error: "Giriş yapılmamış" });
     }
 
@@ -647,7 +747,7 @@ export async function registerRoutes(
       if (!order) {
         return res.status(404).json({ error: "Sipariş bulunamadı" });
       }
-      const user = await storage.getUser(req.session.userId);
+      const user = await storage.getUser(payload.userId);
       if (!user || order.customerEmail !== user.email) {
         return res.status(403).json({ error: "Bu siparişe erişim yetkiniz yok" });
       }
@@ -1131,7 +1231,8 @@ export async function registerRoutes(
   // Favorites API
   app.get("/api/favorites", async (req: Request, res) => {
     try {
-      const userId = req.session.userId;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       if (!userId) {
         return res.status(401).json({ error: "Please login to view favorites" });
       }
@@ -1144,7 +1245,8 @@ export async function registerRoutes(
 
   app.get("/api/favorites/ids", async (req: Request, res) => {
     try {
-      const userId = req.session.userId;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       if (!userId) {
         return res.json([]);
       }
@@ -1157,7 +1259,8 @@ export async function registerRoutes(
 
   app.get("/api/favorites/:productId/check", async (req: Request, res) => {
     try {
-      const userId = req.session.userId;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       if (!userId) {
         return res.json({ isFavorite: false });
       }
@@ -1170,7 +1273,8 @@ export async function registerRoutes(
 
   app.post("/api/favorites/:productId", async (req: Request, res) => {
     try {
-      const userId = req.session.userId;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       if (!userId) {
         return res.status(401).json({ error: "Please login to add favorites" });
       }
@@ -1183,7 +1287,8 @@ export async function registerRoutes(
 
   app.delete("/api/favorites/:productId", async (req: Request, res) => {
     try {
-      const userId = req.session.userId;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       if (!userId) {
         return res.status(401).json({ error: "Please login to remove favorites" });
       }
@@ -1215,7 +1320,8 @@ export async function registerRoutes(
 
   app.post("/api/products/:productId/reviews", async (req: Request, res) => {
     try {
-      const userId = req.session.userId;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       if (!userId) {
         return res.status(401).json({ error: "Please login to write a review" });
       }
@@ -1246,7 +1352,8 @@ export async function registerRoutes(
 
   app.get("/api/products/:productId/my-review", async (req: Request, res) => {
     try {
-      const userId = req.session.userId;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       if (!userId) {
         return res.json(null);
       }
@@ -1261,7 +1368,8 @@ export async function registerRoutes(
   app.post("/api/payment/create", async (req: Request, res) => {
     try {
       const sessionId = req.sessionID;
-      const userId = (req.session as any).userId || null;
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId : null;
       const cartItems = await storage.getCartItems(sessionId);
       
       if (cartItems.length === 0) {
@@ -2455,7 +2563,7 @@ export async function registerRoutes(
       const { updates } = req.body;
       await storage.bulkUpdateStock(updates.map((u: any) => ({
         ...u,
-        authorId: req.session.adminId,
+        authorId: (req as any).adminId,
       })));
       res.json({ success: true });
     } catch (error) {
@@ -2743,7 +2851,7 @@ export async function registerRoutes(
     try {
       const note = await storage.createOrderNote({
         orderId: req.params.id,
-        authorId: req.session.adminId,
+        authorId: (req as any).adminId,
         content: req.body.content,
         isPrivate: req.body.isInternal !== false,
       });
@@ -2995,7 +3103,7 @@ export async function registerRoutes(
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       
       // Get current admin and update
-      const admin = await storage.getAdminUser(req.session.adminId!);
+      const admin = await storage.getAdminUser((req as any).adminId);
       if (!admin) return res.status(404).json({ error: "Admin not found" });
 
       await storage.updateAdminUser(admin.id, {

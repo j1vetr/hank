@@ -27,7 +27,7 @@ The frontend follows a component-based architecture with:
 ### Backend Architecture
 - **Runtime**: Node.js with Express
 - **Language**: TypeScript with ESM modules
-- **Session Management**: express-session for user sessions
+- **Authentication**: JWT with HttpOnly cookies and refresh tokens
 - **Password Hashing**: bcrypt for secure password storage
 - **Build**: esbuild for production bundling
 
@@ -52,10 +52,17 @@ Database tables include:
 - `cart_items` - Shopping cart persistence
 - `orders` and `order_items` - Order management
 
-### Authentication
-- **Admin Auth**: Session-based authentication via `/api/admin/login`
-- **Customer Auth**: Session-based authentication via `/api/auth/*` endpoints
-- **Session Storage**: Server-side sessions with configurable secret
+### Authentication (JWT-based)
+- **Architecture**: Stateless JWT + HttpOnly Cookie + Refresh Token system
+- **Access Tokens**: Short-lived (15 minutes), stored in HttpOnly cookie
+- **Refresh Tokens**: Long-lived (7 days), stored in HttpOnly cookie with database tracking
+- **Token Refresh**: Automatic refresh when access token expires via `getAuthPayload` helper
+- **Token Revocation**: Individual token or all tokens per user via database
+- **Security**: IP address and user agent tracking for refresh tokens
+- **Admin Auth**: JWT-based authentication via `/api/admin/login`
+- **Customer Auth**: JWT-based authentication via `/api/auth/*` endpoints
+- **Production**: Secure cookies with SameSite=Strict in production mode
+- **JWT Module**: `server/jwt.ts` contains all JWT utilities
 - Admin panel accessible at `/toov-admin`
 
 ### API Structure

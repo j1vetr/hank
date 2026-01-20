@@ -445,6 +445,21 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
+// Refresh Tokens for JWT Authentication
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  adminUserId: varchar("admin_user_id").references(() => adminUsers.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  revokedAt: timestamp("revoked_at"),
+  userAgent: text("user_agent"),
+  ipAddress: text("ip_address"),
+});
+
+export type RefreshToken = typeof refreshTokens.$inferSelect;
+
 // Review Request Tracking
 export const reviewRequests = pgTable("review_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
