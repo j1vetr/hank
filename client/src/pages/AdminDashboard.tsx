@@ -5483,6 +5483,7 @@ function CreateQuoteModal({
     productId: string;
     variantId: string | null;
     productName: string;
+    productSku: string | null;
     productImage: string | null;
     variantDetails: string | null;
     quantity: number;
@@ -5506,6 +5507,7 @@ function CreateQuoteModal({
       productId: product.id,
       variantId: null,
       productName: product.name,
+      productSku: product.sku || null,
       productImage: product.images?.[0] || null,
       variantDetails: null,
       quantity: 1,

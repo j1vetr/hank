@@ -568,6 +568,7 @@ export const quoteItems = pgTable("quote_items", {
   productId: varchar("product_id").references(() => products.id).notNull(),
   variantId: varchar("variant_id").references(() => productVariants.id),
   productName: text("product_name").notNull(),
+  productSku: text("product_sku"),
   productImage: text("product_image"),
   variantDetails: text("variant_details"),
   quantity: integer("quantity").notNull(),

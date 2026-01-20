@@ -3876,12 +3876,16 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       doc.pipe(res);
       
-      // Header with HANK branding
-      doc.fontSize(28).font(fontBold).fillColor('#000000').text('HANK', 50, 50);
-      doc.fontSize(10).font(fontRegular).fillColor('#666666').text('Spor Giyim', 50, 80);
+      // Header with HANK logo
+      const logoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-icon.png');
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 40, { width: 60 });
+      } else {
+        doc.fontSize(28).font(fontBold).fillColor('#000000').text('HANK', 50, 50);
+      }
       
       // Quote title
-      doc.fontSize(24).font(fontBold).fillColor('#000000').text('TEKLIF', 350, 50, { align: 'right' });
+      doc.fontSize(24).font(fontBold).fillColor('#000000').text('TEKLİF', 350, 50, { align: 'right' });
       doc.fontSize(12).font(fontRegular).fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
       
       doc.moveDown(2);
@@ -3889,7 +3893,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       // Dealer info box
       const yStart = 120;
       doc.rect(50, yStart, 250, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
-      doc.fontSize(10).font(fontBold).fillColor('#333333').text('BAYI BILGILERI', 60, yStart + 10);
+      doc.fontSize(10).font(fontBold).fillColor('#333333').text('BAYİ BİLGİLERİ', 60, yStart + 10);
       doc.fontSize(11).font(fontRegular).fillColor('#000000').text(dealer?.name || 'Bilinmeyen', 60, yStart + 30);
       if (dealer?.contactPerson) {
         doc.fontSize(9).fillColor('#666666').text(dealer.contactPerson, 60, yStart + 45);
@@ -3903,35 +3907,35 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Quote details box
       doc.rect(310, yStart, 235, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
-      doc.fontSize(10).font(fontBold).fillColor('#333333').text('TEKLIF DETAYLARI', 320, yStart + 10);
+      doc.fontSize(10).font(fontBold).fillColor('#333333').text('TEKLİF DETAYLARI', 320, yStart + 10);
       doc.fontSize(9).font(fontRegular).fillColor('#666666');
-      doc.text('Olusturulma:', 320, yStart + 30);
+      doc.text('Oluşturulma:', 320, yStart + 30);
       doc.fillColor('#000000').text(new Date(quote.createdAt).toLocaleDateString('tr-TR'), 420, yStart + 30);
-      doc.fillColor('#666666').text('Gecerlilik:', 320, yStart + 45);
+      doc.fillColor('#666666').text('Geçerlilik:', 320, yStart + 45);
       doc.fillColor('#000000').text(quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-', 420, yStart + 45);
-      doc.fillColor('#666666').text('Odeme:', 320, yStart + 60);
-      const paymentLabel = { cash: 'Pesin', net15: '15 Gun', net30: '30 Gun', net45: '45 Gun', net60: '60 Gun' }[quote.paymentTerms || ''] || '-';
+      doc.fillColor('#666666').text('Ödeme:', 320, yStart + 60);
+      const paymentLabel = { cash: 'Peşin', net15: '15 Gün', net30: '30 Gün', net45: '45 Gün', net60: '60 Gün' }[quote.paymentTerms || ''] || '-';
       doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
       doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
-      doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Haric', 420, yStart + 75);
+      doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
       
       // Products table
       const tableTop = yStart + 130;
-      doc.fontSize(12).font(fontBold).fillColor('#000000').text('URUNLER', 50, tableTop);
+      doc.fontSize(12).font(fontBold).fillColor('#000000').text('ÜRÜNLER', 50, tableTop);
       
       // Table header
       const headerY = tableTop + 25;
       doc.rect(50, headerY, 495, 25).fillAndStroke('#333333', '#333333');
       doc.fontSize(9).font(fontBold).fillColor('#ffffff');
-      doc.text('Urun', 60, headerY + 8);
+      doc.text('Ürün', 60, headerY + 8);
       doc.text('Adet', 280, headerY + 8, { width: 50, align: 'center' });
       doc.text('Birim Fiyat', 330, headerY + 8, { width: 70, align: 'right' });
-      doc.text('Iskonto', 400, headerY + 8, { width: 50, align: 'center' });
+      doc.text('İskonto', 400, headerY + 8, { width: 50, align: 'center' });
       doc.text('Toplam', 450, headerY + 8, { width: 85, align: 'right' });
       
       // Table rows
       let currentY = headerY + 25;
-      const rowHeight = 50;
+      const rowHeight = 55;
       
       for (const item of items) {
         if (currentY > 700) {
@@ -3942,53 +3946,55 @@ Sitemap: ${baseUrl}/sitemap.xml
         const bgColor = items.indexOf(item) % 2 === 0 ? '#ffffff' : '#fafafa';
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
         
-        // Product image - handle both local paths and URLs
+        // Product image - fetch from production URL
         if (item.productImage) {
           try {
-            let imagePath = item.productImage;
-            if (imagePath.startsWith('/uploads/')) {
-              imagePath = path.join(process.cwd(), 'public', imagePath);
-            } else if (imagePath.startsWith('/')) {
-              imagePath = path.join(process.cwd(), 'public', imagePath);
-            } else if (!imagePath.startsWith('http')) {
-              imagePath = path.join(process.cwd(), imagePath);
+            let imageUrl = item.productImage;
+            // Convert local path to full URL
+            if (imageUrl.startsWith('/uploads/')) {
+              imageUrl = `https://hank.com.tr${imageUrl}`;
             }
             
-            if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-              const imageResponse = await fetch(imagePath);
+            if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+              const imageResponse = await fetch(imageUrl);
               if (imageResponse.ok) {
                 const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-                doc.image(imageBuffer, 55, currentY + 5, { width: 40, height: 40 });
+                doc.image(imageBuffer, 55, currentY + 7, { width: 40, height: 40 });
+              } else {
+                console.log('[PDF] Image fetch failed:', imageUrl, imageResponse.status);
               }
-            } else if (fs.existsSync(imagePath)) {
-              doc.image(imagePath, 55, currentY + 5, { width: 40, height: 40 });
-            } else {
-              console.log('[PDF] Image not found:', imagePath);
             }
           } catch (e) {
             console.log('[PDF] Image load failed:', item.productImage, e);
           }
         }
         
-        // Product details
+        // Product details with SKU
         doc.fontSize(10).font(fontRegular).fillColor('#000000');
-        doc.text(item.productName.substring(0, 30), 100, currentY + 12, { width: 170 });
+        doc.text(item.productName.substring(0, 30), 100, currentY + 8, { width: 170 });
+        
+        // Show SKU if available
+        if (item.productSku) {
+          doc.fontSize(8).fillColor('#888888').text(`SKU: ${item.productSku}`, 100, currentY + 22);
+        }
+        
+        // Show variant details
         if (item.variantDetails) {
-          doc.fontSize(8).fillColor('#666666').text(item.variantDetails, 100, currentY + 28);
+          doc.fontSize(8).fillColor('#666666').text(item.variantDetails, 100, currentY + 34);
         }
         
         doc.fontSize(10).fillColor('#000000');
-        doc.text(item.quantity.toString(), 280, currentY + 18, { width: 50, align: 'center' });
-        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 330, currentY + 18, { width: 70, align: 'right' });
+        doc.text(item.quantity.toString(), 280, currentY + 20, { width: 50, align: 'center' });
+        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 330, currentY + 20, { width: 70, align: 'right' });
         
         if (parseFloat(item.discountPercent) > 0) {
-          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 18, { width: 50, align: 'center' });
+          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 20, { width: 50, align: 'center' });
         } else {
-          doc.fillColor('#999999').text('-', 400, currentY + 18, { width: 50, align: 'center' });
+          doc.fillColor('#999999').text('-', 400, currentY + 20, { width: 50, align: 'center' });
         }
         
         doc.font(fontBold).fillColor('#000000');
-        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 450, currentY + 18, { width: 85, align: 'right' });
+        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 450, currentY + 20, { width: 85, align: 'right' });
         
         currentY += rowHeight;
       }
@@ -4002,7 +4008,7 @@ Sitemap: ${baseUrl}/sitemap.xml
       doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 15, { width: 75, align: 'right' });
       
       if (parseFloat(quote.discountTotal) > 0) {
-        doc.fillColor('#22c55e').text('Iskonto:', 360, currentY + 35);
+        doc.fillColor('#22c55e').text('İskonto:', 360, currentY + 35);
         doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 35, { width: 75, align: 'right' });
       }
       
@@ -4084,6 +4090,7 @@ Sitemap: ${baseUrl}/sitemap.xml
             productId: item.productId,
             variantId: item.variantId || null,
             productName: item.productName,
+            productSku: item.productSku || null,
             productImage: item.productImage || null,
             variantDetails: item.variantDetails || null,
             quantity: item.quantity,
@@ -4127,6 +4134,7 @@ Sitemap: ${baseUrl}/sitemap.xml
             productId: item.productId,
             variantId: item.variantId || null,
             productName: item.productName,
+            productSku: item.productSku || null,
             productImage: item.productImage || null,
             variantDetails: item.variantDetails || null,
             quantity: item.quantity,
