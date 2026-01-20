@@ -5293,7 +5293,6 @@ function QuotesPanel() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [viewingQuote, setViewingQuote] = useState<Quote | null>(null);
 
   const { data: quotes = [], isLoading } = useQuery<Quote[]>({
     queryKey: ['admin', 'quotes'],
@@ -5419,7 +5418,7 @@ function QuotesPanel() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setViewingQuote(quote)}
+                          onClick={() => setLocation(`/toov-admin/quotes/${quote.id}`)}
                           className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
                           data-testid={`button-view-quote-${quote.id}`}
                         >
@@ -5461,13 +5460,6 @@ function QuotesPanel() {
             setShowCreateModal(false);
             queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
           }}
-        />
-      )}
-
-      {viewingQuote && (
-        <QuoteDetailModal
-          quoteId={viewingQuote.id}
-          onClose={() => setViewingQuote(null)}
         />
       )}
     </div>
