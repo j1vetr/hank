@@ -49,7 +49,11 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
-  Check
+  Check,
+  Building2,
+  ClipboardList,
+  Phone,
+  MapPin
 } from 'lucide-react';
 
 interface Product {
@@ -121,7 +125,54 @@ interface ProductVariant {
   stock: number;
 }
 
-type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'influencers' | 'settings' | 'database';
+type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'influencers' | 'dealers' | 'quotes' | 'settings' | 'database';
+
+interface Dealer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  contactPerson: string;
+  address: string | null;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Quote {
+  id: string;
+  quoteNumber: string;
+  dealerId: string;
+  status: string;
+  validUntil: string | null;
+  paymentTerms: string | null;
+  notes: string | null;
+  subtotal: string;
+  discountTotal: string;
+  grandTotal: string;
+  includesVat: boolean;
+  sentAt: string | null;
+  acceptedAt: string | null;
+  rejectedAt: string | null;
+  createdAt: string;
+  dealer?: Dealer;
+  itemCount?: number;
+}
+
+interface QuoteItem {
+  id: string;
+  quoteId: string;
+  productId: string;
+  variantId: string | null;
+  productName: string;
+  productImage: string | null;
+  variantDetails: string | null;
+  quantity: number;
+  unitPrice: string;
+  discountPercent: string;
+  lineTotal: string;
+}
 
 interface WooSettings {
   id: string;
@@ -344,6 +395,8 @@ export default function AdminDashboard() {
     { id: 'categories' as TabType, icon: Grid3x3, label: 'Kategoriler' },
     { id: 'inventory' as TabType, icon: Warehouse, label: 'Stok Yönetimi' },
     { id: 'orders' as TabType, icon: ShoppingCart, label: 'Siparişler' },
+    { id: 'dealers' as TabType, icon: Building2, label: 'Bayiler' },
+    { id: 'quotes' as TabType, icon: ClipboardList, label: 'Teklifler' },
     { id: 'marketing' as TabType, icon: Megaphone, label: 'Pazarlama' },
     { id: 'influencers' as TabType, icon: UserCircle, label: 'Influencer' },
     { id: 'users' as TabType, icon: Users, label: 'Kullanıcılar' },
@@ -901,6 +954,14 @@ export default function AdminDashboard() {
 
           {activeTab === 'influencers' && (
             <InfluencerPanel />
+          )}
+
+          {activeTab === 'dealers' && (
+            <DealersPanel />
+          )}
+
+          {activeTab === 'quotes' && (
+            <QuotesPanel />
           )}
           
           {activeTab === 'settings' && (
@@ -4894,6 +4955,1058 @@ function SettingsPanel() {
           {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
           Ayarları Kaydet
         </button>
+      </div>
+    </div>
+  );
+}
+
+function DealersPanel() {
+  const queryClient = useQueryClient();
+  const [showModal, setShowModal] = useState(false);
+  const [editingDealer, setEditingDealer] = useState<Dealer | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { data: dealers = [], isLoading } = useQuery<Dealer[]>({
+    queryKey: ['admin', 'dealers'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/dealers', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch dealers');
+      return res.json();
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/dealers/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Delete failed');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dealers'] });
+    }
+  });
+
+  const filteredDealers = dealers.filter(d =>
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    d.contactPerson.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
+          <input
+            type="text"
+            placeholder="Bayi ara..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:border-white transition-colors"
+            data-testid="input-dealer-search"
+          />
+        </div>
+        <button
+          onClick={() => { setEditingDealer(null); setShowModal(true); }}
+          className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors font-medium"
+          data-testid="button-add-dealer"
+        >
+          <Plus className="w-4 h-4" />
+          Yeni Bayi
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+        </div>
+      ) : (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-zinc-800/50">
+              <tr>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Bayi Adı</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Yetkili Kişi</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">İletişim</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Durum</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-zinc-400">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {filteredDealers.map((dealer) => (
+                <tr key={dealer.id} className="hover:bg-zinc-800/30 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center">
+                        <Building2 className="w-5 h-5 text-zinc-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{dealer.name}</p>
+                        {dealer.address && (
+                          <p className="text-xs text-zinc-500 flex items-center gap-1 mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {dealer.address.substring(0, 40)}...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-zinc-300">{dealer.contactPerson}</td>
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-zinc-300 flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {dealer.email}
+                      </p>
+                      <p className="text-sm text-zinc-400 flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {dealer.phone}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      dealer.status === 'active' 
+                        ? 'bg-emerald-500/20 text-emerald-400' 
+                        : 'bg-zinc-500/20 text-zinc-400'
+                    }`}>
+                      {dealer.status === 'active' ? 'Aktif' : 'Pasif'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => { setEditingDealer(dealer); setShowModal(true); }}
+                        className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                        data-testid={`button-edit-dealer-${dealer.id}`}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Bu bayiyi silmek istediğinize emin misiniz?')) {
+                            deleteMutation.mutate(dealer.id);
+                          }
+                        }}
+                        className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
+                        data-testid={`button-delete-dealer-${dealer.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredDealers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                    {searchQuery ? 'Bayi bulunamadı' : 'Henüz bayi eklenmemiş'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showModal && (
+        <DealerModal
+          dealer={editingDealer}
+          onClose={() => { setShowModal(false); setEditingDealer(null); }}
+          onSuccess={() => {
+            setShowModal(false);
+            setEditingDealer(null);
+            queryClient.invalidateQueries({ queryKey: ['admin', 'dealers'] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DealerModal({ 
+  dealer, 
+  onClose, 
+  onSuccess 
+}: { 
+  dealer: Dealer | null; 
+  onClose: () => void; 
+  onSuccess: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: dealer?.name || '',
+    email: dealer?.email || '',
+    phone: dealer?.phone || '',
+    contactPerson: dealer?.contactPerson || '',
+    address: dealer?.address || '',
+    status: dealer?.status || 'active',
+    notes: dealer?.notes || ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.email || !formData.phone || !formData.contactPerson) {
+      alert('Lütfen zorunlu alanları doldurun');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const url = dealer ? `/api/admin/dealers/${dealer.id}` : '/api/admin/dealers';
+      const res = await fetch(url, {
+        method: dealer ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData)
+      });
+
+      if (!res.ok) throw new Error('Save failed');
+      onSuccess();
+    } catch (error) {
+      console.error('Error saving dealer:', error);
+      alert('Bayi kaydedilemedi');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">
+            {dealer ? 'Bayi Düzenle' : 'Yeni Bayi Ekle'}
+          </h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Bayi Adı *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(f => ({ ...f, name: e.target.value }))}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                placeholder="Örn: ABC Spor Mağazası"
+                data-testid="input-dealer-name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">E-posta *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(f => ({ ...f, email: e.target.value }))}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                placeholder="bayi@email.com"
+                data-testid="input-dealer-email"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Telefon *</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData(f => ({ ...f, phone: e.target.value }))}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                placeholder="0532 123 45 67"
+                data-testid="input-dealer-phone"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Yetkili Kişi *</label>
+              <input
+                type="text"
+                value={formData.contactPerson}
+                onChange={(e) => setFormData(f => ({ ...f, contactPerson: e.target.value }))}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                placeholder="Ahmet Yılmaz"
+                data-testid="input-dealer-contact"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Durum</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData(f => ({ ...f, status: e.target.value }))}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                data-testid="select-dealer-status"
+              >
+                <option value="active">Aktif</option>
+                <option value="inactive">Pasif</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Adres</label>
+              <textarea
+                value={formData.address}
+                onChange={(e) => setFormData(f => ({ ...f, address: e.target.value }))}
+                rows={2}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors resize-none"
+                placeholder="Tam adres"
+                data-testid="input-dealer-address"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Notlar</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData(f => ({ ...f, notes: e.target.value }))}
+                rows={2}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors resize-none"
+                placeholder="Özel notlar..."
+                data-testid="input-dealer-notes"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-6 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 font-medium"
+            data-testid="button-save-dealer"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {dealer ? 'Güncelle' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuotesPanel() {
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewingQuote, setViewingQuote] = useState<Quote | null>(null);
+
+  const { data: quotes = [], isLoading } = useQuery<Quote[]>({
+    queryKey: ['admin', 'quotes'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/quotes', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch quotes');
+      return res.json();
+    }
+  });
+
+  const { data: dealers = [] } = useQuery<Dealer[]>({
+    queryKey: ['admin', 'dealers'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/dealers', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch dealers');
+      return res.json();
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/quotes/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Delete failed');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
+    }
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'draft': return { label: 'Taslak', color: 'bg-zinc-500/20 text-zinc-400' };
+      case 'sent': return { label: 'Gönderildi', color: 'bg-blue-500/20 text-blue-400' };
+      case 'accepted': return { label: 'Kabul Edildi', color: 'bg-emerald-500/20 text-emerald-400' };
+      case 'rejected': return { label: 'Reddedildi', color: 'bg-red-500/20 text-red-400' };
+      case 'expired': return { label: 'Süresi Doldu', color: 'bg-yellow-500/20 text-yellow-400' };
+      default: return { label: status, color: 'bg-zinc-500/20 text-zinc-400' };
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Teklifler</h3>
+          <p className="text-sm text-zinc-400">Bayi tekliflerini yönetin</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          disabled={dealers.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors font-medium disabled:opacity-50"
+          data-testid="button-create-quote"
+        >
+          <Plus className="w-4 h-4" />
+          Yeni Teklif
+        </button>
+      </div>
+
+      {dealers.length === 0 && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-yellow-400" />
+          <div>
+            <p className="text-yellow-400 font-medium">Önce bayi eklemeniz gerekiyor</p>
+            <p className="text-sm text-yellow-400/70">Teklif oluşturmak için en az bir bayi tanımlanmalıdır.</p>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+        </div>
+      ) : (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-zinc-800/50">
+              <tr>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Teklif No</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Bayi</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Durum</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-zinc-400">Geçerlilik</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-zinc-400">Toplam</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-zinc-400">İşlemler</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {quotes.map((quote) => {
+                const status = getStatusBadge(quote.status);
+                return (
+                  <tr key={quote.id} className="hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="font-mono text-white">{quote.quoteNumber}</p>
+                      <p className="text-xs text-zinc-500">
+                        {new Date(quote.createdAt).toLocaleDateString('tr-TR')}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-white">{quote.dealer?.name || 'Bilinmeyen'}</p>
+                      <p className="text-xs text-zinc-500">{quote.dealer?.contactPerson}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-400">
+                      {quote.validUntil 
+                        ? new Date(quote.validUntil).toLocaleDateString('tr-TR')
+                        : '-'
+                      }
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <p className="font-semibold text-white">
+                        {parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </p>
+                      <p className="text-xs text-zinc-500">{quote.itemCount || 0} ürün</p>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setViewingQuote(quote)}
+                          className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                          data-testid={`button-view-quote-${quote.id}`}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Bu teklifi silmek istediğinize emin misiniz?')) {
+                              deleteMutation.mutate(quote.id);
+                            }
+                          }}
+                          className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
+                          data-testid={`button-delete-quote-${quote.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {quotes.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                    Henüz teklif oluşturulmamış
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <CreateQuoteModal
+          dealers={dealers}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
+          }}
+        />
+      )}
+
+      {viewingQuote && (
+        <QuoteDetailModal
+          quoteId={viewingQuote.id}
+          onClose={() => setViewingQuote(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateQuoteModal({ 
+  dealers, 
+  onClose, 
+  onSuccess 
+}: { 
+  dealers: Dealer[]; 
+  onClose: () => void; 
+  onSuccess: () => void;
+}) {
+  const [selectedDealerId, setSelectedDealerId] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [notes, setNotes] = useState('');
+  const [items, setItems] = useState<Array<{
+    productId: string;
+    variantId: string | null;
+    productName: string;
+    productImage: string | null;
+    variantDetails: string | null;
+    quantity: number;
+    unitPrice: string;
+    discountPercent: number;
+  }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showProductSelector, setShowProductSelector] = useState(false);
+
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['admin', 'products'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/products', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch products');
+      return res.json();
+    }
+  });
+
+  const addProduct = (product: Product) => {
+    setItems([...items, {
+      productId: product.id,
+      variantId: null,
+      productName: product.name,
+      productImage: product.images?.[0] || null,
+      variantDetails: null,
+      quantity: 1,
+      unitPrice: product.basePrice,
+      discountPercent: 0
+    }]);
+    setShowProductSelector(false);
+  };
+
+  const removeItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], [field]: value };
+    setItems(updated);
+  };
+
+  const calculateTotal = () => {
+    return items.reduce((sum, item) => {
+      const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
+      const discount = lineSubtotal * (item.discountPercent / 100);
+      return sum + (lineSubtotal - discount);
+    }, 0);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedDealerId) {
+      alert('Lütfen bir bayi seçin');
+      return;
+    }
+    if (items.length === 0) {
+      alert('Lütfen en az bir ürün ekleyin');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/admin/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          dealerId: selectedDealerId,
+          validUntil: validUntil || null,
+          paymentTerms: paymentTerms || null,
+          notes: notes || null,
+          includesVat: true,
+          items
+        })
+      });
+
+      if (!res.ok) throw new Error('Create failed');
+      onSuccess();
+    } catch (error) {
+      console.error('Error creating quote:', error);
+      alert('Teklif oluşturulamadı');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-4xl my-8">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">Yeni Teklif Oluştur</h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Bayi *</label>
+              <select
+                value={selectedDealerId}
+                onChange={(e) => setSelectedDealerId(e.target.value)}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                data-testid="select-quote-dealer"
+              >
+                <option value="">Bayi Seçin</option>
+                {dealers.filter(d => d.status === 'active').map(dealer => (
+                  <option key={dealer.id} value={dealer.id}>{dealer.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Geçerlilik Tarihi</label>
+              <input
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                data-testid="input-quote-valid-until"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Ödeme Koşulları</label>
+              <select
+                value={paymentTerms}
+                onChange={(e) => setPaymentTerms(e.target.value)}
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                data-testid="select-quote-payment-terms"
+              >
+                <option value="">Seçin</option>
+                <option value="cash">Peşin</option>
+                <option value="net15">15 Gün</option>
+                <option value="net30">30 Gün</option>
+                <option value="net45">45 Gün</option>
+                <option value="net60">60 Gün</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <label className="text-sm font-medium text-zinc-400">Ürünler</label>
+              <button
+                onClick={() => setShowProductSelector(true)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
+                data-testid="button-add-product-to-quote"
+              >
+                <Plus className="w-4 h-4" />
+                Ürün Ekle
+              </button>
+            </div>
+
+            {items.length > 0 ? (
+              <div className="border border-zinc-800 rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-zinc-800/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">Ürün</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Adet</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Birim Fiyat</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">İskonto %</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Toplam</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800">
+                    {items.map((item, index) => {
+                      const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
+                      const discount = lineSubtotal * (item.discountPercent / 100);
+                      const lineTotal = lineSubtotal - discount;
+                      
+                      return (
+                        <tr key={index}>
+                          <td className="px-4 py-3">
+                            <p className="text-white text-sm">{item.productName}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                              className="w-16 px-2 py-1 text-center bg-zinc-800 border border-zinc-700 rounded text-white text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unitPrice}
+                              onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
+                              className="w-24 px-2 py-1 text-right bg-zinc-800 border border-zinc-700 rounded text-white text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={item.discountPercent}
+                              onChange={(e) => updateItem(index, 'discountPercent', parseFloat(e.target.value) || 0)}
+                              className="w-16 px-2 py-1 text-center bg-zinc-800 border border-zinc-700 rounded text-white text-sm"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right text-white text-sm font-medium">
+                            {lineTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => removeItem(index)}
+                              className="p-1 text-zinc-400 hover:text-red-400"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-zinc-800/30">
+                    <tr>
+                      <td colSpan={4} className="px-4 py-3 text-right text-white font-semibold">
+                        Genel Toplam:
+                      </td>
+                      <td className="px-4 py-3 text-right text-white font-bold text-lg">
+                        {calculateTotal().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <div className="border border-dashed border-zinc-700 rounded-lg p-8 text-center text-zinc-500">
+                Henüz ürün eklenmedi. Yukarıdaki butonu kullanarak ürün ekleyin.
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Notlar</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors resize-none"
+              placeholder="Teklif ile ilgili özel notlar..."
+              data-testid="input-quote-notes"
+            />
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading || !selectedDealerId || items.length === 0}
+            className="flex items-center gap-2 px-6 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 font-medium"
+            data-testid="button-submit-quote"
+          >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            Teklifi Oluştur
+          </button>
+        </div>
+      </div>
+
+      {showProductSelector && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+              <h4 className="font-semibold text-white">Ürün Seç</h4>
+              <button onClick={() => setShowProductSelector(false)} className="text-zinc-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid gap-2">
+                {products.filter(p => p.isActive).map(product => (
+                  <button
+                    key={product.id}
+                    onClick={() => addProduct(product)}
+                    className="flex items-center gap-3 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
+                  >
+                    {product.images?.[0] ? (
+                      <img src={product.images[0]} alt="" className="w-12 h-12 object-cover rounded" />
+                    ) : (
+                      <div className="w-12 h-12 bg-zinc-700 rounded flex items-center justify-center">
+                        <Package className="w-5 h-5 text-zinc-500" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{product.name}</p>
+                      <p className="text-sm text-zinc-400">
+                        {parseFloat(product.basePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </p>
+                    </div>
+                    <Plus className="w-5 h-5 text-zinc-400" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuoteDetailModal({ 
+  quoteId, 
+  onClose 
+}: { 
+  quoteId: string; 
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  
+  const { data: quote, isLoading } = useQuery<Quote & { items: QuoteItem[] }>({
+    queryKey: ['admin', 'quote', quoteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/quotes/${quoteId}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch quote');
+      return res.json();
+    }
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async (status: string) => {
+      const res = await fetch(`/api/admin/quotes/${quoteId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error('Update failed');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'quote', quoteId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
+    }
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'draft': return { label: 'Taslak', color: 'bg-zinc-500/20 text-zinc-400' };
+      case 'sent': return { label: 'Gönderildi', color: 'bg-blue-500/20 text-blue-400' };
+      case 'accepted': return { label: 'Kabul Edildi', color: 'bg-emerald-500/20 text-emerald-400' };
+      case 'rejected': return { label: 'Reddedildi', color: 'bg-red-500/20 text-red-400' };
+      case 'expired': return { label: 'Süresi Doldu', color: 'bg-yellow-500/20 text-yellow-400' };
+      default: return { label: status, color: 'bg-zinc-500/20 text-zinc-400' };
+    }
+  };
+
+  const paymentTermsLabel = (terms: string | null) => {
+    switch (terms) {
+      case 'cash': return 'Peşin';
+      case 'net15': return '15 Gün';
+      case 'net30': return '30 Gün';
+      case 'net45': return '45 Gün';
+      case 'net60': return '60 Gün';
+      default: return terms || '-';
+    }
+  };
+
+  if (isLoading || !quote) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <Loader2 className="w-8 h-8 animate-spin text-white" />
+      </div>
+    );
+  }
+
+  const status = getStatusBadge(quote.status);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-3xl my-8">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Teklif Detayı</h3>
+            <p className="text-sm text-zinc-400 font-mono">{quote.quoteNumber}</p>
+          </div>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-zinc-800/50 rounded-lg p-4">
+              <p className="text-sm text-zinc-400 mb-1">Bayi</p>
+              <p className="text-white font-medium">{quote.dealer?.name}</p>
+              <p className="text-sm text-zinc-400">{quote.dealer?.contactPerson}</p>
+              {quote.dealer?.email && (
+                <p className="text-sm text-zinc-500">{quote.dealer.email}</p>
+              )}
+            </div>
+            <div className="bg-zinc-800/50 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-zinc-400">Durum</span>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${status.color}`}>
+                  {status.label}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-zinc-400">Oluşturulma</span>
+                <span className="text-sm text-white">
+                  {new Date(quote.createdAt).toLocaleDateString('tr-TR')}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-zinc-400">Geçerlilik</span>
+                <span className="text-sm text-white">
+                  {quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-zinc-400">Ödeme</span>
+                <span className="text-sm text-white">{paymentTermsLabel(quote.paymentTerms)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-medium text-zinc-400 mb-3">Ürünler</h4>
+            <div className="border border-zinc-800 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-zinc-800/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">Ürün</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Adet</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Birim</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">İskonto</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Toplam</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {quote.items?.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3">
+                        <p className="text-white text-sm">{item.productName}</p>
+                        {item.variantDetails && (
+                          <p className="text-xs text-zinc-500">{item.variantDetails}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-white text-sm">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right text-white text-sm">
+                        {parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </td>
+                      <td className="px-4 py-3 text-center text-zinc-400 text-sm">
+                        {parseFloat(item.discountPercent) > 0 ? `%${item.discountPercent}` : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-right text-white text-sm font-medium">
+                        {parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-zinc-800/30">
+                  <tr>
+                    <td colSpan={4} className="px-4 py-3 text-right text-white font-semibold">
+                      Genel Toplam:
+                    </td>
+                    <td className="px-4 py-3 text-right text-white font-bold text-lg">
+                      {parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {quote.notes && (
+            <div>
+              <h4 className="text-sm font-medium text-zinc-400 mb-2">Notlar</h4>
+              <p className="text-zinc-300 text-sm bg-zinc-800/50 rounded-lg p-3">{quote.notes}</p>
+            </div>
+          )}
+
+          <div>
+            <h4 className="text-sm font-medium text-zinc-400 mb-3">Durum Değiştir</h4>
+            <div className="flex flex-wrap gap-2">
+              {['draft', 'sent', 'accepted', 'rejected', 'expired'].map((s) => {
+                const st = getStatusBadge(s);
+                return (
+                  <button
+                    key={s}
+                    onClick={() => updateStatusMutation.mutate(s)}
+                    disabled={quote.status === s}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      quote.status === s 
+                        ? 'bg-white text-black' 
+                        : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 text-zinc-400 hover:text-white transition-colors"
+          >
+            Kapat
+          </button>
+        </div>
       </div>
     </div>
   );
