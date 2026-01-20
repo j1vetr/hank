@@ -184,3 +184,30 @@ export function clearAuthCookies(res: any): void {
   res.clearCookie('access_token', { path: '/' });
   res.clearCookie('refresh_token', { path: '/' });
 }
+
+// Cart token for anonymous shopping carts
+const CART_TOKEN_EXPIRY_DAYS = 30;
+
+export function generateCartToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+export function setCartTokenCookie(res: any, cartToken: string, isProduction: boolean): void {
+  res.cookie('cart_token', cartToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' as const : 'lax' as const,
+    path: '/',
+    maxAge: CART_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+  });
+}
+
+export function getOrCreateCartToken(req: any, res: any): string {
+  let cartToken = req.cookies?.cart_token;
+  if (!cartToken) {
+    cartToken = generateCartToken();
+    const isProduction = process.env.NODE_ENV === 'production';
+    setCartTokenCookie(res, cartToken, isProduction);
+  }
+  return cartToken;
+}
