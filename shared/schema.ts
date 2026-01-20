@@ -40,12 +40,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-// User Sessions for express-session
-export const userSessions = pgTable("user_sessions", {
-  sid: varchar("sid").primaryKey(),
-  sess: jsonb("sess").notNull(),
-  expire: timestamp("expire").notNull(),
-});
+// NOTE: user_sessions table is managed by connect-pg-simple middleware, not Drizzle
+// Do NOT add it to schema - it will cause permission errors on db:push
 
 // User Addresses
 export const userAddresses = pgTable("user_addresses", {
