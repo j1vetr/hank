@@ -3858,26 +3858,39 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       const doc = new PDFDocument({ size: 'A4', margin: 50 });
       
+      // Register Inter fonts for Turkish character support
+      const fontPath = path.join(process.cwd(), 'public', 'fonts');
+      const regularFontPath = path.join(fontPath, 'inter-regular.ttf');
+      const boldFontPath = path.join(fontPath, 'inter-bold.ttf');
+      
+      if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
+        doc.registerFont('Inter', regularFontPath);
+        doc.registerFont('Inter-Bold', boldFontPath);
+      }
+      
+      const fontRegular = fs.existsSync(regularFontPath) ? 'Inter' : 'Helvetica';
+      const fontBold = fs.existsSync(boldFontPath) ? 'Inter-Bold' : 'Helvetica-Bold';
+      
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="Teklif-${quote.quoteNumber}.pdf"`);
       
       doc.pipe(res);
       
       // Header with HANK branding
-      doc.fontSize(28).font('Helvetica-Bold').fillColor('#000000').text('HANK', 50, 50);
-      doc.fontSize(10).font('Helvetica').fillColor('#666666').text('Spor Giyim', 50, 80);
+      doc.fontSize(28).font(fontBold).fillColor('#000000').text('HANK', 50, 50);
+      doc.fontSize(10).font(fontRegular).fillColor('#666666').text('Spor Giyim', 50, 80);
       
       // Quote title
-      doc.fontSize(24).font('Helvetica-Bold').fillColor('#000000').text('TEKLİF', 350, 50, { align: 'right' });
-      doc.fontSize(12).font('Helvetica').fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
+      doc.fontSize(24).font(fontBold).fillColor('#000000').text('TEKLIF', 350, 50, { align: 'right' });
+      doc.fontSize(12).font(fontRegular).fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
       
       doc.moveDown(2);
       
       // Dealer info box
       const yStart = 120;
       doc.rect(50, yStart, 250, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#333333').text('BAYİ BİLGİLERİ', 60, yStart + 10);
-      doc.fontSize(11).font('Helvetica').fillColor('#000000').text(dealer?.name || 'Bilinmeyen', 60, yStart + 30);
+      doc.fontSize(10).font(fontBold).fillColor('#333333').text('BAYI BILGILERI', 60, yStart + 10);
+      doc.fontSize(11).font(fontRegular).fillColor('#000000').text(dealer?.name || 'Bilinmeyen', 60, yStart + 30);
       if (dealer?.contactPerson) {
         doc.fontSize(9).fillColor('#666666').text(dealer.contactPerson, 60, yStart + 45);
       }
@@ -3890,30 +3903,30 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Quote details box
       doc.rect(310, yStart, 235, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#333333').text('TEKLİF DETAYLARI', 320, yStart + 10);
-      doc.fontSize(9).font('Helvetica').fillColor('#666666');
-      doc.text('Oluşturulma:', 320, yStart + 30);
+      doc.fontSize(10).font(fontBold).fillColor('#333333').text('TEKLIF DETAYLARI', 320, yStart + 10);
+      doc.fontSize(9).font(fontRegular).fillColor('#666666');
+      doc.text('Olusturulma:', 320, yStart + 30);
       doc.fillColor('#000000').text(new Date(quote.createdAt).toLocaleDateString('tr-TR'), 420, yStart + 30);
-      doc.fillColor('#666666').text('Geçerlilik:', 320, yStart + 45);
+      doc.fillColor('#666666').text('Gecerlilik:', 320, yStart + 45);
       doc.fillColor('#000000').text(quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-', 420, yStart + 45);
-      doc.fillColor('#666666').text('Ödeme:', 320, yStart + 60);
-      const paymentLabel = { cash: 'Peşin', net15: '15 Gün', net30: '30 Gün', net45: '45 Gün', net60: '60 Gün' }[quote.paymentTerms || ''] || '-';
+      doc.fillColor('#666666').text('Odeme:', 320, yStart + 60);
+      const paymentLabel = { cash: 'Pesin', net15: '15 Gun', net30: '30 Gun', net45: '45 Gun', net60: '60 Gun' }[quote.paymentTerms || ''] || '-';
       doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
       doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
-      doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
+      doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Haric', 420, yStart + 75);
       
       // Products table
       const tableTop = yStart + 130;
-      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text('ÜRÜNLER', 50, tableTop);
+      doc.fontSize(12).font(fontBold).fillColor('#000000').text('URUNLER', 50, tableTop);
       
       // Table header
       const headerY = tableTop + 25;
       doc.rect(50, headerY, 495, 25).fillAndStroke('#333333', '#333333');
-      doc.fontSize(9).font('Helvetica-Bold').fillColor('#ffffff');
-      doc.text('Ürün', 60, headerY + 8);
+      doc.fontSize(9).font(fontBold).fillColor('#ffffff');
+      doc.text('Urun', 60, headerY + 8);
       doc.text('Adet', 280, headerY + 8, { width: 50, align: 'center' });
       doc.text('Birim Fiyat', 330, headerY + 8, { width: 70, align: 'right' });
-      doc.text('İskonto', 400, headerY + 8, { width: 50, align: 'center' });
+      doc.text('Iskonto', 400, headerY + 8, { width: 50, align: 'center' });
       doc.text('Toplam', 450, headerY + 8, { width: 85, align: 'right' });
       
       // Table rows
@@ -3932,30 +3945,33 @@ Sitemap: ${baseUrl}/sitemap.xml
         // Product image - handle both local paths and URLs
         if (item.productImage) {
           try {
-            if (item.productImage.startsWith('http://') || item.productImage.startsWith('https://')) {
-              // For external URLs, fetch the image first
-              const imageResponse = await fetch(item.productImage);
+            let imagePath = item.productImage;
+            if (imagePath.startsWith('/uploads/')) {
+              imagePath = path.join(process.cwd(), 'public', imagePath);
+            } else if (imagePath.startsWith('/')) {
+              imagePath = path.join(process.cwd(), 'public', imagePath);
+            } else if (!imagePath.startsWith('http')) {
+              imagePath = path.join(process.cwd(), imagePath);
+            }
+            
+            if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+              const imageResponse = await fetch(imagePath);
               if (imageResponse.ok) {
                 const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
                 doc.image(imageBuffer, 55, currentY + 5, { width: 40, height: 40 });
               }
+            } else if (fs.existsSync(imagePath)) {
+              doc.image(imagePath, 55, currentY + 5, { width: 40, height: 40 });
             } else {
-              // For local paths
-              const imagePath = item.productImage.startsWith('/') 
-                ? path.join(process.cwd(), 'public', item.productImage)
-                : path.join(process.cwd(), item.productImage);
-              if (fs.existsSync(imagePath)) {
-                doc.image(imagePath, 55, currentY + 5, { width: 40, height: 40 });
-              }
+              console.log('[PDF] Image not found:', imagePath);
             }
           } catch (e) {
-            // Skip image if not accessible - continue without image
             console.log('[PDF] Image load failed:', item.productImage, e);
           }
         }
         
         // Product details
-        doc.fontSize(10).font('Helvetica').fillColor('#000000');
+        doc.fontSize(10).font(fontRegular).fillColor('#000000');
         doc.text(item.productName.substring(0, 30), 100, currentY + 12, { width: 170 });
         if (item.variantDetails) {
           doc.fontSize(8).fillColor('#666666').text(item.variantDetails, 100, currentY + 28);
@@ -3963,7 +3979,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         
         doc.fontSize(10).fillColor('#000000');
         doc.text(item.quantity.toString(), 280, currentY + 18, { width: 50, align: 'center' });
-        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 330, currentY + 18, { width: 70, align: 'right' });
+        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 330, currentY + 18, { width: 70, align: 'right' });
         
         if (parseFloat(item.discountPercent) > 0) {
           doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 18, { width: 50, align: 'center' });
@@ -3971,8 +3987,8 @@ Sitemap: ${baseUrl}/sitemap.xml
           doc.fillColor('#999999').text('-', 400, currentY + 18, { width: 50, align: 'center' });
         }
         
-        doc.font('Helvetica-Bold').fillColor('#000000');
-        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 450, currentY + 18, { width: 85, align: 'right' });
+        doc.font(fontBold).fillColor('#000000');
+        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 450, currentY + 18, { width: 85, align: 'right' });
         
         currentY += rowHeight;
       }
@@ -3981,18 +3997,18 @@ Sitemap: ${baseUrl}/sitemap.xml
       currentY += 10;
       doc.rect(350, currentY, 195, 80).fillAndStroke('#f5f5f5', '#e0e0e0');
       
-      doc.fontSize(10).font('Helvetica').fillColor('#666666');
+      doc.fontSize(10).font(fontRegular).fillColor('#666666');
       doc.text('Ara Toplam:', 360, currentY + 15);
-      doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 460, currentY + 15, { width: 75, align: 'right' });
+      doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 15, { width: 75, align: 'right' });
       
       if (parseFloat(quote.discountTotal) > 0) {
-        doc.fillColor('#22c55e').text('İskonto:', 360, currentY + 35);
-        doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 460, currentY + 35, { width: 75, align: 'right' });
+        doc.fillColor('#22c55e').text('Iskonto:', 360, currentY + 35);
+        doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 35, { width: 75, align: 'right' });
       }
       
-      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
+      doc.fontSize(12).font(fontBold).fillColor('#000000');
       doc.text('GENEL TOPLAM:', 360, currentY + 55);
-      doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 460, currentY + 55, { width: 75, align: 'right' });
+      doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 55, { width: 75, align: 'right' });
       
       // Notes
       if (quote.notes) {
@@ -4001,12 +4017,12 @@ Sitemap: ${baseUrl}/sitemap.xml
           doc.addPage();
           currentY = 50;
         }
-        doc.fontSize(10).font('Helvetica-Bold').fillColor('#333333').text('NOTLAR', 50, currentY);
-        doc.fontSize(9).font('Helvetica').fillColor('#666666').text(quote.notes, 50, currentY + 15, { width: 495 });
+        doc.fontSize(10).font(fontBold).fillColor('#333333').text('NOTLAR', 50, currentY);
+        doc.fontSize(9).font(fontRegular).fillColor('#666666').text(quote.notes, 50, currentY + 15, { width: 495 });
       }
       
       // Footer
-      doc.fontSize(8).font('Helvetica').fillColor('#999999');
+      doc.fontSize(8).font(fontRegular).fillColor('#999999');
       doc.text('HANK Spor Giyim | www.hank.com.tr | info@hank.com.tr', 50, 780, { align: 'center', width: 495 });
       
       doc.end();
