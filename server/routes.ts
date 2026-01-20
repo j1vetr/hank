@@ -7,6 +7,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import PDFDocument from "pdfkit";
+import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc } from "drizzle-orm";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons } from "@shared/schema";
@@ -112,6 +113,203 @@ const upload = multer({
     }
   },
 });
+
+// Helper function to generate quote PDF as buffer for email attachment
+async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Promise<Buffer> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const chunks: Buffer[] = [];
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+      
+      // Register Inter fonts for Turkish character support
+      const fontPath = path.join(process.cwd(), 'public', 'fonts');
+      const regularFontPath = path.join(fontPath, 'inter-regular.ttf');
+      const boldFontPath = path.join(fontPath, 'inter-bold.ttf');
+      
+      if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
+        doc.registerFont('Inter', regularFontPath);
+        doc.registerFont('Inter-Bold', boldFontPath);
+      }
+      
+      const fontRegular = fs.existsSync(regularFontPath) ? 'Inter' : 'Helvetica';
+      const fontBold = fs.existsSync(boldFontPath) ? 'Inter-Bold' : 'Helvetica-Bold';
+      
+      // Header with HANK logo - convert SVG to PNG using sharp
+      const svgLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-logo.svg');
+      const pngLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-icon.png');
+      
+      let logoAdded = false;
+      if (fs.existsSync(svgLogoPath)) {
+        try {
+          const pngBuffer = await sharp(svgLogoPath).resize(120).png().toBuffer();
+          doc.image(pngBuffer, 50, 35, { width: 80 });
+          logoAdded = true;
+        } catch (e) {
+          console.log('[PDF] SVG to PNG conversion failed:', e);
+        }
+      }
+      
+      if (!logoAdded && fs.existsSync(pngLogoPath)) {
+        doc.image(pngLogoPath, 50, 40, { width: 60 });
+        logoAdded = true;
+      }
+      
+      if (!logoAdded) {
+        doc.fontSize(28).font(fontBold).fillColor('#000000').text('HANK', 50, 50);
+      }
+      
+      // Quote title
+      doc.fontSize(24).font(fontBold).fillColor('#000000').text('TEKLİF', 350, 50, { align: 'right' });
+      doc.fontSize(12).font(fontRegular).fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
+      
+      doc.moveDown(2);
+      
+      // Dealer info box
+      const yStart = 120;
+      doc.rect(50, yStart, 250, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
+      doc.fontSize(10).font(fontBold).fillColor('#333333').text('BAYİ BİLGİLERİ', 60, yStart + 10);
+      doc.fontSize(11).font(fontRegular).fillColor('#000000').text(dealer?.name || 'Bilinmeyen', 60, yStart + 30);
+      if (dealer?.contactPerson) {
+        doc.fontSize(9).fillColor('#666666').text(dealer.contactPerson, 60, yStart + 45);
+      }
+      if (dealer?.email) {
+        doc.fontSize(9).text(dealer.email, 60, yStart + 60);
+      }
+      if (dealer?.phone) {
+        doc.fontSize(9).text(dealer.phone, 60, yStart + 75);
+      }
+      
+      // Quote details box
+      doc.rect(310, yStart, 235, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
+      doc.fontSize(10).font(fontBold).fillColor('#333333').text('TEKLİF DETAYLARI', 320, yStart + 10);
+      doc.fontSize(9).font(fontRegular).fillColor('#666666');
+      doc.text('Oluşturulma:', 320, yStart + 30);
+      doc.fillColor('#000000').text(new Date(quote.createdAt).toLocaleDateString('tr-TR'), 420, yStart + 30);
+      doc.fillColor('#666666').text('Geçerlilik:', 320, yStart + 45);
+      doc.fillColor('#000000').text(quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-', 420, yStart + 45);
+      doc.fillColor('#666666').text('Ödeme:', 320, yStart + 60);
+      const paymentLabel = { cash: 'Peşin', net15: '15 Gün', net30: '30 Gün', net45: '45 Gün', net60: '60 Gün' }[quote.paymentTerms || ''] || '-';
+      doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
+      doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
+      doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
+      
+      // Products table
+      const tableTop = yStart + 130;
+      doc.fontSize(12).font(fontBold).fillColor('#000000').text('ÜRÜNLER', 50, tableTop);
+      
+      // Table header
+      const headerY = tableTop + 25;
+      doc.rect(50, headerY, 495, 25).fillAndStroke('#333333', '#333333');
+      doc.fontSize(9).font(fontBold).fillColor('#ffffff');
+      doc.text('Ürün', 60, headerY + 8);
+      doc.text('Adet', 280, headerY + 8, { width: 50, align: 'center' });
+      doc.text('Birim Fiyat', 330, headerY + 8, { width: 70, align: 'right' });
+      doc.text('İskonto', 400, headerY + 8, { width: 50, align: 'center' });
+      doc.text('Toplam', 450, headerY + 8, { width: 85, align: 'right' });
+      
+      // Table rows
+      let currentY = headerY + 25;
+      const rowHeight = 55;
+      
+      for (const item of items) {
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 50;
+        }
+        
+        const bgColor = items.indexOf(item) % 2 === 0 ? '#ffffff' : '#fafafa';
+        doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
+        
+        // Product image - fetch from production URL
+        if (item.productImage) {
+          try {
+            let imageUrl = item.productImage;
+            if (imageUrl.startsWith('/uploads/')) {
+              imageUrl = `https://hank.com.tr${imageUrl}`;
+            }
+            
+            if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+              const imageResponse = await fetch(imageUrl);
+              if (imageResponse.ok) {
+                const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+                doc.image(imageBuffer, 55, currentY + 7, { width: 40, height: 40 });
+              }
+            }
+          } catch (e) {
+            console.log('[PDF] Image load failed:', item.productImage, e);
+          }
+        }
+        
+        // Product details with SKU
+        doc.fontSize(10).font(fontRegular).fillColor('#000000');
+        doc.text(item.productName.substring(0, 30), 100, currentY + 8, { width: 170 });
+        
+        if (item.productSku) {
+          doc.fontSize(8).fillColor('#888888').text(`SKU: ${item.productSku}`, 100, currentY + 22);
+        }
+        
+        if (item.variantDetails) {
+          doc.fontSize(8).fillColor('#666666').text(item.variantDetails, 100, currentY + 34);
+        }
+        
+        doc.fontSize(10).fillColor('#000000');
+        doc.text(item.quantity.toString(), 280, currentY + 20, { width: 50, align: 'center' });
+        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 330, currentY + 20, { width: 70, align: 'right' });
+        
+        if (parseFloat(item.discountPercent) > 0) {
+          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 20, { width: 50, align: 'center' });
+        } else {
+          doc.fillColor('#999999').text('-', 400, currentY + 20, { width: 50, align: 'center' });
+        }
+        
+        doc.font(fontBold).fillColor('#000000');
+        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 450, currentY + 20, { width: 85, align: 'right' });
+        
+        currentY += rowHeight;
+      }
+      
+      // Totals section
+      currentY += 10;
+      doc.rect(350, currentY, 195, 80).fillAndStroke('#f5f5f5', '#e0e0e0');
+      
+      doc.fontSize(10).font(fontRegular).fillColor('#666666');
+      doc.text('Ara Toplam:', 360, currentY + 15);
+      doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 15, { width: 75, align: 'right' });
+      
+      if (parseFloat(quote.discountTotal) > 0) {
+        doc.fillColor('#22c55e').text('İskonto:', 360, currentY + 35);
+        doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 35, { width: 75, align: 'right' });
+      }
+      
+      doc.fontSize(12).font(fontBold).fillColor('#000000');
+      doc.text('GENEL TOPLAM:', 360, currentY + 55);
+      doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 55, { width: 75, align: 'right' });
+      
+      // Notes
+      if (quote.notes) {
+        currentY += 100;
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 50;
+        }
+        doc.fontSize(10).font(fontBold).fillColor('#333333').text('NOTLAR', 50, currentY);
+        doc.fontSize(9).font(fontRegular).fillColor('#666666').text(quote.notes, 50, currentY + 15, { width: 495 });
+      }
+      
+      // Footer
+      doc.fontSize(8).font(fontRegular).fillColor('#999999');
+      doc.text('HANK Spor Giyim | www.hank.com.tr | info@hank.com.tr', 50, 780, { align: 'center', width: 495 });
+      
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -3876,11 +4074,27 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       doc.pipe(res);
       
-      // Header with HANK logo
-      const logoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-icon.png');
-      if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 40, { width: 60 });
-      } else {
+      // Header with HANK logo - convert SVG to PNG using sharp
+      const svgLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-logo.svg');
+      const pngLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-icon.png');
+      
+      let logoAdded = false;
+      if (fs.existsSync(svgLogoPath)) {
+        try {
+          const pngBuffer = await sharp(svgLogoPath).resize(120).png().toBuffer();
+          doc.image(pngBuffer, 50, 35, { width: 80 });
+          logoAdded = true;
+        } catch (e) {
+          console.log('[PDF] SVG to PNG conversion failed:', e);
+        }
+      }
+      
+      if (!logoAdded && fs.existsSync(pngLogoPath)) {
+        doc.image(pngLogoPath, 50, 40, { width: 60 });
+        logoAdded = true;
+      }
+      
+      if (!logoAdded) {
         doc.fontSize(28).font(fontBold).fillColor('#000000').text('HANK', 50, 50);
       }
       
@@ -4184,6 +4398,38 @@ Sitemap: ${baseUrl}/sitemap.xml
       const updated = await storage.updateQuote(req.params.id, updateData);
       if (!updated) {
         return res.status(404).json({ error: "Teklif bulunamadı" });
+      }
+      
+      // Send email with PDF when status is 'sent'
+      if (status === 'sent') {
+        try {
+          const quote = await storage.getQuote(req.params.id);
+          const dealer = await storage.getDealer(quote!.dealerId);
+          const items = await storage.getQuoteItems(quote!.id);
+          
+          if (dealer?.email) {
+            // Generate PDF buffer
+            const pdfBuffer = await generateQuotePdfBuffer(quote!, dealer, items);
+            
+            // Send email with PDF
+            const { sendQuoteEmail } = await import('./emailService');
+            await sendQuoteEmail(dealer.email, {
+              quoteNumber: quote!.quoteNumber,
+              dealerName: dealer.name,
+              contactPerson: dealer.contactPerson,
+              validUntil: quote!.validUntil,
+              grandTotal: quote!.grandTotal,
+              itemCount: items.length
+            }, pdfBuffer);
+            
+            console.log(`[Quotes] Email sent to ${dealer.email} for quote ${quote!.quoteNumber}`);
+          } else {
+            console.log(`[Quotes] No email for dealer, skipping email send`);
+          }
+        } catch (emailError) {
+          console.error('[Quotes] Failed to send quote email:', emailError);
+          // Don't fail the request, just log the error
+        }
       }
       
       res.json(updated);

@@ -725,3 +725,97 @@ export async function sendAbandonedCartEmail(
     return { success: false, error: error.message };
   }
 }
+
+// Quote Email Template
+interface QuoteEmailData {
+  quoteNumber: string;
+  dealerName: string;
+  contactPerson: string | null;
+  validUntil: Date | null;
+  grandTotal: string;
+  itemCount: number;
+}
+
+function quoteEmailTemplate(data: QuoteEmailData): string {
+  const validUntilText = data.validUntil 
+    ? new Date(data.validUntil).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Belirtilmemiş';
+  
+  return wrapTemplate(`
+    <div class="content">
+      <h1>Teklif Gönderildi</h1>
+      <p>Sayın ${data.contactPerson || data.dealerName},</p>
+      <p>Size özel hazırladığımız teklifi ekte bulabilirsiniz. Teklif detaylarını incelemeniz için PDF dosyası e-postaya eklenmiştir.</p>
+      
+      <div class="info-box">
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+          <div>
+            <p class="info-label">Teklif No</p>
+            <p class="info-value">${data.quoteNumber}</p>
+          </div>
+          <div>
+            <p class="info-label">Geçerlilik Tarihi</p>
+            <p class="info-value">${validUntilText}</p>
+          </div>
+          <div>
+            <p class="info-label">Toplam Tutar</p>
+            <p class="info-value" style="font-size: 18px; color: #22c55e;">${parseFloat(data.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="info-box" style="background: linear-gradient(135deg, #262626 0%, #1f1f1f 100%); text-align: center;">
+        <p style="margin: 0; color: #a1a1aa;">Bu teklifte</p>
+        <p style="margin: 10px 0; font-size: 24px; color: #ffffff; font-weight: bold;">${data.itemCount} ürün</p>
+        <p style="margin: 0; color: #a1a1aa;">bulunmaktadır</p>
+      </div>
+      
+      <p>Teklif hakkında herhangi bir sorunuz varsa veya değişiklik talep etmek isterseniz, lütfen bizimle iletişime geçmekten çekinmeyin.</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="https://hank.com.tr" class="btn">Web Sitemizi Ziyaret Edin</a>
+      </div>
+      
+      <p style="text-align: center; color: #71717a; font-size: 13px;">
+        Bizi tercih ettiğiniz için teşekkür ederiz.<br>
+        HANK Ekibi
+      </p>
+    </div>
+  `);
+}
+
+export async function sendQuoteEmail(
+  dealerEmail: string,
+  quoteData: QuoteEmailData,
+  pdfBuffer: Buffer
+): Promise<EmailResult> {
+  try {
+    const transporter = await createTransporter();
+    if (!transporter) {
+      return { success: false, error: 'SMTP yapılandırması eksik' };
+    }
+    
+    const settings = await storage.getSiteSettings();
+    const fromEmail = settings.smtp_user || 'no-reply@hank.com.tr';
+    
+    await transporter.sendMail({
+      from: `"HANK B2B" <${fromEmail}>`,
+      to: dealerEmail,
+      subject: `HANK Teklif - ${quoteData.quoteNumber}`,
+      html: quoteEmailTemplate(quoteData),
+      attachments: [
+        {
+          filename: `Teklif-${quoteData.quoteNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
+    });
+    
+    console.log(`[Email] Quote sent to ${dealerEmail}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Email] Failed to send quote email:', error);
+    return { success: false, error: error.message };
+  }
+}
