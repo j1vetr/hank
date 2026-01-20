@@ -192,6 +192,16 @@ export default function AdminDashboard() {
     enabled: !!adminUser,
   });
 
+  const { data: allVariants = [] } = useQuery<any[]>({
+    queryKey: ['admin-inventory'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/inventory', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch inventory');
+      return res.json();
+    },
+    enabled: !!adminUser,
+  });
+
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['admin', 'categories'],
     queryFn: async () => {
@@ -597,9 +607,17 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4 text-white font-medium">{product.basePrice}₺</td>
                         <td className="px-6 py-4">
                           <div className="flex gap-2">
-                            <span className={`px-2 py-1 rounded text-xs ${product.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-                              {product.isActive ? 'Aktif' : 'Pasif'}
-                            </span>
+                            {(() => {
+                              const productVariants = allVariants.filter((v: any) => v.productId === product.id);
+                              const totalStock = productVariants.reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+                              if (totalStock === 0 && productVariants.length > 0) {
+                                return <span className="px-2 py-1 rounded text-xs bg-orange-500/20 text-orange-400">Stokta Yok</span>;
+                              } else if (!product.isActive) {
+                                return <span className="px-2 py-1 rounded text-xs bg-red-500/20 text-red-400">Pasif</span>;
+                              } else {
+                                return <span className="px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-400">Aktif</span>;
+                              }
+                            })()}
                             {product.isFeatured && (
                               <span className="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400">Öne Çıkan</span>
                             )}
