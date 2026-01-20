@@ -32,6 +32,7 @@ import {
   revokeRefreshToken,
   setAuthCookies,
   clearAuthCookies,
+  getOrCreateCartToken,
   type JwtPayload
 } from "./jwt";
 
@@ -1144,8 +1145,8 @@ export async function registerRoutes(
   // Cart API
   app.get("/api/cart", async (req: Request, res) => {
     try {
-      const sessionId = req.sessionID;
-      const items = await storage.getCartItems(sessionId);
+      const cartToken = getOrCreateCartToken(req, res);
+      const items = await storage.getCartItems(cartToken);
       res.json(items);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cart" });
@@ -1154,7 +1155,7 @@ export async function registerRoutes(
 
   app.post("/api/cart", async (req: Request, res) => {
     try {
-      const sessionId = req.sessionID;
+      const cartToken = getOrCreateCartToken(req, res);
       const { productId, variantId, quantity } = req.body;
       
       // Check if product requires variant selection
@@ -1186,7 +1187,7 @@ export async function registerRoutes(
         productId,
         variantId,
         quantity: quantity || 1,
-        sessionId,
+        sessionId: cartToken,
       });
       const item = await storage.addToCart(validated);
       res.status(201).json(item);
@@ -1220,8 +1221,8 @@ export async function registerRoutes(
 
   app.delete("/api/cart", async (req: Request, res) => {
     try {
-      const sessionId = req.sessionID;
-      await storage.clearCart(sessionId);
+      const cartToken = getOrCreateCartToken(req, res);
+      await storage.clearCart(cartToken);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear cart" });
@@ -1367,10 +1368,10 @@ export async function registerRoutes(
   // PayTR Payment API
   app.post("/api/payment/create", async (req: Request, res) => {
     try {
-      const sessionId = req.sessionID;
+      const cartToken = getOrCreateCartToken(req, res);
       const payload = await getAuthPayload(req, res);
-      const userId = payload?.type === 'user' ? payload.userId : null;
-      const cartItems = await storage.getCartItems(sessionId);
+      const userId = payload?.type === 'user' ? payload.userId ?? null : null;
+      const cartItems = await storage.getCartItems(cartToken);
       
       if (cartItems.length === 0) {
         return res.status(400).json({ error: "Sepet boş" });
@@ -1446,7 +1447,7 @@ export async function registerRoutes(
       let discountAmount = 0;
       
       if (couponCode) {
-        const couponResult = await storage.validateCoupon(couponCode, serverSubtotal, userId);
+        const couponResult = await storage.validateCoupon(couponCode, serverSubtotal, userId || undefined);
         if (couponResult.valid && couponResult.coupon) {
           validatedCoupon = couponResult.coupon;
           if (validatedCoupon.discountType === 'percentage') {
@@ -1482,7 +1483,7 @@ export async function registerRoutes(
 
       await storage.createPendingPayment({
         merchantOid,
-        sessionId,
+        sessionId: cartToken,
         customerName,
         customerEmail,
         customerPhone,
@@ -1824,9 +1825,10 @@ export async function registerRoutes(
 
   app.post("/api/orders", async (req: Request, res) => {
     try {
-      const sessionId = req.sessionID;
-      const userId = (req.session as any).userId || null;
-      const cartItems = await storage.getCartItems(sessionId);
+      const cartToken = getOrCreateCartToken(req, res);
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId ?? null : null;
+      const cartItems = await storage.getCartItems(cartToken);
       
       if (cartItems.length === 0) {
         return res.status(400).json({ error: "Cart is empty" });
@@ -1858,7 +1860,7 @@ export async function registerRoutes(
         const couponResult = await storage.validateCoupon(
           req.body.couponCode,
           serverSubtotal,
-          userId
+          userId || undefined
         );
         
         if (couponResult.valid && couponResult.coupon) {
@@ -1961,7 +1963,7 @@ export async function registerRoutes(
       }
 
       // Clear cart
-      await storage.clearCart(sessionId);
+      await storage.clearCart(cartToken);
       
       // Get order items for email
       const orderItems = await storage.getOrderItems(order.id);
