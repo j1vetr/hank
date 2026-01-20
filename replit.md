@@ -111,6 +111,18 @@ RESTful API endpoints under `/api/`:
 - **No discounts shown**: Total amount sent directly without discount breakdown
 - **Currency**: TL
 
+### B2B Dealer Management System
+- **Dealer Management**: Full CRUD for dealer companies (name, contact person, email, phone, address)
+- **Dealer Status**: Active/Inactive status tracking
+- **Quote System**: Professional quote creation with product selection
+- **Quote Numbering**: Format `TKL-{year}-{sequential}` (e.g., TKL-2026-001)
+- **Quote Status Workflow**: draft → sent → accepted/rejected/expired
+- **Payment Terms**: cash, net15, net30, net45, net60
+- **Line Items**: Products with quantity, unit price, discount percentage
+- **Quote Validity**: Optional expiration date for quotes
+- **Admin Tabs**: "Bayiler" for dealers, "Teklifler" for quotes in admin dashboard
+- **API Routes**: `/api/admin/dealers/*`, `/api/admin/quotes/*`
+
 ## External Dependencies
 
 ### Database
