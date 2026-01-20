@@ -1,8 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
 import compression from "compression";
-import connectPgSimple from "connect-pg-simple";
-import pg from "pg";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -12,30 +10,7 @@ const httpServer = createServer(app);
 
 app.set('trust proxy', 1);
 app.use(compression());
-
-// PostgreSQL session store for production
-const PgStore = connectPgSimple(session);
-const pgPool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Session middleware with PostgreSQL store
-app.use(
-  session({
-    store: new PgStore({
-      pool: pgPool,
-      tableName: 'user_sessions',
-    }),
-    secret: process.env.SESSION_SECRET || "hank-secret-key-change-in-production",
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  })
-);
+app.use(cookieParser());
 
 declare module "http" {
   interface IncomingMessage {

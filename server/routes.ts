@@ -9,7 +9,6 @@ import fs from "fs";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc } from "drizzle-orm";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons } from "@shared/schema";
-import "./types";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 import { 
   sendWelcomeEmail, 
@@ -2529,11 +2528,12 @@ export async function registerRoutes(
   });
 
   // Public coupon validation
-  app.post("/api/coupons/validate", async (req, res) => {
+  app.post("/api/coupons/validate", async (req: Request, res) => {
     try {
       const { code, orderTotal } = req.body;
-      const userId = (req.session as any).userId || null;
-      const result = await storage.validateCoupon(code, orderTotal, userId);
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === 'user' ? payload.userId ?? null : null;
+      const result = await storage.validateCoupon(code, orderTotal, userId || undefined);
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to validate coupon" });

@@ -52,17 +52,19 @@ Database tables include:
 - `cart_items` - Shopping cart persistence
 - `orders` and `order_items` - Order management
 
-### Authentication (JWT-based)
-- **Architecture**: Stateless JWT + HttpOnly Cookie + Refresh Token system
+### Authentication (JWT-based, Fully Stateless)
+- **Architecture**: Stateless JWT + HttpOnly Cookie + Refresh Token Rotation (no express-session)
 - **Access Tokens**: Short-lived (15 minutes), stored in HttpOnly cookie
 - **Refresh Tokens**: Long-lived (7 days), stored in HttpOnly cookie with database tracking
 - **Token Refresh**: Automatic refresh when access token expires via `getAuthPayload` helper
+- **Token Rotation**: Refresh tokens are rotated on every use - old tokens are revoked immediately
 - **Token Revocation**: Individual token or all tokens per user via database
 - **Security**: IP address and user agent tracking for refresh tokens
+- **Cart Tokens**: Anonymous shopping carts use `cart_token` HttpOnly cookie (30-day expiry)
 - **Admin Auth**: JWT-based authentication via `/api/admin/login`
 - **Customer Auth**: JWT-based authentication via `/api/auth/*` endpoints
 - **Production**: Secure cookies with SameSite=Strict in production mode
-- **JWT Module**: `server/jwt.ts` contains all JWT utilities
+- **JWT Module**: `server/jwt.ts` contains all JWT utilities including cart token helpers
 - Admin panel accessible at `/toov-admin`
 
 ### API Structure
