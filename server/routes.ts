@@ -806,7 +806,7 @@ export async function registerRoutes(
           // Create variant for each size/color combination
           for (const size of sizes) {
             for (const color of colors as Array<{name: string, hex: string}>) {
-              const variantSku = baseSku ? `${baseSku}-${size}-${color.name.substring(0, 3).toUpperCase()}` : null;
+              const variantSku = baseSku ? `${baseSku}-${size}` : null;
               await storage.createProductVariant({
                 productId: product.id,
                 size: size,
@@ -861,7 +861,7 @@ export async function registerRoutes(
             for (const color of colors as Array<{name: string, hex: string}>) {
               const exists = existingVariants.some(v => v.size === size && v.color === color.name);
               if (!exists) {
-                const variantSku = baseSku ? `${baseSku}-${size}-${color.name.substring(0, 3).toUpperCase()}` : null;
+                const variantSku = baseSku ? `${baseSku}-${size}` : null;
                 await storage.createProductVariant({
                   productId: product.id,
                   size: size,
