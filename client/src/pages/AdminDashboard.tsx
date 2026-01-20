@@ -584,7 +584,10 @@ export default function AdminDashboard() {
                             )}
                             <div>
                               <p className="font-medium text-white">{product.name}</p>
-                              <p className="text-sm text-zinc-500">{product.slug}</p>
+                              <div className="flex items-center gap-2 text-sm text-zinc-500">
+                                {product.sku && <span className="text-purple-400 font-mono">{product.sku}</span>}
+                                <span>{product.slug}</span>
+                              </div>
                             </div>
                           </div>
                         </td>

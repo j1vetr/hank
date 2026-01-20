@@ -799,14 +799,33 @@ export async function registerRoutes(
       // Auto-create variants for all size/color combinations
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];
+      const baseSku = product.sku || '';
       
-      if (sizes.length > 0 && colors.length > 0) {
-        for (const size of sizes) {
-          for (const color of colors as Array<{name: string, hex: string}>) {
+      if (sizes.length > 0) {
+        if (colors.length > 0) {
+          // Create variant for each size/color combination
+          for (const size of sizes) {
+            for (const color of colors as Array<{name: string, hex: string}>) {
+              const variantSku = baseSku ? `${baseSku}-${size}-${color.name.substring(0, 3).toUpperCase()}` : null;
+              await storage.createProductVariant({
+                productId: product.id,
+                size: size,
+                color: color.name,
+                sku: variantSku,
+                stock: 0,
+                price: product.basePrice,
+              });
+            }
+          }
+        } else {
+          // Create variant for each size only (no color)
+          for (const size of sizes) {
+            const variantSku = baseSku ? `${baseSku}-${size}` : null;
             await storage.createProductVariant({
               productId: product.id,
               size: size,
-              color: color.name,
+              color: null,
+              sku: variantSku,
               stock: 0,
               price: product.basePrice,
             });
@@ -832,23 +851,44 @@ export async function registerRoutes(
       // Auto-create missing variants for new size/color combinations
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];
+      const baseSku = product.sku || '';
+      const existingVariants = await storage.getProductVariants(product.id);
       
-      if (sizes.length > 0 && colors.length > 0) {
-        const existingVariants = await storage.getProductVariants(product.id);
-        
-        for (const size of sizes) {
-          for (const color of colors as Array<{name: string, hex: string}>) {
-            // Check if variant already exists
-            const exists = existingVariants.some(v => v.size === size && v.color === color.name);
+      if (sizes.length > 0) {
+        if (colors.length > 0) {
+          // Create variant for each size/color combination
+          for (const size of sizes) {
+            for (const color of colors as Array<{name: string, hex: string}>) {
+              const exists = existingVariants.some(v => v.size === size && v.color === color.name);
+              if (!exists) {
+                const variantSku = baseSku ? `${baseSku}-${size}-${color.name.substring(0, 3).toUpperCase()}` : null;
+                await storage.createProductVariant({
+                  productId: product.id,
+                  size: size,
+                  color: color.name,
+                  sku: variantSku,
+                  stock: 0,
+                  price: product.basePrice,
+                });
+                console.log(`Created missing variant: ${size} / ${color.name} for product ${product.id}`);
+              }
+            }
+          }
+        } else {
+          // Create variant for each size only (no color)
+          for (const size of sizes) {
+            const exists = existingVariants.some(v => v.size === size && !v.color);
             if (!exists) {
+              const variantSku = baseSku ? `${baseSku}-${size}` : null;
               await storage.createProductVariant({
                 productId: product.id,
                 size: size,
-                color: color.name,
+                color: null,
+                sku: variantSku,
                 stock: 0,
                 price: product.basePrice,
               });
-              console.log(`Created missing variant: ${size} / ${color.name} for product ${product.id}`);
+              console.log(`Created missing variant: ${size} for product ${product.id}`);
             }
           }
         }
@@ -1015,14 +1055,44 @@ export async function registerRoutes(
   app.post("/api/cart", async (req: Request, res) => {
     try {
       const sessionId = req.sessionID;
+      const { productId, variantId, quantity } = req.body;
+      
+      // Check if product requires variant selection
+      const product = await storage.getProduct(productId);
+      if (!product) {
+        return res.status(400).json({ error: "Geçersiz ürün" });
+      }
+      
+      // If product has available sizes, variant is required
+      if (product.availableSizes && product.availableSizes.length > 0 && !variantId) {
+        return res.status(400).json({ error: "Lütfen beden seçimi yapın" });
+      }
+      
+      // If variant provided, verify it exists and belongs to this product
+      if (variantId) {
+        const variant = await storage.getProductVariant(variantId);
+        if (!variant) {
+          return res.status(400).json({ error: "Geçersiz varyant seçimi" });
+        }
+        if (variant.productId !== productId) {
+          return res.status(400).json({ error: "Geçersiz varyant" });
+        }
+        if (variant.stock <= 0) {
+          return res.status(400).json({ error: "Bu beden stokta yok" });
+        }
+      }
+      
       const validated = insertCartItemSchema.parse({
-        ...req.body,
+        productId,
+        variantId,
+        quantity: quantity || 1,
         sessionId,
       });
       const item = await storage.addToCart(validated);
       res.status(201).json(item);
     } catch (error) {
-      res.status(400).json({ error: "Failed to add to cart" });
+      console.error('Add to cart error:', error);
+      res.status(400).json({ error: "Sepete eklenemedi" });
     }
   });
 
@@ -2400,6 +2470,78 @@ export async function registerRoutes(
       res.json(adjustments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stock adjustments" });
+    }
+  });
+
+  // Data consistency check
+  app.get("/api/admin/inventory/data-check", requireAdmin, async (req, res) => {
+    try {
+      const products = await storage.getProducts();
+      const allVariants = await storage.getAllVariantsWithProducts();
+      const orders = await storage.getOrders();
+      
+      const issues = {
+        productsWithoutVariants: [] as { id: string; name: string; sku: string | null; availableSizes: string[] }[],
+        productsWithMissingVariants: [] as { id: string; name: string; definedSizes: string[]; existingVariantSizes: string[] }[],
+        ordersWithoutVariants: [] as { id: string; orderNumber: string; itemsWithoutVariant: { productName: string; variantDetails: string | null }[] }[],
+      };
+
+      // Check for products without any variants
+      for (const product of products) {
+        const productVariants = allVariants.filter(v => v.productId === product.id);
+        
+        if (productVariants.length === 0 && product.availableSizes && product.availableSizes.length > 0) {
+          issues.productsWithoutVariants.push({
+            id: product.id,
+            name: product.name,
+            sku: product.sku,
+            availableSizes: product.availableSizes as string[],
+          });
+        } else if (product.availableSizes && product.availableSizes.length > 0) {
+          // Check if all sizes have variants
+          const existingSizes = productVariants.map(v => v.size).filter(Boolean);
+          const definedSizes = product.availableSizes as string[];
+          const missingSizes = definedSizes.filter(s => !existingSizes.includes(s));
+          
+          if (missingSizes.length > 0) {
+            issues.productsWithMissingVariants.push({
+              id: product.id,
+              name: product.name,
+              definedSizes: definedSizes,
+              existingVariantSizes: existingSizes as string[],
+            });
+          }
+        }
+      }
+
+      // Check for orders with items that have no variant
+      for (const order of orders) {
+        const orderItems = await storage.getOrderItems(order.id);
+        const itemsWithoutVariant = orderItems.filter(item => !item.variantId);
+        
+        if (itemsWithoutVariant.length > 0) {
+          issues.ordersWithoutVariants.push({
+            id: order.id,
+            orderNumber: order.orderNumber,
+            itemsWithoutVariant: itemsWithoutVariant.map(item => ({
+              productName: item.productName,
+              variantDetails: item.variantDetails,
+            })),
+          });
+        }
+      }
+
+      res.json({
+        summary: {
+          productsWithoutVariants: issues.productsWithoutVariants.length,
+          productsWithMissingVariants: issues.productsWithMissingVariants.length,
+          ordersWithoutVariants: issues.ordersWithoutVariants.length,
+        },
+        issues,
+      });
+    } catch (error) {
+      console.error('Data check error:', error);
+      res.status(500).json({ error: "Failed to check data consistency" });
     }
   });
 
