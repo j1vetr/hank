@@ -23,6 +23,9 @@ import {
   siteSettings,
   passwordResetTokens,
   reviewRequests,
+  dealers,
+  quotes,
+  quoteItems,
   type AdminUser,
   type InsertAdminUser,
   type Category,
@@ -62,7 +65,13 @@ import {
   type PasswordResetToken,
   type ReviewRequest,
   pendingPayments,
-  type PendingPayment
+  type PendingPayment,
+  type Dealer,
+  type InsertDealer,
+  type Quote,
+  type InsertQuote,
+  type QuoteItem,
+  type InsertQuoteItem
 } from "@shared/schema";
 import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
 
@@ -168,6 +177,29 @@ export interface IStorage {
   getPendingPaymentByMerchantOid(merchantOid: string): Promise<PendingPayment | undefined>;
   updatePendingPaymentStatus(merchantOid: string, status: string): Promise<PendingPayment | undefined>;
   deletePendingPayment(merchantOid: string): Promise<void>;
+
+  // Dealers (Bayiler)
+  getDealers(): Promise<Dealer[]>;
+  getDealer(id: string): Promise<Dealer | undefined>;
+  createDealer(dealer: InsertDealer): Promise<Dealer>;
+  updateDealer(id: string, dealer: Partial<InsertDealer>): Promise<Dealer | undefined>;
+  deleteDealer(id: string): Promise<void>;
+
+  // Quotes (Teklifler)
+  getQuotes(dealerId?: string): Promise<Quote[]>;
+  getQuote(id: string): Promise<Quote | undefined>;
+  getQuoteByNumber(quoteNumber: string): Promise<Quote | undefined>;
+  createQuote(quote: InsertQuote): Promise<Quote>;
+  updateQuote(id: string, quote: Partial<InsertQuote>): Promise<Quote | undefined>;
+  deleteQuote(id: string): Promise<void>;
+  getNextQuoteNumber(): Promise<string>;
+
+  // Quote Items (Teklif Kalemleri)
+  getQuoteItems(quoteId: string): Promise<QuoteItem[]>;
+  createQuoteItem(item: InsertQuoteItem): Promise<QuoteItem>;
+  updateQuoteItem(id: string, item: Partial<InsertQuoteItem>): Promise<QuoteItem | undefined>;
+  deleteQuoteItem(id: string): Promise<void>;
+  deleteQuoteItems(quoteId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1364,6 +1396,92 @@ export class DbStorage implements IStorage {
     const count = result?.count || 0;
     await db.delete(stockAdjustments);
     return count;
+  }
+
+  // Dealers (Bayiler)
+  async getDealers(): Promise<Dealer[]> {
+    return db.select().from(dealers).orderBy(desc(dealers.createdAt));
+  }
+
+  async getDealer(id: string): Promise<Dealer | undefined> {
+    const [dealer] = await db.select().from(dealers).where(eq(dealers.id, id));
+    return dealer;
+  }
+
+  async createDealer(dealer: InsertDealer): Promise<Dealer> {
+    const [newDealer] = await db.insert(dealers).values(dealer).returning();
+    return newDealer;
+  }
+
+  async updateDealer(id: string, dealer: Partial<InsertDealer>): Promise<Dealer | undefined> {
+    const [updated] = await db.update(dealers).set({ ...dealer, updatedAt: new Date() }).where(eq(dealers.id, id)).returning();
+    return updated;
+  }
+
+  async deleteDealer(id: string): Promise<void> {
+    await db.delete(dealers).where(eq(dealers.id, id));
+  }
+
+  // Quotes (Teklifler)
+  async getQuotes(dealerId?: string): Promise<Quote[]> {
+    if (dealerId) {
+      return db.select().from(quotes).where(eq(quotes.dealerId, dealerId)).orderBy(desc(quotes.createdAt));
+    }
+    return db.select().from(quotes).orderBy(desc(quotes.createdAt));
+  }
+
+  async getQuote(id: string): Promise<Quote | undefined> {
+    const [quote] = await db.select().from(quotes).where(eq(quotes.id, id));
+    return quote;
+  }
+
+  async getQuoteByNumber(quoteNumber: string): Promise<Quote | undefined> {
+    const [quote] = await db.select().from(quotes).where(eq(quotes.quoteNumber, quoteNumber));
+    return quote;
+  }
+
+  async createQuote(quote: InsertQuote): Promise<Quote> {
+    const [newQuote] = await db.insert(quotes).values(quote).returning();
+    return newQuote;
+  }
+
+  async updateQuote(id: string, quote: Partial<InsertQuote>): Promise<Quote | undefined> {
+    const [updated] = await db.update(quotes).set({ ...quote, updatedAt: new Date() }).where(eq(quotes.id, id)).returning();
+    return updated;
+  }
+
+  async deleteQuote(id: string): Promise<void> {
+    await db.delete(quotes).where(eq(quotes.id, id));
+  }
+
+  async getNextQuoteNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(quotes).where(sql`EXTRACT(YEAR FROM ${quotes.createdAt}) = ${year}`);
+    const count = (result?.count || 0) + 1;
+    return `TKL-${year}-${String(count).padStart(4, '0')}`;
+  }
+
+  // Quote Items (Teklif Kalemleri)
+  async getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
+    return db.select().from(quoteItems).where(eq(quoteItems.quoteId, quoteId));
+  }
+
+  async createQuoteItem(item: InsertQuoteItem): Promise<QuoteItem> {
+    const [newItem] = await db.insert(quoteItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateQuoteItem(id: string, item: Partial<InsertQuoteItem>): Promise<QuoteItem | undefined> {
+    const [updated] = await db.update(quoteItems).set(item).where(eq(quoteItems.id, id)).returning();
+    return updated;
+  }
+
+  async deleteQuoteItem(id: string): Promise<void> {
+    await db.delete(quoteItems).where(eq(quoteItems.id, id));
+  }
+
+  async deleteQuoteItems(quoteId: string): Promise<void> {
+    await db.delete(quoteItems).where(eq(quoteItems.quoteId, quoteId));
   }
 }
 

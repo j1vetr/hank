@@ -3616,5 +3616,298 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
 
+  // ============= DEALER (BAYİ) MANAGEMENT =============
+
+  // Get all dealers
+  app.get("/api/admin/dealers", requireAdmin, async (req, res) => {
+    try {
+      const dealerList = await storage.getDealers();
+      res.json(dealerList);
+    } catch (error) {
+      console.error('[Dealers] Get all error:', error);
+      res.status(500).json({ error: "Bayiler alınamadı" });
+    }
+  });
+
+  // Get single dealer
+  app.get("/api/admin/dealers/:id", requireAdmin, async (req, res) => {
+    try {
+      const dealer = await storage.getDealer(req.params.id);
+      if (!dealer) {
+        return res.status(404).json({ error: "Bayi bulunamadı" });
+      }
+      res.json(dealer);
+    } catch (error) {
+      console.error('[Dealers] Get one error:', error);
+      res.status(500).json({ error: "Bayi alınamadı" });
+    }
+  });
+
+  // Create dealer
+  app.post("/api/admin/dealers", requireAdmin, async (req, res) => {
+    try {
+      const { name, email, phone, contactPerson, address, notes, status } = req.body;
+      
+      if (!name || !email || !phone || !contactPerson) {
+        return res.status(400).json({ error: "İsim, e-posta, telefon ve yetkili kişi zorunludur" });
+      }
+      
+      const newDealer = await storage.createDealer({
+        name,
+        email,
+        phone,
+        contactPerson,
+        address: address || null,
+        notes: notes || null,
+        status: status || 'active'
+      });
+      
+      res.status(201).json(newDealer);
+    } catch (error) {
+      console.error('[Dealers] Create error:', error);
+      res.status(500).json({ error: "Bayi oluşturulamadı" });
+    }
+  });
+
+  // Update dealer
+  app.put("/api/admin/dealers/:id", requireAdmin, async (req, res) => {
+    try {
+      const updated = await storage.updateDealer(req.params.id, req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Bayi bulunamadı" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error('[Dealers] Update error:', error);
+      res.status(500).json({ error: "Bayi güncellenemedi" });
+    }
+  });
+
+  // Delete dealer
+  app.delete("/api/admin/dealers/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteDealer(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[Dealers] Delete error:', error);
+      res.status(500).json({ error: "Bayi silinemedi" });
+    }
+  });
+
+  // ============= QUOTE (TEKLİF) MANAGEMENT =============
+
+  // Get all quotes (optionally by dealer)
+  app.get("/api/admin/quotes", requireAdmin, async (req, res) => {
+    try {
+      const dealerId = req.query.dealerId as string | undefined;
+      const quoteList = await storage.getQuotes(dealerId);
+      
+      // Enrich with dealer info
+      const enriched = await Promise.all(quoteList.map(async (quote) => {
+        const dealer = await storage.getDealer(quote.dealerId);
+        const items = await storage.getQuoteItems(quote.id);
+        return { ...quote, dealer, itemCount: items.length };
+      }));
+      
+      res.json(enriched);
+    } catch (error) {
+      console.error('[Quotes] Get all error:', error);
+      res.status(500).json({ error: "Teklifler alınamadı" });
+    }
+  });
+
+  // Get single quote with items
+  app.get("/api/admin/quotes/:id", requireAdmin, async (req, res) => {
+    try {
+      const quote = await storage.getQuote(req.params.id);
+      if (!quote) {
+        return res.status(404).json({ error: "Teklif bulunamadı" });
+      }
+      
+      const dealer = await storage.getDealer(quote.dealerId);
+      const items = await storage.getQuoteItems(quote.id);
+      
+      res.json({ ...quote, dealer, items });
+    } catch (error) {
+      console.error('[Quotes] Get one error:', error);
+      res.status(500).json({ error: "Teklif alınamadı" });
+    }
+  });
+
+  // Create quote
+  app.post("/api/admin/quotes", requireAdmin, async (req, res) => {
+    try {
+      const { dealerId, validUntil, paymentTerms, notes, includesVat, items } = req.body;
+      
+      if (!dealerId) {
+        return res.status(400).json({ error: "Bayi seçimi zorunludur" });
+      }
+      
+      // Generate quote number
+      const quoteNumber = await storage.getNextQuoteNumber();
+      
+      // Calculate totals from items
+      let subtotal = 0;
+      let discountTotal = 0;
+      
+      if (items && items.length > 0) {
+        for (const item of items) {
+          const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
+          const discountAmount = lineSubtotal * (parseFloat(item.discountPercent || 0) / 100);
+          subtotal += lineSubtotal;
+          discountTotal += discountAmount;
+        }
+      }
+      
+      const grandTotal = subtotal - discountTotal;
+      
+      const newQuote = await storage.createQuote({
+        quoteNumber,
+        dealerId,
+        status: 'draft',
+        validUntil: validUntil ? new Date(validUntil) : null,
+        paymentTerms: paymentTerms || null,
+        notes: notes || null,
+        subtotal: subtotal.toFixed(2),
+        discountTotal: discountTotal.toFixed(2),
+        grandTotal: grandTotal.toFixed(2),
+        includesVat: includesVat !== false
+      });
+      
+      // Create quote items
+      if (items && items.length > 0) {
+        for (const item of items) {
+          const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
+          const discountAmount = lineSubtotal * (parseFloat(item.discountPercent || 0) / 100);
+          const lineTotal = lineSubtotal - discountAmount;
+          
+          await storage.createQuoteItem({
+            quoteId: newQuote.id,
+            productId: item.productId,
+            variantId: item.variantId || null,
+            productName: item.productName,
+            productImage: item.productImage || null,
+            variantDetails: item.variantDetails || null,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discountPercent: (item.discountPercent || 0).toString(),
+            lineTotal: lineTotal.toFixed(2)
+          });
+        }
+      }
+      
+      res.status(201).json(newQuote);
+    } catch (error) {
+      console.error('[Quotes] Create error:', error);
+      res.status(500).json({ error: "Teklif oluşturulamadı" });
+    }
+  });
+
+  // Update quote
+  app.put("/api/admin/quotes/:id", requireAdmin, async (req, res) => {
+    try {
+      const { items, ...quoteData } = req.body;
+      
+      // If items provided, recalculate totals and update items
+      if (items) {
+        // Delete existing items
+        await storage.deleteQuoteItems(req.params.id);
+        
+        let subtotal = 0;
+        let discountTotal = 0;
+        
+        for (const item of items) {
+          const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
+          const discountAmount = lineSubtotal * (parseFloat(item.discountPercent || 0) / 100);
+          const lineTotal = lineSubtotal - discountAmount;
+          
+          subtotal += lineSubtotal;
+          discountTotal += discountAmount;
+          
+          await storage.createQuoteItem({
+            quoteId: req.params.id,
+            productId: item.productId,
+            variantId: item.variantId || null,
+            productName: item.productName,
+            productImage: item.productImage || null,
+            variantDetails: item.variantDetails || null,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discountPercent: (item.discountPercent || 0).toString(),
+            lineTotal: lineTotal.toFixed(2)
+          });
+        }
+        
+        quoteData.subtotal = subtotal.toFixed(2);
+        quoteData.discountTotal = discountTotal.toFixed(2);
+        quoteData.grandTotal = (subtotal - discountTotal).toFixed(2);
+      }
+      
+      const updated = await storage.updateQuote(req.params.id, quoteData);
+      if (!updated) {
+        return res.status(404).json({ error: "Teklif bulunamadı" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('[Quotes] Update error:', error);
+      res.status(500).json({ error: "Teklif güncellenemedi" });
+    }
+  });
+
+  // Update quote status
+  app.put("/api/admin/quotes/:id/status", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      const validStatuses = ['draft', 'sent', 'accepted', 'rejected', 'expired'];
+      
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Geçersiz durum" });
+      }
+      
+      const updateData: any = { status };
+      
+      if (status === 'sent') {
+        updateData.sentAt = new Date();
+      } else if (status === 'accepted') {
+        updateData.acceptedAt = new Date();
+      } else if (status === 'rejected') {
+        updateData.rejectedAt = new Date();
+      }
+      
+      const updated = await storage.updateQuote(req.params.id, updateData);
+      if (!updated) {
+        return res.status(404).json({ error: "Teklif bulunamadı" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('[Quotes] Status update error:', error);
+      res.status(500).json({ error: "Teklif durumu güncellenemedi" });
+    }
+  });
+
+  // Delete quote
+  app.delete("/api/admin/quotes/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteQuote(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[Quotes] Delete error:', error);
+      res.status(500).json({ error: "Teklif silinemedi" });
+    }
+  });
+
+  // Get next quote number (for preview)
+  app.get("/api/admin/quotes/next-number", requireAdmin, async (req, res) => {
+    try {
+      const nextNumber = await storage.getNextQuoteNumber();
+      res.json({ quoteNumber: nextNumber });
+    } catch (error) {
+      console.error('[Quotes] Next number error:', error);
+      res.status(500).json({ error: "Teklif numarası alınamadı" });
+    }
+  });
+
   return httpServer;
 }
