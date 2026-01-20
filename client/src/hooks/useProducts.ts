@@ -78,6 +78,8 @@ export function useProduct(slug: string) {
       return response.json() as Promise<Product>;
     },
     enabled: !!slug,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 
