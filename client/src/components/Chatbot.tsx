@@ -25,15 +25,15 @@ interface Message {
   products?: Product[];
 }
 
+const initialMessage: Message = {
+  role: "assistant",
+  content: "Merhaba! HANK Giyim Asistanı olarak size yardımcı olmak için buradayım. Ürünler hakkında sorularınızı yanıtlayabilir, size en uygun ürünleri önerebilirim. Size nasıl yardımcı olabilirim?",
+};
+
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Merhaba! HANK Giyim Asistanı olarak size yardımcı olmak için buradayım. Ürünler hakkında sorularınızı yanıtlayabilir, size en uygun ürünleri önerebilirim. Size nasıl yardımcı olabilirim?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([initialMessage]);
   
   useEffect(() => {
     const timer = setTimeout(() => setShowTooltip(false), 8000);
@@ -44,12 +44,33 @@ export default function Chatbot() {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load session and messages from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("chatbot_session");
-    if (saved) {
-      setSessionToken(saved);
+    const savedSession = localStorage.getItem("chatbot_session");
+    const savedMessages = localStorage.getItem("chatbot_messages");
+    
+    if (savedSession) {
+      setSessionToken(savedSession);
+    }
+    
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to parse saved messages:", e);
+      }
     }
   }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 1) {
+      localStorage.setItem("chatbot_messages", JSON.stringify(messages));
+    }
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

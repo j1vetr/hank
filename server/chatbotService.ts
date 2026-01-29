@@ -281,6 +281,53 @@ async function filterByAttributes(
   return productIds;
 }
 
+// Direct search by product name or category when attribute filtering fails
+async function searchByNameOrCategory(searchTerms: string[]): Promise<string[]> {
+  if (searchTerms.length === 0) return [];
+  
+  const productIds: string[] = [];
+  
+  for (const term of searchTerms) {
+    // Search in product names
+    const matchingProducts = await db.query.products.findMany({
+      where: and(
+        eq(products.isActive, true),
+        sql`LOWER(${products.name}) LIKE ${'%' + term.toLowerCase() + '%'}`
+      ),
+      limit: 10,
+    });
+    
+    for (const p of matchingProducts) {
+      if (!productIds.includes(p.id)) {
+        productIds.push(p.id);
+      }
+    }
+    
+    // Search in category names
+    const matchingCategories = await db.query.categories.findMany({
+      where: sql`LOWER(${categories.name}) LIKE ${'%' + term.toLowerCase() + '%'}`,
+    });
+    
+    for (const cat of matchingCategories) {
+      const catProducts = await db.query.products.findMany({
+        where: and(
+          eq(products.isActive, true),
+          eq(products.categoryId, cat.id)
+        ),
+        limit: 10,
+      });
+      
+      for (const p of catProducts) {
+        if (!productIds.includes(p.id)) {
+          productIds.push(p.id);
+        }
+      }
+    }
+  }
+  
+  return productIds;
+}
+
 async function getProductDetails(productIds: string[]): Promise<ProductWithDetails[]> {
   if (productIds.length === 0) return [];
 
@@ -438,7 +485,10 @@ function extractIntent(message: string): {
     }
   }
 
-  const sizeMatch = lowerMsg.match(/\b(xs|s|m|l|xl|xxl|3xl)\b/i);
+  // Better size extraction for Turkish - handles "L beden", "XL beden", etc.
+  const sizeMatch = lowerMsg.match(/\b(xs|s|m|l|xl|xxl|3xl)\s*beden/i) ||
+                    lowerMsg.match(/beden[:\s]*(xs|s|m|l|xl|xxl|3xl)/i) ||
+                    lowerMsg.match(/\b(xs|s|m|l|xl|xxl|3xl)\b/i);
   if (sizeMatch) {
     size = sizeMatch[1].toUpperCase();
   }
@@ -523,7 +573,24 @@ export async function processMessage(
 
   const semanticIds = await semanticSearch(userMessage, 10);
 
-  let combinedIds = Array.from(new Set([...attributeFilteredIds, ...semanticIds])).slice(0, 15);
+  // Direct name/category search for keywords like "şort", "tişört" etc.
+  const searchTerms: string[] = [];
+  const turkishKeywords: Record<string, string[]> = {
+    'sort': ['şort', 'sort'],
+    'tshirt': ['tişört', 'tshirt', 't-shirt'],
+    'esofman': ['eşofman', 'esofman'],
+    'atlet': ['atlet'],
+    'salvar': ['şalvar', 'salvar'],
+    'sweatshirt': ['sweatshirt', 'hoodie', 'kapşonlu'],
+  };
+  
+  if (intent.productType && turkishKeywords[intent.productType]) {
+    searchTerms.push(...turkishKeywords[intent.productType]);
+  }
+  
+  const nameSearchIds = await searchByNameOrCategory(searchTerms);
+
+  let combinedIds = Array.from(new Set([...attributeFilteredIds, ...nameSearchIds, ...semanticIds])).slice(0, 15);
   
   // Fallback: If no products found, get some active products to prevent hallucination
   if (combinedIds.length === 0) {
