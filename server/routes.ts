@@ -1272,6 +1272,94 @@ export async function registerRoutes(
     });
   });
 
+  // Bulk AI Description Generation
+  app.post("/api/admin/products/bulk-ai-description", requireAdmin, async (req, res) => {
+    try {
+      const { style, categoryId, onlyEmpty, overwrite } = req.body as { 
+        style: DescriptionStyle; 
+        categoryId?: string;
+        onlyEmpty?: boolean;
+        overwrite?: boolean;
+      };
+      
+      if (!style || !['professional', 'energetic', 'minimal', 'luxury', 'sporty'].includes(style)) {
+        return res.status(400).json({ error: "Geçerli bir stil seçin" });
+      }
+
+      // Get products based on filters
+      let products = await storage.getProducts();
+      
+      if (categoryId) {
+        products = products.filter(p => p.categoryId === categoryId);
+      }
+      
+      if (onlyEmpty) {
+        products = products.filter(p => !p.description || p.description.trim() === '');
+      }
+
+      const results: { productId: string; productName: string; success: boolean; error?: string }[] = [];
+      
+      for (const product of products) {
+        try {
+          // Skip if has description and overwrite is false
+          if (product.description && product.description.trim() !== '' && !overwrite) {
+            results.push({ productId: product.id, productName: product.name, success: true });
+            continue;
+          }
+
+          // Get the first image URL if available
+          let imageUrl: string | null = null;
+          if (product.images && product.images.length > 0) {
+            const firstImage = product.images[0];
+            if (firstImage.startsWith('http')) {
+              imageUrl = firstImage;
+            } else {
+              const protocol = req.protocol;
+              const host = req.get('host');
+              imageUrl = `${protocol}://${host}${firstImage}`;
+            }
+          }
+
+          const description = await generateProductDescription(
+            product.name,
+            imageUrl,
+            style
+          );
+
+          // Update product with new description
+          await storage.updateProduct(product.id, { description });
+          
+          results.push({ productId: product.id, productName: product.name, success: true });
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(`AI description error for product ${product.id}:`, error);
+          results.push({ 
+            productId: product.id, 
+            productName: product.name, 
+            success: false, 
+            error: error instanceof Error ? error.message : 'Bilinmeyen hata' 
+          });
+        }
+      }
+
+      const successful = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+
+      res.json({ 
+        message: `${successful} ürün başarıyla güncellendi, ${failed} ürün hatalı.`,
+        total: products.length,
+        successful,
+        failed,
+        results 
+      });
+    } catch (error) {
+      console.error('Bulk AI description error:', error);
+      res.status(500).json({ error: "Toplu açıklama oluşturulurken bir hata oluştu" });
+    }
+  });
+
   // Bulk price update by category
   app.post("/api/admin/products/bulk-price", requireAdmin, async (req, res) => {
     try {
