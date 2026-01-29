@@ -242,14 +242,19 @@ export default function Chatbot() {
 
       <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3">
         <AnimatePresence>
-          {showTooltip && !isOpen && (
+          {!isOpen && (
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="bg-black text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium whitespace-nowrap border border-white/20"
+              initial={{ opacity: 0, x: 20, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 20, scale: 0.9 }}
+              className="bg-black text-white px-4 py-3 rounded-xl shadow-2xl border border-white/30 cursor-pointer hover:border-white/50 transition-colors"
+              onClick={() => { setIsOpen(true); setShowTooltip(false); }}
             >
-              Size yardımcı olabilir miyim?
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-xs text-emerald-400 font-medium">Canlı Destek</span>
+              </div>
+              <p className="text-sm font-medium">Size yardımcı olabilir miyim?</p>
             </motion.div>
           )}
         </AnimatePresence>
