@@ -27,6 +27,7 @@ import {
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
+import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings } from "./chatbotService";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -4642,6 +4643,111 @@ Sitemap: ${baseUrl}/sitemap.xml
     } catch (error) {
       console.error('[Quotes] Next number error:', error);
       res.status(500).json({ error: "Teklif numarası alınamadı" });
+    }
+  });
+
+  // ====== CHATBOT ROUTES ======
+  
+  // Send message to chatbot
+  app.post("/api/chatbot/message", async (req, res) => {
+    try {
+      const { message, sessionToken } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Mesaj gerekli" });
+      }
+      
+      let token = sessionToken;
+      if (!token) {
+        token = crypto.randomUUID();
+      }
+      
+      const authPayload = await getAuthPayload(req, res);
+      const userId = authPayload?.userId;
+      
+      const result = await processMessage(token, message, userId);
+      
+      res.json({
+        response: result.response,
+        products: result.products,
+        sessionToken: token,
+      });
+    } catch (error) {
+      console.error('[Chatbot] Message error:', error);
+      res.status(500).json({ error: "Mesaj işlenemedi" });
+    }
+  });
+  
+  // Get chat history
+  app.get("/api/chatbot/history", async (req, res) => {
+    try {
+      const sessionToken = req.query.sessionToken as string;
+      
+      if (!sessionToken) {
+        return res.json({ messages: [] });
+      }
+      
+      const messages = await getChatHistory(sessionToken);
+      res.json({ messages });
+    } catch (error) {
+      console.error('[Chatbot] History error:', error);
+      res.status(500).json({ error: "Geçmiş alınamadı" });
+    }
+  });
+  
+  // Admin: Generate embeddings for all products
+  app.post("/api/admin/chatbot/generate-embeddings", requireAdmin, async (req, res) => {
+    try {
+      const result = await generateAllProductEmbeddings();
+      res.json({
+        ok: true,
+        message: `${result.success} ürün için embedding oluşturuldu, ${result.failed} başarısız`,
+        successCount: result.success,
+        failedCount: result.failed,
+      });
+    } catch (error) {
+      console.error('[Chatbot] Generate embeddings error:', error);
+      res.status(500).json({ error: "Embedding oluşturulamadı" });
+    }
+  });
+  
+  // Admin: Generate embedding for single product
+  app.post("/api/admin/chatbot/generate-embedding/:productId", requireAdmin, async (req, res) => {
+    try {
+      await generateProductEmbedding(req.params.productId);
+      res.json({ success: true, message: "Embedding oluşturuldu" });
+    } catch (error) {
+      console.error('[Chatbot] Generate single embedding error:', error);
+      res.status(500).json({ error: "Embedding oluşturulamadı" });
+    }
+  });
+  
+  // Admin: Get/Update product attributes
+  app.get("/api/admin/products/:id/attributes", requireAdmin, async (req, res) => {
+    try {
+      const attributes = await storage.getProductAttributes(req.params.id);
+      res.json(attributes || {});
+    } catch (error) {
+      console.error('[Chatbot] Get attributes error:', error);
+      res.status(500).json({ error: "Özellikler alınamadı" });
+    }
+  });
+  
+  app.put("/api/admin/products/:id/attributes", requireAdmin, async (req, res) => {
+    try {
+      const attributes = await storage.upsertProductAttributes(req.params.id, req.body);
+      
+      // Also regenerate embedding when attributes change
+      try {
+        await generateProductEmbedding(req.params.id);
+      } catch (embError) {
+        console.error('[Chatbot] Embedding regeneration error:', embError);
+      }
+      
+      res.json(attributes);
+    } catch (error) {
+      console.error('[Chatbot] Update attributes error:', error);
+      res.status(500).json({ error: "Özellikler güncellenemedi" });
     }
   });
 
