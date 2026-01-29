@@ -1,9 +1,35 @@
 import OpenAI from "openai";
 import { db } from "./db";
 import { products, productVariants, productAttributes, productEmbeddings, categories, chatSessions, chatMessages } from "@shared/schema";
-import { eq, and, sql, ilike, or } from "drizzle-orm";
+import { eq, and, sql, ilike, or, inArray } from "drizzle-orm";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
+
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000;
+const RATE_LIMIT_MAX = 30;
+
+function checkRateLimit(sessionToken: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(sessionToken);
+  
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(sessionToken, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return false;
+  }
+  
+  entry.count++;
+  return true;
+}
+
+export function isChatbotAvailable(): boolean {
+  return !!OPENAI_API_KEY && !!openai;
+}
 
 interface ProductWithDetails {
   id: string;
@@ -50,6 +76,10 @@ export async function generateProductEmbedding(productId: string): Promise<void>
   });
 
   const embeddingText = buildEmbeddingText(product, attrs);
+
+  if (!openai) {
+    throw new Error("OpenAI API anahtarı yapılandırılmamış");
+  }
 
   const response = await openai.embeddings.create({
     model: "text-embedding-ada-002",
@@ -139,23 +169,36 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 async function semanticSearch(query: string, limit: number = 5): Promise<string[]> {
-  const response = await openai.embeddings.create({
-    model: "text-embedding-ada-002",
-    input: query,
-  });
+  if (!openai) {
+    return [];
+  }
 
-  const queryEmbedding = response.data[0].embedding;
+  try {
+    const response = await openai.embeddings.create({
+      model: "text-embedding-ada-002",
+      input: query,
+    });
 
-  const allEmbeddings = await db.query.productEmbeddings.findMany();
+    const queryEmbedding = response.data[0].embedding;
 
-  const scores = allEmbeddings.map(pe => ({
-    productId: pe.productId,
-    score: cosineSimilarity(queryEmbedding, pe.embedding as number[]),
-  }));
+    const allEmbeddings = await db.query.productEmbeddings.findMany({ limit: 100 });
 
-  scores.sort((a, b) => b.score - a.score);
+    if (allEmbeddings.length === 0) {
+      return [];
+    }
 
-  return scores.slice(0, limit).map(s => s.productId);
+    const scores = allEmbeddings.map(pe => ({
+      productId: pe.productId,
+      score: cosineSimilarity(queryEmbedding, pe.embedding as number[]),
+    }));
+
+    scores.sort((a, b) => b.score - a.score);
+
+    return scores.slice(0, limit).map(s => s.productId);
+  } catch (error) {
+    console.error('[Chatbot] Semantic search error:', error);
+    return [];
+  }
 }
 
 async function filterByAttributes(
@@ -463,6 +506,10 @@ ${relevantProducts.map(p => `
     { role: 'system', content: systemPrompt },
     ...conversationHistory,
   ];
+
+  if (!openai) {
+    return { response: 'Chatbot servisi şu anda kullanılamıyor.', products: [] };
+  }
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',

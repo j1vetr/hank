@@ -27,7 +27,7 @@ import {
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
-import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings } from "./chatbotService";
+import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -4651,10 +4651,18 @@ Sitemap: ${baseUrl}/sitemap.xml
   // Send message to chatbot
   app.post("/api/chatbot/message", async (req, res) => {
     try {
+      if (!isChatbotAvailable()) {
+        return res.status(503).json({ error: "Chatbot servisi şu anda kullanılamıyor" });
+      }
+      
       const { message, sessionToken } = req.body;
       
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: "Mesaj gerekli" });
+      }
+      
+      if (message.length > 500) {
+        return res.status(400).json({ error: "Mesaj çok uzun" });
       }
       
       let token = sessionToken;
