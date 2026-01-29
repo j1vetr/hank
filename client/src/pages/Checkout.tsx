@@ -34,10 +34,98 @@ interface UserAddress {
   city: string;
   district: string;
   postalCode: string | null;
+  country: string;
   isDefault: boolean;
 }
 
 const FREE_SHIPPING_THRESHOLD = 2500;
+const INTERNATIONAL_SHIPPING_COST = 2500;
+const DOMESTIC_SHIPPING_COST = 200;
+
+const COUNTRIES = [
+  "Türkiye",
+  "Almanya",
+  "Amerika Birleşik Devletleri",
+  "Arjantin",
+  "Arnavutluk",
+  "Avustralya",
+  "Avusturya",
+  "Azerbaycan",
+  "Bahreyn",
+  "Belçika",
+  "Beyaz Rusya",
+  "Birleşik Arap Emirlikleri",
+  "Birleşik Krallık",
+  "Bosna Hersek",
+  "Brezilya",
+  "Bulgaristan",
+  "Cezayir",
+  "Çek Cumhuriyeti",
+  "Çin",
+  "Danimarka",
+  "Endonezya",
+  "Estonya",
+  "Fas",
+  "Filipinler",
+  "Finlandiya",
+  "Fransa",
+  "Güney Afrika",
+  "Güney Kore",
+  "Gürcistan",
+  "Hindistan",
+  "Hırvatistan",
+  "Hollanda",
+  "Irak",
+  "İran",
+  "İrlanda",
+  "İspanya",
+  "İsrail",
+  "İsveç",
+  "İsviçre",
+  "İtalya",
+  "Japonya",
+  "Kanada",
+  "Katar",
+  "Kazakistan",
+  "Kosova",
+  "Kuzey Kıbrıs",
+  "Kuzey Makedonya",
+  "Küba",
+  "Kuveyt",
+  "Letonya",
+  "Libya",
+  "Litvanya",
+  "Lüksemburg",
+  "Macaristan",
+  "Malezya",
+  "Meksika",
+  "Mısır",
+  "Moğolistan",
+  "Moldova",
+  "Norveç",
+  "Özbekistan",
+  "Pakistan",
+  "Polonya",
+  "Portekiz",
+  "Romanya",
+  "Rusya",
+  "Sırbistan",
+  "Singapur",
+  "Slovakya",
+  "Slovenya",
+  "Suudi Arabistan",
+  "Şili",
+  "Tayland",
+  "Tayvan",
+  "Tunus",
+  "Türkmenistan",
+  "Ukrayna",
+  "Umman",
+  "Ürdün",
+  "Vietnam",
+  "Yeni Zelanda",
+  "Yunanistan"
+];
 
 const steps = [
   { id: 1, title: 'İletişim', icon: User },
@@ -115,6 +203,7 @@ export default function Checkout() {
     city: '',
     district: '',
     postalCode: '',
+    country: 'Türkiye',
   });
 
   useEffect(() => {
@@ -143,6 +232,7 @@ export default function Checkout() {
           city: defaultAddr.city,
           district: defaultAddr.district,
           postalCode: defaultAddr.postalCode || '',
+          country: defaultAddr.country || 'Türkiye',
         }));
       }
     }
@@ -160,12 +250,17 @@ export default function Checkout() {
       city: addr.city,
       district: addr.district,
       postalCode: addr.postalCode || '',
+      country: addr.country || 'Türkiye',
     }));
   };
 
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
-  const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
-  const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  // Calculate shipping based on country
+  const isDomestic = formData.country === 'Türkiye';
+  const shippingCost = isDomestic 
+    ? (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
+    : INTERNATIONAL_SHIPPING_COST;
+  const remainingForFreeShipping = isDomestic ? (FREE_SHIPPING_THRESHOLD - subtotal) : 0;
+  const shippingProgress = isDomestic ? Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100) : 100;
   
   // Calculate discount based on coupon
   const calculateDiscount = () => {
@@ -228,7 +323,7 @@ export default function Checkout() {
     setCouponError('');
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setStepErrors({});
   };
@@ -311,6 +406,7 @@ export default function Checkout() {
           city: formData.city,
           district: formData.district,
           postalCode: formData.postalCode,
+          country: formData.country,
           couponCode: appliedCoupon?.code || null,
           createAccount: !user && createAccount,
           accountPassword: !user && createAccount ? accountPassword : null,
@@ -754,6 +850,7 @@ export default function Checkout() {
                                 city: '',
                                 district: '',
                                 postalCode: '',
+                                country: 'Türkiye',
                               }));
                             }}
                             className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
@@ -824,18 +921,45 @@ export default function Checkout() {
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <Label htmlFor="postalCode" className="text-sm font-medium">Posta Kodu</Label>
-                            <Input
-                              id="postalCode"
-                              name="postalCode"
-                              value={formData.postalCode}
-                              onChange={handleChange}
-                              data-testid="input-postalCode"
-                              className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
-                              placeholder="34000"
-                            />
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="postalCode" className="text-sm font-medium">Posta Kodu</Label>
+                              <Input
+                                id="postalCode"
+                                name="postalCode"
+                                value={formData.postalCode}
+                                onChange={handleChange}
+                                data-testid="input-postalCode"
+                                className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
+                                placeholder="34000"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="country" className="text-sm font-medium">Ülke *</Label>
+                              <select
+                                id="country"
+                                name="country"
+                                value={formData.country}
+                                onChange={handleChange}
+                                data-testid="select-country"
+                                className="w-full h-12 bg-zinc-900/50 border border-white/10 focus:border-white/30 rounded-lg px-4 text-white"
+                              >
+                                {COUNTRIES.map(country => (
+                                  <option key={country} value={country} className="bg-zinc-900">
+                                    {country}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
+                          
+                          {formData.country !== 'Türkiye' && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                              <p className="text-sm text-amber-200">
+                                <strong>Uluslararası Kargo:</strong> Türkiye dışı siparişlerde sabit 2.500 TL kargo ücreti uygulanır.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
 
