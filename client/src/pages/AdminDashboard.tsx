@@ -1064,6 +1064,7 @@ export default function AdminDashboard() {
                     value={bulkAIStyle}
                     onChange={(e) => setBulkAIStyle(e.target.value)}
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+                    data-testid="select-bulk-ai-style"
                   >
                     <option value="professional">Profesyonel - Kurumsal ve güvenilir ton</option>
                     <option value="energetic">Enerjik - Dinamik ve motive edici</option>
@@ -1079,6 +1080,7 @@ export default function AdminDashboard() {
                     value={bulkAICategory}
                     onChange={(e) => setBulkAICategory(e.target.value)}
                     className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+                    data-testid="select-bulk-ai-category"
                   >
                     <option value="">Tüm Kategoriler</option>
                     {categories.map(cat => (
@@ -1088,24 +1090,31 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-3 bg-zinc-800/50 p-4 rounded-lg">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={bulkAIOnlyEmpty}
-                      onChange={(e) => setBulkAIOnlyEmpty(e.target.checked)}
-                      className="w-5 h-5 rounded bg-zinc-700 border-zinc-600 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-zinc-300">Sadece açıklaması boş ürünler</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={bulkAIOverwrite}
-                      onChange={(e) => setBulkAIOverwrite(e.target.checked)}
-                      className="w-5 h-5 rounded bg-zinc-700 border-zinc-600 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="text-zinc-300">Mevcut açıklamaların üzerine yaz</span>
-                  </label>
+                  <label className="block text-sm font-medium text-zinc-400 mb-3">Hangi ürünlere uygulansın?</label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="bulkAIMode"
+                        checked={bulkAIOnlyEmpty && !bulkAIOverwrite}
+                        onChange={() => { setBulkAIOnlyEmpty(true); setBulkAIOverwrite(false); }}
+                        className="w-5 h-5 bg-zinc-700 border-zinc-600 text-purple-600 focus:ring-purple-500"
+                        data-testid="radio-bulk-ai-empty-only"
+                      />
+                      <span className="text-zinc-300">Sadece açıklaması boş ürünler</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="bulkAIMode"
+                        checked={bulkAIOverwrite}
+                        onChange={() => { setBulkAIOnlyEmpty(false); setBulkAIOverwrite(true); }}
+                        className="w-5 h-5 bg-zinc-700 border-zinc-600 text-purple-600 focus:ring-purple-500"
+                        data-testid="radio-bulk-ai-overwrite"
+                      />
+                      <span className="text-zinc-300">Tüm ürünler (mevcut açıklamalar silinir)</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
@@ -1142,6 +1151,7 @@ export default function AdminDashboard() {
                     }
                   }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-500 hover:to-pink-500 transition-colors"
+                  data-testid="button-start-bulk-ai"
                 >
                   <Sparkles className="w-5 h-5" />
                   Toplu Açıklama Oluştur
@@ -1182,6 +1192,7 @@ export default function AdminDashboard() {
                     setBulkAIProgress({running: false, message: ''});
                   }}
                   className="w-full px-4 py-3 bg-zinc-800 text-white rounded-lg font-medium hover:bg-zinc-700 transition-colors"
+                  data-testid="button-close-bulk-ai"
                 >
                   Kapat
                 </button>

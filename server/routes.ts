@@ -1275,16 +1275,19 @@ export async function registerRoutes(
   // Bulk AI Description Generation
   app.post("/api/admin/products/bulk-ai-description", requireAdmin, async (req, res) => {
     try {
-      const { style, categoryId, onlyEmpty, overwrite } = req.body as { 
-        style: DescriptionStyle; 
-        categoryId?: string;
-        onlyEmpty?: boolean;
-        overwrite?: boolean;
-      };
+      const bulkAISchema = z.object({
+        style: z.enum(['professional', 'energetic', 'minimal', 'luxury', 'sporty']),
+        categoryId: z.string().optional(),
+        onlyEmpty: z.boolean().optional().default(false),
+        overwrite: z.boolean().optional().default(false),
+      });
       
-      if (!style || !['professional', 'energetic', 'minimal', 'luxury', 'sporty'].includes(style)) {
-        return res.status(400).json({ error: "Geçerli bir stil seçin" });
+      const parseResult = bulkAISchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Geçersiz istek parametreleri" });
       }
+      
+      const { style, categoryId, onlyEmpty, overwrite } = parseResult.data;
 
       // Get products based on filters
       let products = await storage.getProducts();
@@ -1295,6 +1298,16 @@ export async function registerRoutes(
       
       if (onlyEmpty) {
         products = products.filter(p => !p.description || p.description.trim() === '');
+      }
+
+      if (products.length === 0) {
+        return res.json({
+          message: "Filtrelere uyan ürün bulunamadı.",
+          total: 0,
+          successful: 0,
+          failed: 0,
+          results: []
+        });
       }
 
       const results: { productId: string; productName: string; success: boolean; error?: string }[] = [];
