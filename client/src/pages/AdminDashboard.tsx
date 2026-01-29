@@ -53,7 +53,9 @@ import {
   Building2,
   ClipboardList,
   Phone,
-  MapPin
+  MapPin,
+  Sparkles,
+  Wand2
 } from 'lucide-react';
 
 interface Product {
@@ -1228,6 +1230,58 @@ function ProductModal({
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   
+  // AI Description Generation
+  const [aiStyle, setAiStyle] = useState<string>('professional');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiPreview, setAiPreview] = useState<string | null>(null);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  
+  const aiStyles = [
+    { id: 'professional', name: 'Profesyonel', description: 'Kurumsal ve güvenilir ton' },
+    { id: 'energetic', name: 'Enerjik', description: 'Dinamik ve motive edici' },
+    { id: 'minimal', name: 'Minimal', description: 'Kısa ve öz' },
+    { id: 'luxury', name: 'Lüks', description: 'Premium ve sofistike' },
+    { id: 'sporty', name: 'Sportif', description: 'Atletik ve performans odaklı' },
+  ];
+  
+  const generateAIDescription = async () => {
+    if (!product?.id) {
+      alert('Önce ürünü kaydedin, ardından AI açıklaması oluşturabilirsiniz.');
+      return;
+    }
+    
+    setIsGeneratingAI(true);
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}/generate-description`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ style: aiStyle }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'AI açıklaması oluşturulamadı');
+      }
+      
+      const data = await res.json();
+      setAiPreview(data.description);
+    } catch (error) {
+      console.error('AI generation error:', error);
+      alert(error instanceof Error ? error.message : 'AI açıklaması oluşturulamadı');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+  
+  const applyAIDescription = () => {
+    if (aiPreview) {
+      setFormData({ ...formData, description: aiPreview });
+      setAiPreview(null);
+      setShowAiPanel(false);
+    }
+  };
+  
   const [previewSize, setPreviewSize] = useState<string | null>(formData.availableSizes[0] || null);
   const [previewColor, setPreviewColor] = useState<{name: string; hex: string} | null>(formData.availableColors[0] || null);
   const [previewImage, setPreviewImage] = useState(0);
@@ -1390,15 +1444,123 @@ function ProductModal({
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Açıklama</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-zinc-400">Açıklama</label>
+              {product?.id && (
+                <button
+                  type="button"
+                  onClick={() => setShowAiPanel(!showAiPanel)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-medium rounded-lg transition-all"
+                  data-testid="button-ai-description"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  AI ile Oluştur
+                </button>
+              )}
+            </div>
+            
+            {showAiPanel && (
+              <div className="mb-3 p-4 bg-zinc-800/50 border border-purple-500/30 rounded-xl space-y-3">
+                <div className="flex items-center gap-2 text-purple-400 text-sm font-medium">
+                  <Wand2 className="w-4 h-4" />
+                  AI Açıklama Oluşturucu
+                </div>
+                
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Yazım Stili</label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {aiStyles.map((style) => (
+                      <button
+                        key={style.id}
+                        type="button"
+                        onClick={() => setAiStyle(style.id)}
+                        className={`px-2 py-1.5 text-xs rounded-lg transition-all ${
+                          aiStyle === style.id
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                        }`}
+                        title={style.description}
+                      >
+                        {style.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={generateAIDescription}
+                  disabled={isGeneratingAI}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
+                >
+                  {isGeneratingAI ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Oluşturuluyor...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Açıklama Oluştur
+                    </>
+                  )}
+                </button>
+                
+                {aiPreview && (
+                  <div className="space-y-2">
+                    <div className="text-xs text-zinc-500">Önizleme:</div>
+                    <div 
+                      className="p-3 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-300 max-h-40 overflow-y-auto prose prose-sm prose-invert"
+                      dangerouslySetInnerHTML={{ __html: aiPreview }}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={applyAIDescription}
+                        className="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5 inline mr-1" />
+                        Uygula
+                      </button>
+                      <button
+                        type="button"
+                        onClick={generateAIDescription}
+                        disabled={isGeneratingAI}
+                        className="flex-1 px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 inline mr-1 ${isGeneratingAI ? 'animate-spin' : ''}`} />
+                        Yeniden Oluştur
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setAiPreview(null); setShowAiPanel(false); }}
+                        className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
-              placeholder="Ürün açıklaması..."
+              rows={5}
+              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500 font-mono text-sm"
+              placeholder="Ürün açıklaması (HTML destekler)..."
               data-testid="input-product-description"
             />
+            {formData.description && formData.description.includes('<') && (
+              <div className="mt-2">
+                <div className="text-xs text-zinc-500 mb-1">Önizleme:</div>
+                <div 
+                  className="p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-sm text-zinc-300 prose prose-sm prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: formData.description }}
+                />
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-4">
