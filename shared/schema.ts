@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   city: text("city"),
   district: text("district"),
   postalCode: text("postal_code"),
+  country: text("country").default("Türkiye"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -55,6 +56,7 @@ export const userAddresses = pgTable("user_addresses", {
   city: text("city").notNull(),
   district: text("district").notNull(),
   postalCode: text("postal_code"),
+  country: text("country").default("Türkiye").notNull(),
   isDefault: boolean("is_default").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
