@@ -99,11 +99,17 @@ RESTful API endpoints under `/api/`:
 - This prevents product name mismatch in invoices (e.g., pants showing as t-shirt)
 - Applied to: payment creation, order creation, and abandoned cart emails
 
+### Shipping & International Orders
+- **Domestic (Turkey) Shipping**: Free for orders >= 2500 TL, otherwise 200 TL
+- **International Shipping**: Fixed 2500 TL for all orders outside Turkey
+- **Country Selection**: World countries dropdown in checkout (default: Türkiye)
+- **Country Field**: Added to `users`, `user_addresses`, and order `shippingAddress` JSON
+- **Backend Calculation**: Server-side verification of shipping costs based on country
+
 ### Email Notifications
 - **SMTP Configuration**: Stored in database via `settings` table (not .env)
 - **Configured SMTP**: host=mail.toov.com.tr, user=no-reply@toov.com.tr
 - **Email Templates**: Dark athletic luxury theme matching brand identity
-- **Free Shipping Threshold**: 2500 TL
 
 ### Payment System (PayTR)
 - **Production Domain**: hank.com.tr
