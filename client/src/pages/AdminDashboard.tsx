@@ -55,7 +55,9 @@ import {
   Phone,
   MapPin,
   Sparkles,
-  Wand2
+  Wand2,
+  Bot,
+  BrainCircuit
 } from 'lucide-react';
 
 interface Product {
@@ -127,7 +129,7 @@ interface ProductVariant {
   stock: number;
 }
 
-type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'influencers' | 'dealers' | 'quotes' | 'settings' | 'database';
+type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'influencers' | 'dealers' | 'quotes' | 'settings' | 'database' | 'ai-descriptions' | 'ai-chatbot';
 
 interface Dealer {
   id: string;
@@ -408,6 +410,8 @@ export default function AdminDashboard() {
     { id: 'marketing' as TabType, icon: Megaphone, label: 'Pazarlama' },
     { id: 'influencers' as TabType, icon: UserCircle, label: 'Influencer' },
     { id: 'users' as TabType, icon: Users, label: 'Kullanıcılar' },
+    { id: 'ai-descriptions' as TabType, icon: Wand2, label: 'AI Açıklamalar' },
+    { id: 'ai-chatbot' as TabType, icon: Bot, label: 'AI Chatbot' },
     { id: 'woocommerce' as TabType, icon: Link2, label: 'WooCommerce' },
     { id: 'settings' as TabType, icon: Settings, label: 'Ayarlar' },
     { id: 'database' as TabType, icon: Database, label: 'Veritabanı' },
@@ -986,6 +990,14 @@ export default function AdminDashboard() {
           
           {activeTab === 'database' && (
             <DatabasePanel />
+          )}
+          
+          {activeTab === 'ai-descriptions' && (
+            <AIDescriptionsPanel products={products} categories={categories} />
+          )}
+          
+          {activeTab === 'ai-chatbot' && (
+            <AIChatbotPanel />
           )}
         </div>
       </main>
@@ -6366,6 +6378,399 @@ function QuoteDetailModal({
           >
             Kapat
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIDescriptionsPanel({ products, categories }: { products: Product[], categories: Category[] }) {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [descriptionMode, setDescriptionMode] = useState<'empty' | 'overwrite'>('empty');
+  const [selectedStyle, setSelectedStyle] = useState<string>('Enerjik');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
+  const [results, setResults] = useState<Array<{ name: string; success: boolean; message: string }>>([]);
+  const queryClient = useQueryClient();
+
+  const styles = ['Profesyonel', 'Enerjik', 'Minimal', 'Lüks', 'Sportif'];
+
+  const filteredProducts = products.filter(p => {
+    const categoryMatch = selectedCategory === 'all' || p.categoryId === selectedCategory;
+    if (descriptionMode === 'empty') {
+      return categoryMatch && (!p.description || p.description.trim() === '');
+    }
+    return categoryMatch;
+  });
+
+  const generateDescriptions = async () => {
+    if (filteredProducts.length === 0) return;
+    
+    setIsGenerating(true);
+    setProgress({ current: 0, total: filteredProducts.length, success: 0, failed: 0 });
+    setResults([]);
+    
+    let successCount = 0;
+    let failedCount = 0;
+    const newResults: Array<{ name: string; success: boolean; message: string }> = [];
+
+    for (let i = 0; i < filteredProducts.length; i++) {
+      const product = filteredProducts[i];
+      setProgress(prev => ({ ...prev, current: i + 1 }));
+      
+      try {
+        const response = await fetch(`/api/admin/products/${product.id}/generate-description`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ style: selectedStyle }),
+        });
+        
+        if (response.ok) {
+          successCount++;
+          newResults.push({ name: product.name, success: true, message: 'Açıklama oluşturuldu' });
+        } else {
+          failedCount++;
+          newResults.push({ name: product.name, success: false, message: 'Hata oluştu' });
+        }
+      } catch (error) {
+        failedCount++;
+        newResults.push({ name: product.name, success: false, message: 'Bağlantı hatası' });
+      }
+      
+      setProgress(prev => ({ ...prev, success: successCount, failed: failedCount }));
+      setResults([...newResults]);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    setIsGenerating(false);
+    queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Wand2 className="w-6 h-6 text-amber-500" />
+            AI Ürün Açıklamaları
+          </h2>
+          <p className="text-zinc-400 mt-1">Yapay zeka ile toplu ürün açıklaması oluşturun</p>
+        </div>
+      </div>
+
+      <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Kategori</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
+              disabled={isGenerating}
+            >
+              <option value="all">Tüm Kategoriler</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Açıklama Modu</label>
+            <div className="flex gap-2">
+              <label className={`flex-1 p-3 rounded-lg border cursor-pointer transition-colors ${
+                descriptionMode === 'empty' 
+                  ? 'bg-amber-600/20 border-amber-600 text-amber-400' 
+                  : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+              }`}>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="empty"
+                  checked={descriptionMode === 'empty'}
+                  onChange={() => setDescriptionMode('empty')}
+                  className="sr-only"
+                  disabled={isGenerating}
+                />
+                <span className="text-sm">Sadece Boşlar</span>
+              </label>
+              <label className={`flex-1 p-3 rounded-lg border cursor-pointer transition-colors ${
+                descriptionMode === 'overwrite' 
+                  ? 'bg-amber-600/20 border-amber-600 text-amber-400' 
+                  : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+              }`}>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="overwrite"
+                  checked={descriptionMode === 'overwrite'}
+                  onChange={() => setDescriptionMode('overwrite')}
+                  className="sr-only"
+                  disabled={isGenerating}
+                />
+                <span className="text-sm">Üzerine Yaz</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Yazım Stili</label>
+            <select
+              value={selectedStyle}
+              onChange={(e) => setSelectedStyle(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
+              disabled={isGenerating}
+            >
+              {styles.map(style => (
+                <option key={style} value={style}>{style}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between">
+          <p className="text-zinc-400">
+            {filteredProducts.length} ürün seçildi
+          </p>
+          <button
+            onClick={generateDescriptions}
+            disabled={isGenerating || filteredProducts.length === 0}
+            className="px-6 py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                İşleniyor... ({progress.current}/{progress.total})
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Açıklamaları Oluştur
+              </>
+            )}
+          </button>
+        </div>
+
+        {isGenerating && (
+          <div className="mt-6">
+            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-300"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-sm mt-2">
+              <span className="text-emerald-400">{progress.success} başarılı</span>
+              <span className="text-red-400">{progress.failed} başarısız</span>
+            </div>
+          </div>
+        )}
+
+        {results.length > 0 && !isGenerating && (
+          <div className="mt-6 max-h-64 overflow-y-auto space-y-2">
+            {results.map((result, idx) => (
+              <div 
+                key={idx}
+                className={`p-3 rounded-lg flex items-center gap-3 ${
+                  result.success ? 'bg-emerald-500/10' : 'bg-red-500/10'
+                }`}
+              >
+                {result.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                )}
+                <span className="text-white text-sm truncate">{result.name}</span>
+                <span className={`text-xs ml-auto ${result.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {result.message}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AIChatbotPanel() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [embeddingResult, setEmbeddingResult] = useState<{ ok: boolean; message: string; successCount?: number; failedCount?: number } | null>(null);
+  const [stats, setStats] = useState<{ totalProducts: number; withEmbeddings: number; withAttributes: number } | null>(null);
+
+  const fetchStats = async () => {
+    try {
+      const [productsRes, embeddingsRes] = await Promise.all([
+        fetch('/api/products', { credentials: 'include' }),
+        fetch('/api/admin/chatbot/stats', { credentials: 'include' }).catch(() => null),
+      ]);
+      
+      const products = await productsRes.json();
+      const totalProducts = Array.isArray(products) ? products.length : 0;
+      
+      setStats({
+        totalProducts,
+        withEmbeddings: 0,
+        withAttributes: 0,
+      });
+    } catch (error) {
+      console.error('Stats fetch error:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const generateEmbeddings = async () => {
+    setIsGenerating(true);
+    setEmbeddingResult(null);
+    
+    try {
+      const response = await fetch('/api/admin/chatbot/generate-embeddings', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setEmbeddingResult({
+          ok: true,
+          message: data.message,
+          successCount: data.successCount,
+          failedCount: data.failedCount,
+        });
+      } else {
+        setEmbeddingResult({
+          ok: false,
+          message: data.error || 'Bir hata oluştu',
+        });
+      }
+    } catch (error) {
+      setEmbeddingResult({
+        ok: false,
+        message: 'Bağlantı hatası',
+      });
+    } finally {
+      setIsGenerating(false);
+      fetchStats();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Bot className="w-6 h-6 text-amber-500" />
+            AI Chatbot Yönetimi
+          </h2>
+          <p className="text-zinc-400 mt-1">Müşteri asistanı chatbot ayarları ve embedding yönetimi</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+          <div className="flex items-center gap-3 mb-2">
+            <Package className="w-5 h-5 text-blue-400" />
+            <span className="text-zinc-400">Toplam Ürün</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{stats?.totalProducts || 0}</p>
+        </div>
+        
+        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+          <div className="flex items-center gap-3 mb-2">
+            <BrainCircuit className="w-5 h-5 text-amber-400" />
+            <span className="text-zinc-400">Embedding Durumu</span>
+          </div>
+          <p className="text-3xl font-bold text-white">
+            {embeddingResult?.successCount !== undefined ? embeddingResult.successCount : '-'}
+          </p>
+        </div>
+        
+        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+          <div className="flex items-center gap-3 mb-2">
+            <MessageSquare className="w-5 h-5 text-emerald-400" />
+            <span className="text-zinc-400">Chatbot Durumu</span>
+          </div>
+          <p className="text-lg font-bold text-emerald-400">Aktif</p>
+        </div>
+      </div>
+
+      <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+        <h3 className="text-lg font-semibold text-white mb-4">Ürün Embedding Oluşturma</h3>
+        <p className="text-zinc-400 mb-4">
+          Chatbot'un ürünleri akıllı şekilde araması için tüm ürünlerin embedding vektörlerini oluşturun.
+          Bu işlem ürün açıklamalarını analiz ederek anlamsal arama yapılmasını sağlar.
+        </p>
+        
+        <button
+          onClick={generateEmbeddings}
+          disabled={isGenerating}
+          className="px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Embedding oluşturuluyor...
+            </>
+          ) : (
+            <>
+              <BrainCircuit className="w-5 h-5" />
+              Tüm Ürünler için Embedding Oluştur
+            </>
+          )}
+        </button>
+
+        {embeddingResult && (
+          <div className={`mt-4 p-4 rounded-lg ${embeddingResult.ok ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+            <div className="flex items-center gap-2">
+              {embeddingResult.ok ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-400" />
+              )}
+              <span className={embeddingResult.ok ? 'text-emerald-400' : 'text-red-400'}>
+                {embeddingResult.message}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+        <h3 className="text-lg font-semibold text-white mb-4">Chatbot Nasıl Çalışır?</h3>
+        <div className="space-y-4 text-zinc-400">
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-600/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-amber-400 font-bold text-sm">1</span>
+            </div>
+            <div>
+              <p className="text-white font-medium">Müşteri Sorusu</p>
+              <p className="text-sm">Müşteri "siyah oversize tişört var mı?" gibi doğal dille soru sorar</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-600/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-amber-400 font-bold text-sm">2</span>
+            </div>
+            <div>
+              <p className="text-white font-medium">Akıllı Arama</p>
+              <p className="text-sm">AI, embedding vektörleri kullanarak en uygun ürünleri bulur</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-600/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-amber-400 font-bold text-sm">3</span>
+            </div>
+            <div>
+              <p className="text-white font-medium">Kişiselleştirilmiş Yanıt</p>
+              <p className="text-sm">GPT-4 ile hazırlanan yanıt ve ürün önerileri müşteriye sunulur</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
