@@ -384,14 +384,17 @@ async function getProductDetails(productIds: string[]): Promise<ProductWithDetai
 }
 
 function extractIntent(message: string): {
-  intent: 'search' | 'size_check' | 'recommendation' | 'general' | 'more';
+  intent: 'search' | 'size_check' | 'recommendation' | 'general' | 'more' | 'outfit';
   productType?: string;
+  productTypes?: string[];
+  clothingCategory?: string;
   fit?: string;
   season?: string;
   usage?: string;
   size?: string;
   color?: string;
   priceMax?: number;
+  isOutfitRequest?: boolean;
 } {
   const lowerMsg = message.toLowerCase();
 
@@ -406,6 +409,19 @@ function extractIntent(message: string): {
     'sweatshirt': 'sweatshirt',
     'hoodie': 'sweatshirt',
     'kapşonlu': 'sweatshirt',
+    'pantolon': 'pantolon',
+    'tayt': 'tayt',
+    'ceket': 'ceket',
+    'mont': 'mont',
+  };
+
+  // Clothing category concepts
+  const clothingCategories: Record<string, string[]> = {
+    'üst giyim': ['tshirt', 'atlet', 'sweatshirt', 'ceket', 'mont'],
+    'üst': ['tshirt', 'atlet', 'sweatshirt', 'ceket', 'mont'],
+    'alt giyim': ['esofman', 'sort', 'salvar', 'pantolon', 'tayt'],
+    'alt': ['esofman', 'sort', 'salvar', 'pantolon', 'tayt'],
+    'kombin': ['tshirt', 'atlet', 'sweatshirt', 'esofman', 'sort', 'salvar'],
   };
 
   const fits: Record<string, string> = {
@@ -433,21 +449,31 @@ function extractIntent(message: string): {
     'gündelik': 'gunluk',
   };
 
-  let intent: 'search' | 'size_check' | 'recommendation' | 'general' | 'more' = 'general';
+  let intent: 'search' | 'size_check' | 'recommendation' | 'general' | 'more' | 'outfit' = 'general';
   let productType: string | undefined;
+  let detectedProductTypes: string[] = [];
+  let clothingCategory: string | undefined;
   let fit: string | undefined;
   let season: string | undefined;
   let usage: string | undefined;
   let size: string | undefined;
   let color: string | undefined;
   let priceMax: number | undefined;
+  let isOutfitRequest = false;
 
-  if (lowerMsg.includes('beden') || lowerMsg.includes('stok') || lowerMsg.includes('kaldı mı')) {
+  // Detect outfit/combination requests
+  if (lowerMsg.includes('kombin') || lowerMsg.includes('kombinle') || lowerMsg.includes('set') ||
+      lowerMsg.includes('takım') || lowerMsg.includes('birlikte') || lowerMsg.includes('eşleştir') ||
+      lowerMsg.includes('ne giyeyim') || lowerMsg.includes('ne giysem') || lowerMsg.includes('altına ne') ||
+      lowerMsg.includes('üstüne ne') || lowerMsg.includes('yanına ne')) {
+    intent = 'outfit';
+    isOutfitRequest = true;
+  } else if (lowerMsg.includes('beden') || lowerMsg.includes('stok') || lowerMsg.includes('kaldı mı')) {
     intent = 'size_check';
   } else if (lowerMsg.includes('öneri') || lowerMsg.includes('tavsiye') || lowerMsg.includes('ne önerirsin')) {
     intent = 'recommendation';
   } else if (lowerMsg.includes('daha fazla') || lowerMsg.includes('başka') || lowerMsg.includes('devam') || 
-             lowerMsg.includes('diğer') || lowerMsg.includes('daha var mı')) {
+             lowerMsg.includes('diğer') || lowerMsg.includes('daha var mı') || lowerMsg.includes('evet')) {
     intent = 'more';
   } else if (lowerMsg.includes('arıyorum') || lowerMsg.includes('istiyorum') || lowerMsg.includes('bakıyorum') || 
              lowerMsg.includes('lazım') || lowerMsg.includes('var mı') || lowerMsg.includes('göster') ||
@@ -456,9 +482,23 @@ function extractIntent(message: string): {
     intent = 'search';
   }
 
+  // Detect clothing categories (alt giyim, üst giyim, etc.)
+  for (const [key, types] of Object.entries(clothingCategories)) {
+    if (lowerMsg.includes(key)) {
+      clothingCategory = key;
+      detectedProductTypes = types;
+      if (intent === 'general') intent = 'search';
+      break;
+    }
+  }
+
+  // Detect specific product types
   for (const [key, value] of Object.entries(productTypes)) {
     if (lowerMsg.includes(key)) {
       productType = value;
+      if (!detectedProductTypes.includes(value)) {
+        detectedProductTypes.push(value);
+      }
       if (intent === 'general') intent = 'search';
       break;
     }
@@ -506,7 +546,19 @@ function extractIntent(message: string): {
     priceMax = parseInt(priceMatch[1]);
   }
 
-  return { intent, productType, fit, season, usage, size, color, priceMax };
+  return { 
+    intent, 
+    productType, 
+    productTypes: detectedProductTypes.length > 0 ? detectedProductTypes : undefined,
+    clothingCategory,
+    fit, 
+    season, 
+    usage, 
+    size, 
+    color, 
+    priceMax,
+    isOutfitRequest 
+  };
 }
 
 export async function processMessage(
@@ -562,87 +614,158 @@ export async function processMessage(
   const intent = extractIntent(userMessage);
   let relevantProducts: ProductWithDetails[] = [];
 
-  // Always try to find relevant products for any message
-  const attributeFilteredIds = await filterByAttributes(
-    intent.productType,
-    intent.fit,
-    intent.season,
-    intent.usage,
-    intent.priceMax
-  );
-
-  const semanticIds = await semanticSearch(userMessage, 10);
-
-  // Direct name/category search for keywords like "şort", "tişört" etc.
-  const searchTerms: string[] = [];
+  // Turkish keywords for product type search
   const turkishKeywords: Record<string, string[]> = {
     'sort': ['şort', 'sort'],
     'tshirt': ['tişört', 'tshirt', 't-shirt'],
-    'esofman': ['eşofman', 'esofman'],
+    'esofman': ['eşofman', 'esofman', 'eşofman altı', 'eşofman üstü'],
     'atlet': ['atlet'],
     'salvar': ['şalvar', 'salvar'],
     'sweatshirt': ['sweatshirt', 'hoodie', 'kapşonlu'],
+    'pantolon': ['pantolon'],
+    'tayt': ['tayt', 'legging'],
+    'ceket': ['ceket'],
+    'mont': ['mont'],
   };
-  
-  if (intent.productType && turkishKeywords[intent.productType]) {
-    searchTerms.push(...turkishKeywords[intent.productType]);
-  }
-  
-  const nameSearchIds = await searchByNameOrCategory(searchTerms);
 
-  let combinedIds = Array.from(new Set([...attributeFilteredIds, ...nameSearchIds, ...semanticIds])).slice(0, 15);
-  
-  // Fallback: If no products found, get some active products to prevent hallucination
-  if (combinedIds.length === 0) {
-    const fallbackProducts = await db.query.products.findMany({
-      where: eq(products.isActive, true),
-      limit: 15,
-    });
-    combinedIds = fallbackProducts.map(p => p.id);
-  }
-  
-  relevantProducts = await getProductDetails(combinedIds);
+  // For outfit requests, get products from multiple categories
+  if (intent.isOutfitRequest || intent.intent === 'outfit') {
+    // Get both tops and bottoms for outfit suggestions
+    const topTerms = ['tişört', 'atlet', 'sweatshirt'];
+    const bottomTerms = ['şort', 'eşofman', 'şalvar', 'pantolon'];
+    
+    const topIds = await searchByNameOrCategory(topTerms);
+    const bottomIds = await searchByNameOrCategory(bottomTerms);
+    
+    // Get some from each category
+    const combinedOutfitIds = [...topIds.slice(0, 5), ...bottomIds.slice(0, 5)];
+    relevantProducts = await getProductDetails(combinedOutfitIds);
+  } else {
+    // Regular search
+    const attributeFilteredIds = await filterByAttributes(
+      intent.productType,
+      intent.fit,
+      intent.season,
+      intent.usage,
+      intent.priceMax
+    );
 
-  // Filter by size if specified (for "L beden ne var" type queries)
+    const semanticIds = await semanticSearch(userMessage, 10);
+
+    // Direct name/category search
+    const searchTerms: string[] = [];
+    
+    // If specific product types detected
+    if (intent.productTypes && intent.productTypes.length > 0) {
+      for (const pt of intent.productTypes) {
+        if (turkishKeywords[pt]) {
+          searchTerms.push(...turkishKeywords[pt]);
+        }
+      }
+    } else if (intent.productType && turkishKeywords[intent.productType]) {
+      searchTerms.push(...turkishKeywords[intent.productType]);
+    }
+    
+    // Add color to search terms if specified
+    if (intent.color) {
+      searchTerms.push(intent.color);
+    }
+    
+    const nameSearchIds = await searchByNameOrCategory(searchTerms);
+
+    let combinedIds = Array.from(new Set([...attributeFilteredIds, ...nameSearchIds, ...semanticIds])).slice(0, 15);
+    
+    // Fallback: If no products found, get some active products
+    if (combinedIds.length === 0) {
+      const fallbackProducts = await db.query.products.findMany({
+        where: eq(products.isActive, true),
+        limit: 15,
+      });
+      combinedIds = fallbackProducts.map(p => p.id);
+    }
+    
+    relevantProducts = await getProductDetails(combinedIds);
+  }
+
+  // Filter by color if specified
+  if (intent.color) {
+    const colorFiltered = relevantProducts.filter(p => 
+      p.name.toLowerCase().includes(intent.color!) ||
+      p.variants.some(v => v.color.toLowerCase().includes(intent.color!))
+    );
+    if (colorFiltered.length > 0) {
+      relevantProducts = colorFiltered;
+    }
+  }
+
+  // Filter by size if specified
   if (intent.size) {
     const sizeFiltered = relevantProducts.filter(p => 
       p.variants.some(v => v.size.toUpperCase() === intent.size?.toUpperCase() && v.stock > 0)
     );
-    // Only use filtered if we found results, otherwise keep all
     if (sizeFiltered.length > 0) {
       relevantProducts = sizeFiltered;
     }
   }
 
-  const systemPrompt = `Sen HANK fitness giyim markasının satış asistanısın. Türkçe konuşuyorsun.
+  // Determine if this is an outfit request for special handling
+  const isOutfit = intent.isOutfitRequest || intent.intent === 'outfit';
+  
+  const systemPrompt = `Sen HANK fitness giyim markasının profesyonel stil danışmanı ve satış asistanısın. Türkçe konuşuyorsun.
 
-ÖNEMLİ KURALLAR:
-1. SADECE aşağıdaki "Mevcut Ürünler" listesindeki ürünleri önerebilirsin
-2. LİSTEDE OLMAYAN ÜRÜN UYDURMA
-3. Liste boşsa "Bu kriterlere uygun ürünümüz bulunmuyor" de
+SEN KİMSİN:
+- HANK markasının uzman stil danışmanısın
+- Fitness giyim konusunda uzmansın
+- Müşterilere kombin önerileri yapabilirsin
+- Samimi ama profesyonel bir dil kullan
+
+TEMEL KURALLAR:
+1. SADECE aşağıdaki "Mevcut Ürünler" listesindeki ürünleri öner
+2. Listede olmayan ürün UYDURMA
+3. Her ürünü TAM İSMİYLE yaz (kısaltma yapma)
 4. Gerçek fiyatları kullan
-5. Beden/stok bilgisini listeden al
-6. Kısa ve net yanıtlar ver
-7. Özür dileme veya "yanlış bilgi verdim" DEME - önceki cevapların doğruydu
-8. "Evet", "daha fazla", "başka" gibi yanıtlarda: sohbet geçmişine bak, daha önce ÖNERMEDİĞİN ürünleri göster
-9. Sohbet geçmişinde önerilen ürünleri tekrarlama, yeni ürünler öner
-10. Listede 5'ten fazla ürün varsa, 4-5 tanesini öner ve "Başka ürünler de mevcut, görmek ister misiniz?" de
+5. Özür dileme, "yanlış bilgi verdim" gibi ifadeler YASAK
+6. Kısa ve net ol
+
+KOMBİN ÖNERİSİ YAPARKEN:
+- Üst ve alt giyimi birlikte öner
+- Renk uyumunu düşün (örn: siyah üst + gri alt, beyaz üst + siyah alt)
+- "Bu üstün altına şunu önerebilirim" gibi doğal cümleler kur
+- Hem spor hem günlük kullanım için uygun seçenekler sun
+
+RENK KAVRAMLARI:
+- "Beyaz tonlar" = beyaz, krem, ekru içeren ürünler
+- "Koyu tonlar" = siyah, lacivert, koyu gri içeren ürünler
+- "Açık tonlar" = beyaz, açık gri, bej içeren ürünler
+
+GİYİM KATEGORİLERİ:
+- "Üst giyim" = tişört, atlet, sweatshirt, hoodie
+- "Alt giyim" = şort, eşofman, şalvar, pantolon
+- Müşteri "alt giyim" derse şort, eşofman, şalvar öner
+- Müşteri "üst giyim" derse tişört, atlet, sweatshirt öner
+
+DEVAM İSTEKLERİ:
+- "Evet", "daha fazla", "başka" = sohbet geçmişinde ÖNERMEDİĞİN ürünleri göster
+- Aynı ürünü tekrar önerme
 
 ${relevantProducts.length > 0 ? `
-MEVCUT ÜRÜNLER (SADECE BUNLARı ÖNEREBİLİRSİN):
-${relevantProducts.map(p => `
-• ${p.name}
-  Fiyat: ${p.basePrice} TL
-  ${p.categoryName ? `Kategori: ${p.categoryName}` : ''}
-  ${p.attributes?.fit ? `Kesim: ${p.attributes.fit}` : ''}
-  ${p.attributes?.material ? `Malzeme: ${p.attributes.material}` : ''}
-  ${p.attributes?.season ? `Sezon: ${p.attributes.season}` : ''}
-  Stokta olan bedenler: ${p.variants.filter(v => v.stock > 0).map(v => `${v.size}`).join(', ') || 'Stokta yok'}
+MEVCUT ÜRÜNLER (SADECE BUNLARI ÖNEREBİLİRSİN):
+${relevantProducts.map((p, index) => `
+${index + 1}. ${p.name}
+   Fiyat: ${p.basePrice} TL
+   ${p.categoryName ? `Kategori: ${p.categoryName}` : ''}
+   Renkler: ${Array.from(new Set(p.variants.filter(v => v.stock > 0).map(v => v.color))).join(', ') || 'Belirtilmemiş'}
+   ${p.attributes?.fit ? `Kesim: ${p.attributes.fit}` : ''}
+   Stokta bedenler: ${p.variants.filter(v => v.stock > 0).map(v => v.size).join(', ') || 'Stokta yok'}
 `).join('\n')}
 
-Bu listedeki ürünlerden müşterinin ihtiyacına en uygun olanları öner.
+${isOutfit ? `
+Müşteri kombin istiyor. Yukarıdaki listeden uyumlu üst ve alt giyim kombinasyonları öner. Renk uyumuna dikkat et.
 ` : `
-UYARI: Şu an müşterinin kriterlerine uygun ürün bulunamadı. Ürün adı veya fiyat UYDURMA. Müşteriyi siteyi ziyaret etmeye yönlendir.
+Bu listeden müşterinin ihtiyacına en uygun ürünleri öner. Ürün numaralarını kullanabilirsin.
+`}
+` : `
+UYARI: Müşterinin kriterlerine uygun ürün bulunamadı. Ürün adı veya fiyat UYDURMA. "Şu an bu kriterlere uygun ürünümüz bulunmuyor, ancak tüm ürünlerimizi sitemizde inceleyebilirsiniz" de.
 `}`;
 
   const messages: OpenAI.ChatCompletionMessageParam[] = [
