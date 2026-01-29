@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Loader2 } from "lucide-react";
+import { X, Send, Loader2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 
@@ -136,7 +136,10 @@ export default function Chatbot() {
                 />
                 <div>
                   <span className="font-semibold text-white block text-sm">HANK Giyim Asistanı</span>
-                  <span className="text-xs text-emerald-400">Çevrimiçi</span>
+                  <div className="flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-violet-400" />
+                    <span className="text-xs text-violet-400">AI Destekli</span>
+                  </div>
                 </div>
               </div>
               <button
@@ -251,8 +254,8 @@ export default function Chatbot() {
               onClick={() => { setIsOpen(true); setShowTooltip(false); }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-xs text-emerald-400 font-medium">Canlı Destek</span>
+                <Sparkles className="w-3 h-3 text-violet-400" />
+                <span className="text-xs text-violet-400 font-medium">AI Asistan</span>
               </div>
               <p className="text-sm font-medium">Size yardımcı olabilir miyim?</p>
             </motion.div>
