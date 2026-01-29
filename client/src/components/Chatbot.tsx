@@ -245,14 +245,20 @@ export default function Chatbot() {
 
       <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3">
         <AnimatePresence>
-          {!isOpen && (
+          {!isOpen && showTooltip && (
             <motion.div
               initial={{ opacity: 0, x: 20, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 20, scale: 0.9 }}
-              className="bg-black text-white px-4 py-3 rounded-xl shadow-2xl border border-white/30 cursor-pointer hover:border-white/50 transition-colors"
+              className="bg-black text-white px-4 py-3 rounded-xl shadow-2xl border border-white/30 cursor-pointer hover:border-white/50 transition-colors relative"
               onClick={() => { setIsOpen(true); setShowTooltip(false); }}
             >
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowTooltip(false); }}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-zinc-700 hover:bg-zinc-600 rounded-full flex items-center justify-center transition-colors"
+              >
+                <X className="w-3 h-3 text-white" />
+              </button>
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="w-3 h-3 text-violet-400" />
                 <span className="text-xs text-violet-400 font-medium">AI Asistan</span>
