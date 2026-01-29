@@ -219,7 +219,7 @@ export default function AdminDashboard() {
   const [bulkAICategory, setBulkAICategory] = useState('');
   const [bulkAIOnlyEmpty, setBulkAIOnlyEmpty] = useState(true);
   const [bulkAIOverwrite, setBulkAIOverwrite] = useState(false);
-  const [bulkAIProgress, setBulkAIProgress] = useState<{running: boolean; message: string; results?: any[]}>({running: false, message: ''});
+  const [bulkAIProgress, setBulkAIProgress] = useState<{running: boolean; done: boolean; message: string; results?: any[]}>({running: false, done: false, message: ''});
   const queryClient = useQueryClient();
 
   const { data: adminUser, isLoading: userLoading } = useQuery({
@@ -1046,7 +1046,7 @@ export default function AdminDashboard() {
                 onClick={() => {
                   if (!bulkAIProgress.running) {
                     setShowBulkAIModal(false);
-                    setBulkAIProgress({running: false, message: ''});
+                    setBulkAIProgress({running: false, done: false, message: ''});
                   }
                 }} 
                 className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white"
@@ -1056,7 +1056,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {!bulkAIProgress.running && !bulkAIProgress.results ? (
+            {!bulkAIProgress.running && !bulkAIProgress.done ? (
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-400 mb-2">Açıklama Stili</label>
@@ -1126,7 +1126,7 @@ export default function AdminDashboard() {
 
                 <button
                   onClick={async () => {
-                    setBulkAIProgress({running: true, message: 'Başlatılıyor...'});
+                    setBulkAIProgress({running: true, done: false, message: 'Başlatılıyor...'});
                     try {
                       const res = await fetch('/api/admin/products/bulk-ai-description', {
                         method: 'POST',
@@ -1141,13 +1141,13 @@ export default function AdminDashboard() {
                       });
                       const data = await res.json();
                       if (!res.ok) {
-                        setBulkAIProgress({running: false, message: data.error || 'Hata oluştu'});
+                        setBulkAIProgress({running: false, done: true, message: data.error || 'Hata oluştu'});
                       } else {
-                        setBulkAIProgress({running: false, message: data.message, results: data.results});
+                        setBulkAIProgress({running: false, done: true, message: data.message, results: data.results});
                         queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
                       }
                     } catch (error) {
-                      setBulkAIProgress({running: false, message: 'Bağlantı hatası'});
+                      setBulkAIProgress({running: false, done: true, message: 'Bağlantı hatası'});
                     }
                   }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-500 hover:to-pink-500 transition-colors"
@@ -1189,7 +1189,7 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => {
                     setShowBulkAIModal(false);
-                    setBulkAIProgress({running: false, message: ''});
+                    setBulkAIProgress({running: false, done: false, message: ''});
                   }}
                   className="w-full px-4 py-3 bg-zinc-800 text-white rounded-lg font-medium hover:bg-zinc-700 transition-colors"
                   data-testid="button-close-bulk-ai"
