@@ -624,9 +624,10 @@ export default function ProductDetail() {
               </div>
 
               {product.description && (
-                <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                  {product.description}
-                </p>
+                <div 
+                  className="text-sm text-muted-foreground leading-relaxed mb-6 prose prose-sm prose-invert max-w-none [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
               )}
 
               <div className="space-y-6">

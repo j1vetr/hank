@@ -58,6 +58,12 @@ FORMAT KURALLARI (ÇOK ÖNEMLİ):
 - Her paragraf yeni satırda başlasın
 - Görsel olarak çekici ve okunabilir olsun
 
+NOKTALAMA İŞARETLERİ (ÇOK DİKKATLİ OL):
+- Her cümle sonunda nokta (.) kullan
+- Virgülleri doğru yerlere koy
+- Ünlem işaretini abartma, sadece vurgu gereken yerlerde kullan
+- Türkçe dil kurallarına uy
+
 HTML KURALLARI:
 - Sadece HTML içeriği döndür, başka açıklama ekleme
 - <html>, <body>, <head> gibi etiketler KULLANMA
