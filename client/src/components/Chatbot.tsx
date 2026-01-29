@@ -137,6 +137,32 @@ export default function Chatbot() {
     }).format(parseFloat(price));
   };
 
+  // Filter products to only show those mentioned in the message content
+  const getRelevantProducts = (content: string, allProducts: Product[] | undefined) => {
+    if (!allProducts || allProducts.length === 0) return [];
+    
+    // Find products whose names appear in the message
+    const mentionedProducts = allProducts.filter(product => {
+      const productNameLower = product.name.toLowerCase();
+      const contentLower = content.toLowerCase();
+      // Check if product name or significant part of it appears in content
+      return contentLower.includes(productNameLower) || 
+             productNameLower.split(' ').filter(word => word.length > 3).some(word => contentLower.includes(word));
+    });
+    
+    // If we found mentioned products, return them; otherwise return first 3
+    return mentionedProducts.length > 0 ? mentionedProducts.slice(0, 4) : allProducts.slice(0, 3);
+  };
+
+  // Format message content - remove markdown and add styling
+  const formatContent = (content: string) => {
+    // Remove ** markdown
+    let formatted = content.replace(/\*\*(.*?)\*\*/g, '$1');
+    // Remove ## headers
+    formatted = formatted.replace(/##\s*/g, '');
+    return formatted;
+  };
+
   return (
     <>
       <AnimatePresence>
@@ -185,11 +211,11 @@ export default function Chatbot() {
                         : "bg-zinc-800 text-zinc-100"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">{formatContent(msg.content)}</p>
 
                     {msg.products && msg.products.length > 0 && (
                       <div className="mt-3 space-y-2">
-                        {msg.products.slice(0, 3).map((product) => (
+                        {getRelevantProducts(msg.content, msg.products).map((product) => (
                           <Link
                             key={product.id}
                             href={`/urun/${product.slug}`}

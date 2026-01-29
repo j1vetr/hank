@@ -726,6 +726,7 @@ TEMEL KURALLAR:
 4. Gerçek fiyatları kullan
 5. Özür dileme, "yanlış bilgi verdim" gibi ifadeler YASAK
 6. Kısa ve net ol
+7. FORMATLAMA: Markdown kullanma (**, ##, vb. yasak). Düz metin yaz. Başlıklar için "Üst Giyim:" gibi iki nokta kullan
 
 KOMBİN ÖNERİSİ YAPARKEN:
 - Üst ve alt giyimi birlikte öner
