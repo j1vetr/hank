@@ -337,7 +337,7 @@ async function getProductDetails(productIds: string[]): Promise<ProductWithDetai
 }
 
 function extractIntent(message: string): {
-  intent: 'search' | 'size_check' | 'recommendation' | 'general';
+  intent: 'search' | 'size_check' | 'recommendation' | 'general' | 'more';
   productType?: string;
   fit?: string;
   season?: string;
@@ -386,7 +386,7 @@ function extractIntent(message: string): {
     'gündelik': 'gunluk',
   };
 
-  let intent: 'search' | 'size_check' | 'recommendation' | 'general' = 'general';
+  let intent: 'search' | 'size_check' | 'recommendation' | 'general' | 'more' = 'general';
   let productType: string | undefined;
   let fit: string | undefined;
   let season: string | undefined;
@@ -399,9 +399,13 @@ function extractIntent(message: string): {
     intent = 'size_check';
   } else if (lowerMsg.includes('öneri') || lowerMsg.includes('tavsiye') || lowerMsg.includes('ne önerirsin')) {
     intent = 'recommendation';
+  } else if (lowerMsg.includes('daha fazla') || lowerMsg.includes('başka') || lowerMsg.includes('devam') || 
+             lowerMsg.includes('diğer') || lowerMsg.includes('daha var mı')) {
+    intent = 'more';
   } else if (lowerMsg.includes('arıyorum') || lowerMsg.includes('istiyorum') || lowerMsg.includes('bakıyorum') || 
              lowerMsg.includes('lazım') || lowerMsg.includes('var mı') || lowerMsg.includes('göster') ||
-             lowerMsg.includes('ister') || lowerMsg.includes('almak') || lowerMsg.includes('alacağım')) {
+             lowerMsg.includes('ister') || lowerMsg.includes('almak') || lowerMsg.includes('alacağım') ||
+             lowerMsg.includes('ne var') || lowerMsg.includes('neler var')) {
     intent = 'search';
   }
 
@@ -519,23 +523,28 @@ export async function processMessage(
 
   const semanticIds = await semanticSearch(userMessage, 10);
 
-  let combinedIds = Array.from(new Set([...attributeFilteredIds, ...semanticIds])).slice(0, 5);
+  let combinedIds = Array.from(new Set([...attributeFilteredIds, ...semanticIds])).slice(0, 15);
   
   // Fallback: If no products found, get some active products to prevent hallucination
   if (combinedIds.length === 0) {
     const fallbackProducts = await db.query.products.findMany({
       where: eq(products.isActive, true),
-      limit: 5,
+      limit: 15,
     });
     combinedIds = fallbackProducts.map(p => p.id);
   }
   
   relevantProducts = await getProductDetails(combinedIds);
 
-  if (intent.size && intent.intent === 'size_check') {
-    relevantProducts = relevantProducts.filter(p => 
-      p.variants.some(v => v.size === intent.size && v.stock > 0)
+  // Filter by size if specified (for "L beden ne var" type queries)
+  if (intent.size) {
+    const sizeFiltered = relevantProducts.filter(p => 
+      p.variants.some(v => v.size.toUpperCase() === intent.size?.toUpperCase() && v.stock > 0)
     );
+    // Only use filtered if we found results, otherwise keep all
+    if (sizeFiltered.length > 0) {
+      relevantProducts = sizeFiltered;
+    }
   }
 
   const systemPrompt = `Sen HANK fitness giyim markasının satış asistanısın. Türkçe konuşuyorsun.
@@ -547,6 +556,8 @@ export async function processMessage(
 4. Her zaman gerçek fiyatları kullan - listede yazan fiyatlar
 5. Beden ve stok bilgisi sadece listede yazıyorsa ver
 6. Yanıtlarını kısa tut
+7. Eğer müşteri "daha fazla", "başka var mı" gibi sorular sorarsa, listedeki DİĞER ürünleri öner (daha önce önermediklerini)
+8. Listede çok ürün varsa hepsini tek seferde söyleme, 4-5 ürün öner ve "Daha fazla ürün görmek ister misiniz?" de
 
 ${relevantProducts.length > 0 ? `
 MEVCUT ÜRÜNLER (SADECE BUNLARı ÖNEREBİLİRSİN):
