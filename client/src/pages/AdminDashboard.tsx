@@ -1480,6 +1480,7 @@ function ProductModal({
                             : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
                         }`}
                         title={style.description}
+                        data-testid={`button-ai-style-${style.id}`}
                       >
                         {style.name}
                       </button>
@@ -1492,6 +1493,7 @@ function ProductModal({
                   onClick={generateAIDescription}
                   disabled={isGeneratingAI}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
+                  data-testid="button-ai-generate"
                 >
                   {isGeneratingAI ? (
                     <>
@@ -1518,6 +1520,7 @@ function ProductModal({
                         type="button"
                         onClick={applyAIDescription}
                         className="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg transition-colors"
+                        data-testid="button-ai-apply"
                       >
                         <Check className="w-3.5 h-3.5 inline mr-1" />
                         Uygula
@@ -1527,6 +1530,7 @@ function ProductModal({
                         onClick={generateAIDescription}
                         disabled={isGeneratingAI}
                         className="flex-1 px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium rounded-lg transition-colors"
+                        data-testid="button-ai-regenerate"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 inline mr-1 ${isGeneratingAI ? 'animate-spin' : ''}`} />
                         Yeniden Oluştur
@@ -1535,6 +1539,7 @@ function ProductModal({
                         type="button"
                         onClick={() => { setAiPreview(null); setShowAiPanel(false); }}
                         className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium rounded-lg transition-colors"
+                        data-testid="button-ai-cancel"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>

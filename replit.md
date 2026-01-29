@@ -106,6 +106,16 @@ RESTful API endpoints under `/api/`:
 - **Country Field**: Added to `users`, `user_addresses`, and order `shippingAddress` JSON
 - **Backend Calculation**: Server-side verification of shipping costs based on country
 
+### AI Product Description Generation
+- **OpenAI Integration**: Uses GPT-4o with Vision for image analysis
+- **API Key**: Requires `OPENAI_API_KEY` environment variable
+- **Styles Available**: Profesyonel, Enerjik, Minimal, Lüks, Sportif
+- **Output Format**: HTML formatted descriptions with proper tags (<p>, <ul>, <li>, <strong>)
+- **Admin UI**: "AI ile Oluştur" button in product edit modal
+- **Flow**: Select style → Generate → Preview → Apply or Regenerate
+- **Service File**: `server/aiService.ts`
+- **API Endpoint**: `POST /api/admin/products/:id/generate-description`
+
 ### Email Notifications
 - **SMTP Configuration**: Stored in database via `settings` table (not .env)
 - **Configured SMTP**: host=mail.toov.com.tr, user=no-reply@toov.com.tr

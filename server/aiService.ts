@@ -1,7 +1,11 @@
 import OpenAI from 'openai';
 
+if (!process.env.OPENAI_API_KEY) {
+  console.warn('Warning: OPENAI_API_KEY is not set. AI description generation will not work.');
+}
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 export type DescriptionStyle = 'professional' | 'energetic' | 'minimal' | 'luxury' | 'sporty';
@@ -29,6 +33,9 @@ export async function generateProductDescription(
   imageUrl: string | null,
   style: DescriptionStyle
 ): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OpenAI API anahtarı ayarlanmamış. Lütfen OPENAI_API_KEY secret ekleyin.');
+  }
   const stylePrompt = stylePrompts[style];
   
   const systemPrompt = `Sen HANK markası için çalışan profesyonel bir ürün açıklaması yazarısın. HANK, Türkiye'nin premium fitness ve spor giyim markasıdır.
