@@ -53,10 +53,19 @@ Stil: ${stylePrompt}
 
 FORMAT KURALLARI (ÇOK ÖNEMLİ):
 - Paragraflar arasında boş satır bırak (her <p> etiketi ayrı satırda olsun)
-- Uygun yerlerde emoji kullan (💪 🔥 ⚡ 🏆 ✨ 🎯 💯 🖤 ⭐ gibi fitness/spor temalı)
+- SADECE şu emojileri kullan: 💪 🔥 ⚡ 🏆 ✨ 🎯 💯 ⭐ (KALBİ ❤️🖤💙 ASLA KULLANMA)
 - Liste öğelerinde de emoji kullanabilirsin
 - Her paragraf yeni satırda başlasın
+- Önemli kelimeleri <strong> ile kalınlaştır (renk, özellik, avantaj gibi)
 - Görsel olarak çekici ve okunabilir olsun
+
+ÜRÜN DETAYLARI (FOTOĞRAFA DİKKATLİ BAK):
+- Üzerinde çizgi varsa "çizgili tasarım" diye belirt
+- Üzerinde yazı/logo varsa bunu açıklamada belirt
+- Yaka tipi (V yaka, bisiklet yaka, kapüşonlu vb.)
+- Kol tipi (kısa kol, uzun kol, kolsuz)
+- Kumaş dokusu görünüyorsa belirt
+- Fermuarlı, cepli gibi detayları ekle
 
 NOKTALAMA İŞARETLERİ (ÇOK DİKKATLİ OL):
 - Her cümle sonunda nokta (.) kullan
