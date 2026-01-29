@@ -42,11 +42,12 @@ export async function generateProductDescription(
 
 Görevin:
 1. Verilen ürün adını ve fotoğrafını analiz et
-2. Belirtilen stilde etkileyici bir ürün açıklaması yaz
-3. Açıklama HTML formatında olmalı
-4. Türkçe yaz
-5. 150-250 kelime arası olsun
-6. SEO dostu olsun
+2. Fotoğraftan ürünün rengini tespit et ve açıklamada mutlaka belirt (örn: "siyah rengi ile şık", "beyaz tonuyla ferah")
+3. Belirtilen stilde etkileyici bir ürün açıklaması yaz
+4. Açıklama HTML formatında olmalı
+5. Türkçe yaz
+6. 150-250 kelime arası olsun
+7. SEO dostu olsun
 
 Stil: ${stylePrompt}
 
