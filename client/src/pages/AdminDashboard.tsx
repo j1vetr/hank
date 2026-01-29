@@ -6387,13 +6387,19 @@ function QuoteDetailModal({
 function AIDescriptionsPanel({ products, categories }: { products: Product[], categories: Category[] }) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [descriptionMode, setDescriptionMode] = useState<'empty' | 'overwrite'>('empty');
-  const [selectedStyle, setSelectedStyle] = useState<string>('Enerjik');
+  const [selectedStyle, setSelectedStyle] = useState<string>('energetic');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
   const [results, setResults] = useState<Array<{ name: string; success: boolean; message: string }>>([]);
   const queryClient = useQueryClient();
 
-  const styles = ['Profesyonel', 'Enerjik', 'Minimal', 'Lüks', 'Sportif'];
+  const styles = [
+    { value: 'professional', label: 'Profesyonel' },
+    { value: 'energetic', label: 'Enerjik' },
+    { value: 'minimal', label: 'Minimal' },
+    { value: 'luxury', label: 'Lüks' },
+    { value: 'sporty', label: 'Sportif' },
+  ];
 
   const filteredProducts = products.filter(p => {
     const categoryMatch = selectedCategory === 'all' || p.categoryId === selectedCategory;
@@ -6524,7 +6530,7 @@ function AIDescriptionsPanel({ products, categories }: { products: Product[], ca
               disabled={isGenerating}
             >
               {styles.map(style => (
-                <option key={style} value={style}>{style}</option>
+                <option key={style.value} value={style.value}>{style.label}</option>
               ))}
             </select>
           </div>
