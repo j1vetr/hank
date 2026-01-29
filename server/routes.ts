@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
+import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import multer from "multer";
