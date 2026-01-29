@@ -147,7 +147,7 @@ function orderConfirmationTemplate(order: Order, items: OrderItem[], siteUrl: st
     </div>
   `).join('');
   
-  const shippingAddress = order.shippingAddress as { address: string; city: string; district: string; postalCode: string };
+  const shippingAddress = order.shippingAddress as { address: string; city: string; district: string; postalCode: string; country?: string };
   const trackingUrl = `${siteUrl}/siparis-takip?no=${order.orderNumber}`;
   
   return wrapTemplate(`
@@ -295,7 +295,7 @@ function adminOrderNotificationTemplate(order: Order, items: OrderItem[]): strin
     </tr>
   `).join('');
   
-  const shippingAddress = order.shippingAddress as { address: string; city: string; district: string; postalCode: string };
+  const shippingAddress = order.shippingAddress as { address: string; city: string; district: string; postalCode: string; country?: string };
   
   return wrapTemplate(`
     <div class="content">

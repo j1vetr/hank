@@ -149,6 +149,17 @@ export default function Cart() {
                   </motion.div>
                 )}
 
+                {/* International Shipping Notice */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10 rounded-xl p-4"
+                >
+                  <p className="text-xs text-muted-foreground text-center">
+                    Türkiye dışı siparişlerde sabit 2.500 TL uluslararası kargo ücreti uygulanır.
+                  </p>
+                </motion.div>
+
                 <AnimatePresence mode="popLayout">
                   {cartItemsWithProducts.map((item, index) => (
                     <motion.div

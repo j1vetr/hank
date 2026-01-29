@@ -160,6 +160,7 @@ export const orders = pgTable("orders", {
     city: string;
     district: string;
     postalCode: string;
+    country?: string;
   }>().notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0").notNull(),
@@ -487,6 +488,7 @@ export const pendingPayments = pgTable("pending_payments", {
     city: string;
     district: string;
     postalCode: string;
+    country?: string;
   }>().notNull(),
   cartItems: jsonb("cart_items").$type<Array<{
     productId: string;
