@@ -587,3 +587,71 @@ export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({
 
 export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
 export type QuoteItem = typeof quoteItems.$inferSelect;
+
+// Product Attributes for Chatbot (Ürün Özellikleri)
+export const productAttributes = pgTable("product_attributes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull().unique(),
+  productType: text("product_type"), // tshirt, esofman, sort, atlet, salvar, sweatshirt
+  fit: text("fit"), // oversize, slimfit, regular
+  material: text("material"), // pamuk, polyester, karisim
+  usage: jsonb("usage").$type<string[]>().default([]), // ["spor", "gunluk", "antrenman"]
+  season: text("season"), // yaz, kis, tum_sezon
+  features: jsonb("features").$type<string[]>().default([]), // ["fermuarli", "kapusonlu", "cepli", "nefes_alir"]
+  targetGender: text("target_gender"), // erkek, kadin, unisex
+  priceRange: text("price_range"), // ekonomik, orta, premium
+  keywords: jsonb("keywords").$type<string[]>().default([]), // Özel arama kelimeleri
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProductAttributesSchema = createInsertSchema(productAttributes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertProductAttributes = z.infer<typeof insertProductAttributesSchema>;
+export type ProductAttributes = typeof productAttributes.$inferSelect;
+
+// Product Embeddings for Semantic Search (Vektör Arama)
+export const productEmbeddings = pgTable("product_embeddings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull().unique(),
+  embedding: jsonb("embedding").$type<number[]>().notNull(), // OpenAI ada-002 embedding (1536 dimensions)
+  embeddingText: text("embedding_text").notNull(), // Embedding oluşturulan metin
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProductEmbeddingSchema = createInsertSchema(productEmbeddings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertProductEmbedding = z.infer<typeof insertProductEmbeddingSchema>;
+export type ProductEmbedding = typeof productEmbeddings.$inferSelect;
+
+// Chat Sessions (Sohbet Oturumları)
+export const chatSessions = pgTable("chat_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionToken: text("session_token").notNull().unique(), // Anonymous session identifier
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }), // Optional user reference
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
+});
+
+export type ChatSession = typeof chatSessions.$inferSelect;
+
+// Chat Messages (Sohbet Mesajları)
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").references(() => chatSessions.id, { onDelete: "cascade" }).notNull(),
+  role: text("role").notNull(), // "user" or "assistant"
+  content: text("content").notNull(),
+  productRecommendations: jsonb("product_recommendations").$type<string[]>().default([]), // Önerilen ürün ID'leri
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
