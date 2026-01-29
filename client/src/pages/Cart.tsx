@@ -149,14 +149,17 @@ export default function Cart() {
                   </motion.div>
                 )}
 
-                {/* International Shipping Notice */}
+                {/* Shipping Info Notice */}
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10 rounded-xl p-4"
+                  className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10 rounded-xl p-4 space-y-1"
                 >
                   <p className="text-xs text-muted-foreground text-center">
-                    Türkiye dışı siparişlerde sabit 2.500 TL uluslararası kargo ücreti uygulanır.
+                    <strong className="text-white/80">Türkiye içi kargo:</strong> 2.500 TL üzeri ücretsiz, altı 200 TL
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center">
+                    <strong className="text-white/80">Uluslararası kargo:</strong> Sabit 2.500 TL (ödeme adımında hesaplanır)
                   </p>
                 </motion.div>
 
