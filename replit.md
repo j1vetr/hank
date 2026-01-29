@@ -174,6 +174,26 @@ RESTful API endpoints under `/api/`:
 - `SESSION_SECRET` - Express session secret (defaults to development value)
 - `NODE_ENV` - Environment mode (development/production)
 
+### AI Chatbot (Ürün Asistanı)
+- **Component**: `client/src/components/Chatbot.tsx` - Floating chat button with conversation UI
+- **Service**: `server/chatbotService.ts` - Message processing, embedding generation, semantic search
+- **Model**: GPT-4o for conversations, text-embedding-ada-002 for product embeddings
+- **Features**:
+  - Natural language product search and recommendations
+  - Size and stock availability checks
+  - Conversation history persistence
+  - Rate limiting (30 messages per minute per session)
+  - Hidden on admin pages
+- **Database Tables**:
+  - `product_attributes` - Product metadata (type, fit, material, usage, season, features)
+  - `product_embeddings` - Vector embeddings for semantic search
+  - `chat_sessions` - Anonymous or user-linked chat sessions
+  - `chat_messages` - Conversation history
+- **Admin Endpoints**:
+  - `POST /api/admin/chatbot/generate-embeddings` - Generate embeddings for all products
+  - `POST /api/admin/chatbot/generate-embedding/:productId` - Generate embedding for single product
+  - `GET/PUT /api/admin/products/:id/attributes` - Manage product attributes
+
 ### Replit-Specific Integrations
 - Vite plugins for Replit development environment
 - Meta images plugin for OpenGraph image handling
