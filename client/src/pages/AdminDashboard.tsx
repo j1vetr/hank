@@ -6603,26 +6603,22 @@ function AIDescriptionsPanel({ products, categories }: { products: Product[], ca
 
 function AIChatbotPanel() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [embeddingResult, setEmbeddingResult] = useState<{ ok: boolean; message: string; successCount?: number; failedCount?: number } | null>(null);
-  const [stats, setStats] = useState<{ totalProducts: number; withEmbeddings: number; withAttributes: number } | null>(null);
+  const [stats, setStats] = useState<{ totalProducts: number; withEmbeddings: number; withAttributes: number; missingEmbeddings: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchStats = async () => {
     try {
-      const [productsRes, embeddingsRes] = await Promise.all([
-        fetch('/api/products', { credentials: 'include' }),
-        fetch('/api/admin/chatbot/stats', { credentials: 'include' }).catch(() => null),
-      ]);
-      
-      const products = await productsRes.json();
-      const totalProducts = Array.isArray(products) ? products.length : 0;
-      
-      setStats({
-        totalProducts,
-        withEmbeddings: 0,
-        withAttributes: 0,
-      });
+      const response = await fetch('/api/admin/chatbot/stats', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
     } catch (error) {
       console.error('Stats fetch error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -6666,6 +6662,35 @@ function AIChatbotPanel() {
     }
   };
 
+  const deleteAllEmbeddings = async () => {
+    if (!confirm('Tüm embeddingları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/admin/chatbot/embeddings', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        setEmbeddingResult({
+          ok: true,
+          message: 'Tüm embeddinglar silindi. Yeniden oluşturabilirsiniz.',
+        });
+      }
+    } catch (error) {
+      setEmbeddingResult({
+        ok: false,
+        message: 'Silme işlemi başarısız',
+      });
+    } finally {
+      setIsDeleting(false);
+      fetchStats();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -6678,28 +6703,40 @@ function AIChatbotPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
           <div className="flex items-center gap-3 mb-2">
             <Package className="w-5 h-5 text-blue-400" />
             <span className="text-zinc-400">Toplam Ürün</span>
           </div>
-          <p className="text-3xl font-bold text-white">{stats?.totalProducts || 0}</p>
-        </div>
-        
-        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
-          <div className="flex items-center gap-3 mb-2">
-            <BrainCircuit className="w-5 h-5 text-amber-400" />
-            <span className="text-zinc-400">Embedding Durumu</span>
-          </div>
           <p className="text-3xl font-bold text-white">
-            {embeddingResult?.successCount !== undefined ? embeddingResult.successCount : '-'}
+            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : stats?.totalProducts || 0}
           </p>
         </div>
         
         <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
           <div className="flex items-center gap-3 mb-2">
-            <MessageSquare className="w-5 h-5 text-emerald-400" />
+            <BrainCircuit className="w-5 h-5 text-emerald-400" />
+            <span className="text-zinc-400">Embedding Var</span>
+          </div>
+          <p className="text-3xl font-bold text-emerald-400">
+            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : stats?.withEmbeddings || 0}
+          </p>
+        </div>
+        
+        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+          <div className="flex items-center gap-3 mb-2">
+            <XCircle className="w-5 h-5 text-amber-400" />
+            <span className="text-zinc-400">Embedding Eksik</span>
+          </div>
+          <p className="text-3xl font-bold text-amber-400">
+            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : stats?.missingEmbeddings || 0}
+          </p>
+        </div>
+        
+        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+          <div className="flex items-center gap-3 mb-2">
+            <MessageSquare className="w-5 h-5 text-violet-400" />
             <span className="text-zinc-400">Chatbot Durumu</span>
           </div>
           <p className="text-lg font-bold text-emerald-400">Aktif</p>
@@ -6713,23 +6750,51 @@ function AIChatbotPanel() {
           Bu işlem ürün açıklamalarını analiz ederek anlamsal arama yapılmasını sağlar.
         </p>
         
-        <button
-          onClick={generateEmbeddings}
-          disabled={isGenerating}
-          className="px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Embedding oluşturuluyor...
-            </>
-          ) : (
-            <>
-              <BrainCircuit className="w-5 h-5" />
-              Tüm Ürünler için Embedding Oluştur
-            </>
-          )}
-        </button>
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={generateEmbeddings}
+            disabled={isGenerating || isDeleting}
+            className="px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Embedding oluşturuluyor...
+              </>
+            ) : (
+              <>
+                <BrainCircuit className="w-5 h-5" />
+                Tüm Ürünler için Embedding Oluştur
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={deleteAllEmbeddings}
+            disabled={isGenerating || isDeleting || !stats?.withEmbeddings}
+            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 border border-zinc-700"
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Siliniyor...
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-5 h-5" />
+                Tüm Embeddingları Sil
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={fetchStats}
+            disabled={isLoading}
+            className="px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium disabled:opacity-50 flex items-center gap-2 border border-zinc-700"
+          >
+            <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
 
         {embeddingResult && (
           <div className={`mt-4 p-4 rounded-lg ${embeddingResult.ok ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>

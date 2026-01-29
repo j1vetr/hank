@@ -11,7 +11,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons } from "@shared/schema";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons, products, productEmbeddings, productAttributes } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 import { 
   sendWelcomeEmail, 
@@ -4703,6 +4703,40 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
   
+  // Admin: Get chatbot stats (embedding counts)
+  app.get("/api/admin/chatbot/stats", requireAdmin, async (req, res) => {
+    try {
+      const allProducts = await db.query.products.findMany({
+        where: eq(products.isActive, true),
+      });
+      
+      const allEmbeddings = await db.query.productEmbeddings.findMany();
+      
+      const allAttributes = await db.query.productAttributes.findMany();
+      
+      res.json({
+        totalProducts: allProducts.length,
+        withEmbeddings: allEmbeddings.length,
+        withAttributes: allAttributes.length,
+        missingEmbeddings: allProducts.length - allEmbeddings.length,
+      });
+    } catch (error) {
+      console.error('[Chatbot] Stats error:', error);
+      res.status(500).json({ error: "İstatistikler alınamadı" });
+    }
+  });
+
+  // Admin: Delete all embeddings (for regeneration)
+  app.delete("/api/admin/chatbot/embeddings", requireAdmin, async (req, res) => {
+    try {
+      await db.delete(productEmbeddings);
+      res.json({ success: true, message: "Tüm embeddinglar silindi" });
+    } catch (error) {
+      console.error('[Chatbot] Delete embeddings error:', error);
+      res.status(500).json({ error: "Embeddinglar silinemedi" });
+    }
+  });
+
   // Admin: Generate embeddings for all products
   app.post("/api/admin/chatbot/generate-embeddings", requireAdmin, async (req, res) => {
     try {
