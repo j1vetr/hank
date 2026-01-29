@@ -127,7 +127,7 @@ export default function Chatbot() {
             className="fixed bottom-20 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)] bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
             data-testid="chatbot-window"
           >
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-zinc-200">
+            <div className="bg-black px-4 py-3 flex items-center justify-between border-b border-zinc-700">
               <div className="flex items-center gap-3">
                 <img 
                   src="/uploads/branding/hank-icon.png" 
@@ -135,13 +135,13 @@ export default function Chatbot() {
                   className="w-8 h-8 object-contain"
                 />
                 <div>
-                  <span className="font-semibold text-zinc-900 block text-sm">HANK Giyim Asistanı</span>
-                  <span className="text-xs text-emerald-600">Çevrimiçi</span>
+                  <span className="font-semibold text-white block text-sm">HANK Giyim Asistanı</span>
+                  <span className="text-xs text-emerald-400">Çevrimiçi</span>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-zinc-500 hover:text-zinc-800 transition-colors"
+                className="text-zinc-400 hover:text-white transition-colors"
                 data-testid="chatbot-close"
               >
                 <X className="w-5 h-5" />
@@ -247,30 +247,38 @@ export default function Chatbot() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="bg-white text-zinc-800 px-4 py-2 rounded-lg shadow-lg text-sm font-medium whitespace-nowrap"
+              className="bg-black text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium whitespace-nowrap border border-white/20"
             >
               Size yardımcı olabilir miyim?
             </motion.div>
           )}
         </AnimatePresence>
         
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => { setIsOpen(!isOpen); setShowTooltip(false); }}
-          className="w-14 h-14 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow border border-zinc-200"
-          data-testid="chatbot-toggle"
-        >
-          {isOpen ? (
-            <X className="w-6 h-6 text-zinc-700" />
-          ) : (
-            <img 
-              src="/uploads/branding/hank-icon.png" 
-              alt="HANK Asistan" 
-              className="w-8 h-8 object-contain"
-            />
+        <div className="relative">
+          {!isOpen && (
+            <>
+              <span className="absolute inset-0 rounded-full bg-white/30 animate-ping" />
+              <span className="absolute inset-[-4px] rounded-full border-2 border-white/50 animate-pulse" />
+            </>
           )}
-        </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { setIsOpen(!isOpen); setShowTooltip(false); }}
+            className="relative w-14 h-14 bg-black rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-shadow border-2 border-white"
+            data-testid="chatbot-toggle"
+          >
+            {isOpen ? (
+              <X className="w-6 h-6 text-white" />
+            ) : (
+              <img 
+                src="/uploads/branding/hank-icon.png" 
+                alt="HANK Asistan" 
+                className="w-8 h-8 object-contain"
+              />
+            )}
+          </motion.button>
+        </div>
       </div>
     </>
   );
