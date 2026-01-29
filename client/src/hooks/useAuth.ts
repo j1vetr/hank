@@ -29,6 +29,7 @@ interface RegisterData {
   address?: string;
   city?: string;
   district?: string;
+  country?: string;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);

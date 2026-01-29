@@ -35,6 +35,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useFavorites } from '@/hooks/useFavorites';
 import { ProductCard } from '@/components/ProductCard';
+import { COUNTRIES } from '@/lib/countries';
 
 type TabType = 'orders' | 'profile' | 'addresses' | 'favorites';
 
@@ -82,6 +83,7 @@ interface UserAddress {
   city: string;
   district: string;
   postalCode: string | null;
+  country: string;
   isDefault: boolean;
 }
 
@@ -163,6 +165,7 @@ export default function Profile() {
     city: '',
     district: '',
     postalCode: '',
+    country: 'Türkiye',
     isDefault: false,
   });
 
@@ -249,6 +252,7 @@ export default function Profile() {
       city: '',
       district: '',
       postalCode: '',
+      country: 'Türkiye',
       isDefault: false,
     });
   };
@@ -264,6 +268,7 @@ export default function Profile() {
       city: addr.city,
       district: addr.district,
       postalCode: addr.postalCode || '',
+      country: addr.country || 'Türkiye',
       isDefault: addr.isDefault,
     });
     setShowAddressForm(true);
@@ -768,16 +773,33 @@ export default function Profile() {
                               />
                             </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-zinc-400 mb-2">Posta Kodu</label>
-                            <input
-                              type="text"
-                              value={addressForm.postalCode}
-                              onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
-                              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
-                              placeholder="34000"
-                              data-testid="input-address-postalCode"
-                            />
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-zinc-400 mb-2">Posta Kodu</label>
+                              <input
+                                type="text"
+                                value={addressForm.postalCode}
+                                onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                                placeholder="34000"
+                                data-testid="input-address-postalCode"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-zinc-400 mb-2">Ülke *</label>
+                              <select
+                                value={addressForm.country}
+                                onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
+                                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-white transition-colors"
+                                data-testid="select-address-country"
+                              >
+                                {COUNTRIES.map(country => (
+                                  <option key={country} value={country} className="bg-zinc-800">
+                                    {country}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <input

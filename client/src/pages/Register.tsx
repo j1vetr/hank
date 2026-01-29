@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, Check } from 'lucide-react';
+import { COUNTRIES } from '@/lib/countries';
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -25,9 +26,10 @@ export default function Register() {
     address: '',
     city: '',
     district: '',
+    country: 'Türkiye',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -63,6 +65,7 @@ export default function Register() {
         address: formData.address || undefined,
         city: formData.city || undefined,
         district: formData.district || undefined,
+        country: formData.country || 'Türkiye',
       });
       toast({ title: 'Başarılı', description: 'Kayıt tamamlandı' });
       navigate('/');
@@ -225,6 +228,24 @@ export default function Register() {
                     className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country" className="text-sm font-medium">Ülke</Label>
+                <select
+                  id="country"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  data-testid="select-country"
+                  className="w-full h-12 bg-zinc-900/50 border border-white/10 focus:border-white/30 rounded-lg px-4 text-white"
+                >
+                  {COUNTRIES.map(country => (
+                    <option key={country} value={country} className="bg-zinc-900">
+                      {country}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
