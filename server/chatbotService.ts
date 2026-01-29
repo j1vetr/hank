@@ -369,7 +369,9 @@ function extractIntent(message: string): {
     intent = 'size_check';
   } else if (lowerMsg.includes('öneri') || lowerMsg.includes('tavsiye') || lowerMsg.includes('ne önerirsin')) {
     intent = 'recommendation';
-  } else if (lowerMsg.includes('arıyorum') || lowerMsg.includes('istiyorum') || lowerMsg.includes('bakıyorum')) {
+  } else if (lowerMsg.includes('arıyorum') || lowerMsg.includes('istiyorum') || lowerMsg.includes('bakıyorum') || 
+             lowerMsg.includes('lazım') || lowerMsg.includes('var mı') || lowerMsg.includes('göster') ||
+             lowerMsg.includes('ister') || lowerMsg.includes('almak') || lowerMsg.includes('alacağım')) {
     intent = 'search';
   }
 
@@ -459,48 +461,62 @@ export async function processMessage(
   const intent = extractIntent(userMessage);
   let relevantProducts: ProductWithDetails[] = [];
 
-  if (intent.intent !== 'general') {
-    const attributeFilteredIds = await filterByAttributes(
-      intent.productType,
-      intent.fit,
-      intent.season,
-      intent.usage,
-      intent.priceMax
+  // Always try to find relevant products for any message
+  const attributeFilteredIds = await filterByAttributes(
+    intent.productType,
+    intent.fit,
+    intent.season,
+    intent.usage,
+    intent.priceMax
+  );
+
+  const semanticIds = await semanticSearch(userMessage, 10);
+
+  let combinedIds = Array.from(new Set([...attributeFilteredIds, ...semanticIds])).slice(0, 5);
+  
+  // Fallback: If no products found, get some active products to prevent hallucination
+  if (combinedIds.length === 0) {
+    const fallbackProducts = await db.query.products.findMany({
+      where: eq(products.isActive, true),
+      limit: 5,
+    });
+    combinedIds = fallbackProducts.map(p => p.id);
+  }
+  
+  relevantProducts = await getProductDetails(combinedIds);
+
+  if (intent.size && intent.intent === 'size_check') {
+    relevantProducts = relevantProducts.filter(p => 
+      p.variants.some(v => v.size === intent.size && v.stock > 0)
     );
-
-    const semanticIds = await semanticSearch(userMessage, 10);
-
-    const combinedIds = Array.from(new Set([...attributeFilteredIds, ...semanticIds])).slice(0, 5);
-    
-    relevantProducts = await getProductDetails(combinedIds);
-
-    if (intent.size && intent.intent === 'size_check') {
-      relevantProducts = relevantProducts.filter(p => 
-        p.variants.some(v => v.size === intent.size && v.stock > 0)
-      );
-    }
   }
 
-  const systemPrompt = `Sen HANK fitness giyim markasının akıllı satış asistanısın. Türkçe konuşuyorsun ve müşterilere ürün önerilerinde bulunuyorsun.
+  const systemPrompt = `Sen HANK fitness giyim markasının satış asistanısın. Türkçe konuşuyorsun.
 
-Kurallar:
-1. Her zaman samimi ve yardımsever ol
-2. Ürün önerirken stok durumunu kontrol et
-3. Müşterinin ihtiyacını anlamaya çalış
-4. Beden soruları için stok bilgisi ver
-5. Fiyat bilgisi verirken TL cinsinden söyle
-6. Yanıtlarını kısa ve öz tut
+ÖNEMLİ KURALLAR - KESİNLİKLE UYULMALI:
+1. SADECE aşağıdaki "Mevcut Ürünler" listesindeki ürünleri önerebilirsin
+2. LİSTEDE OLMAYAN HİÇBİR ÜRÜN ADI, FİYAT VEYA ÖZELLİK UYDURMA - bu kesinlikle yasak
+3. Eğer aşağıda ürün listesi boşsa veya müşterinin istediğine uygun ürün yoksa, açıkça "Şu an bu kriterlere uygun ürünümüz bulunmuyor, ancak sitemizi ziyaret edebilirsiniz" de
+4. Her zaman gerçek fiyatları kullan - listede yazan fiyatlar
+5. Beden ve stok bilgisi sadece listede yazıyorsa ver
+6. Yanıtlarını kısa tut
 
 ${relevantProducts.length > 0 ? `
-Mevcut ürünler:
+MEVCUT ÜRÜNLER (SADECE BUNLARı ÖNEREBİLİRSİN):
 ${relevantProducts.map(p => `
-- ${p.name} (${p.basePrice} TL)
+• ${p.name}
+  Fiyat: ${p.basePrice} TL
   ${p.categoryName ? `Kategori: ${p.categoryName}` : ''}
   ${p.attributes?.fit ? `Kesim: ${p.attributes.fit}` : ''}
   ${p.attributes?.material ? `Malzeme: ${p.attributes.material}` : ''}
-  Bedenler: ${p.variants.filter(v => v.stock > 0).map(v => `${v.size}(${v.stock} adet)`).join(', ') || 'Stokta yok'}
+  ${p.attributes?.season ? `Sezon: ${p.attributes.season}` : ''}
+  Stokta olan bedenler: ${p.variants.filter(v => v.stock > 0).map(v => `${v.size}`).join(', ') || 'Stokta yok'}
 `).join('\n')}
-` : ''}`;
+
+Bu listedeki ürünlerden müşterinin ihtiyacına en uygun olanları öner.
+` : `
+UYARI: Şu an müşterinin kriterlerine uygun ürün bulunamadı. Ürün adı veya fiyat UYDURMA. Müşteriyi siteyi ziyaret etmeye yönlendir.
+`}`;
 
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
