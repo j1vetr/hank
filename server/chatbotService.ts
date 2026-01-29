@@ -10,6 +10,36 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const RATE_LIMIT_MAX = 30;
 
+const BLOCKED_WORDS = [
+  'amk', 'aq', 'oç', 'piç', 'sik', 'yarrak', 'göt', 'meme', 'am', 'orospu', 'pezevenk', 'ibne', 'puşt',
+  'bok', 'siktir', 'gerizekalı', 'salak', 'aptal', 'mal', 'dangalak', 'hıyar', 'öküz', 'eşek'
+];
+
+const COMPETITOR_BRANDS = [
+  'gymshark', 'nike', 'adidas', 'puma', 'under armour', 'underarmour', 'reebok', 'new balance',
+  'fila', 'asics', 'decathlon', 'defacto', 'koton', 'lc waikiki', 'lcw', 'mavi', 'collezione',
+  'jack jones', 'zara', 'hm', 'h&m', 'bershka', 'pull bear', 'stradivarius', 'mango',
+  'alphalete', 'vanquish', 'myprotein', 'young la', 'cbum', 'rawgear'
+];
+
+function containsBlockedContent(message: string): { blocked: boolean; reason?: string } {
+  const lowerMsg = message.toLowerCase().replace(/[^a-zçğıöşü0-9\s]/gi, '');
+  
+  for (const word of BLOCKED_WORDS) {
+    if (lowerMsg.includes(word)) {
+      return { blocked: true, reason: 'inappropriate' };
+    }
+  }
+  
+  for (const brand of COMPETITOR_BRANDS) {
+    if (lowerMsg.includes(brand.toLowerCase())) {
+      return { blocked: true, reason: 'competitor' };
+    }
+  }
+  
+  return { blocked: false };
+}
+
 function checkRateLimit(sessionToken: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(sessionToken);
@@ -430,6 +460,23 @@ export async function processMessage(
   userMessage: string,
   userId?: string
 ): Promise<{ response: string; products: ProductWithDetails[] }> {
+  // Content moderation check
+  const contentCheck = containsBlockedContent(userMessage);
+  if (contentCheck.blocked) {
+    if (contentCheck.reason === 'inappropriate') {
+      return { 
+        response: 'Üzgünüm, bu tür mesajlara yanıt veremiyorum. Lütfen ürünlerimiz hakkında sorularınızı paylaşın.', 
+        products: [] 
+      };
+    }
+    if (contentCheck.reason === 'competitor') {
+      return { 
+        response: 'Ben sadece HANK ürünleri hakkında yardımcı olabiliyorum. Size HANK koleksiyonumuzdan harika alternatifler önerebilirim! Nasıl yardımcı olabilirim?', 
+        products: [] 
+      };
+    }
+  }
+
   let session = await db.query.chatSessions.findFirst({
     where: eq(chatSessions.sessionToken, sessionToken),
   });
