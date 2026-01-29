@@ -43,18 +43,37 @@ export async function generateProductDescription(
 Görevin:
 1. Verilen ürün adını ve fotoğrafını analiz et
 2. Belirtilen stilde etkileyici bir ürün açıklaması yaz
-3. Açıklama HTML formatında olmalı (paragraflar için <p>, listeler için <ul><li>, vurgular için <strong> kullan)
+3. Açıklama HTML formatında olmalı
 4. Türkçe yaz
 5. 150-250 kelime arası olsun
 6. SEO dostu olsun
 
 Stil: ${stylePrompt}
 
-Önemli:
+FORMAT KURALLARI (ÇOK ÖNEMLİ):
+- Paragraflar arasında boş satır bırak (her <p> etiketi ayrı satırda olsun)
+- Uygun yerlerde emoji kullan (💪 🔥 ⚡ 🏆 ✨ 🎯 💯 🖤 ⭐ gibi fitness/spor temalı)
+- Liste öğelerinde de emoji kullanabilirsin
+- Her paragraf yeni satırda başlasın
+- Görsel olarak çekici ve okunabilir olsun
+
+HTML KURALLARI:
 - Sadece HTML içeriği döndür, başka açıklama ekleme
 - <html>, <body>, <head> gibi etiketler KULLANMA
-- Sadece içerik etiketleri kullan: <p>, <ul>, <li>, <strong>, <em>
-- Ürünün özelliklerini, kullanım alanlarını ve avantajlarını vurgula`;
+- Sadece içerik etiketleri kullan: <p>, <ul>, <li>, <strong>, <em>, <br>
+- Ürünün özelliklerini, kullanım alanlarını ve avantajlarını vurgula
+
+ÖRNEK FORMAT:
+<p>🔥 <strong>Ürün Başlığı</strong> - Açıklama metni...</p>
+
+<p>💪 İkinci paragraf metni...</p>
+
+<ul>
+<li>⚡ Özellik 1</li>
+<li>🏆 Özellik 2</li>
+</ul>
+
+<p>✨ Son paragraf...</p>`;
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
