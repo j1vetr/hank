@@ -25,6 +25,7 @@ import {
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
+import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -1214,6 +1215,61 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ error: "Failed to delete product" });
     }
+  });
+
+  // AI Product Description Generation
+  app.post("/api/admin/products/:id/generate-description", requireAdmin, async (req, res) => {
+    try {
+      const { style } = req.body as { style: DescriptionStyle };
+      
+      if (!style || !['professional', 'energetic', 'minimal', 'luxury', 'sporty'].includes(style)) {
+        return res.status(400).json({ error: "Geçerli bir stil seçin" });
+      }
+
+      const product = await storage.getProduct(req.params.id);
+      if (!product) {
+        return res.status(404).json({ error: "Ürün bulunamadı" });
+      }
+
+      // Get the first image URL if available
+      let imageUrl: string | null = null;
+      if (product.images && product.images.length > 0) {
+        const firstImage = product.images[0];
+        // Check if it's a full URL or relative path
+        if (firstImage.startsWith('http')) {
+          imageUrl = firstImage;
+        } else {
+          // For local images, we need the full URL
+          const protocol = req.protocol;
+          const host = req.get('host');
+          imageUrl = `${protocol}://${host}${firstImage}`;
+        }
+      }
+
+      const description = await generateProductDescription(
+        product.name,
+        imageUrl,
+        style
+      );
+
+      res.json({ description, style: styleNames[style] });
+    } catch (error) {
+      console.error('AI description generation error:', error);
+      res.status(500).json({ error: "Açıklama oluşturulurken bir hata oluştu" });
+    }
+  });
+
+  // Get available AI description styles
+  app.get("/api/admin/ai-styles", requireAdmin, async (req, res) => {
+    res.json({
+      styles: [
+        { id: 'professional', name: 'Profesyonel', description: 'Kurumsal ve güvenilir ton' },
+        { id: 'energetic', name: 'Enerjik', description: 'Dinamik ve motive edici' },
+        { id: 'minimal', name: 'Minimal', description: 'Kısa ve öz' },
+        { id: 'luxury', name: 'Lüks', description: 'Premium ve sofistike' },
+        { id: 'sporty', name: 'Sportif', description: 'Atletik ve performans odaklı' },
+      ]
+    });
   });
 
   // Bulk price update by category
