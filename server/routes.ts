@@ -1581,7 +1581,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Sepet boş" });
       }
 
-      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, couponCode, createAccount, accountPassword } = req.body;
+      const { customerName, customerEmail, customerPhone, address, city, district, postalCode, country, couponCode, createAccount, accountPassword } = req.body;
+      const selectedCountry = country || 'Türkiye';
 
       // Validate required fields
       if (!customerName || !customerEmail || !customerPhone || !address || !city || !district) {
@@ -1663,9 +1664,15 @@ export async function registerRoutes(
         }
       }
 
-      // Calculate shipping and total
+      // Calculate shipping and total (international shipping is 2500 TL fixed)
       const FREE_SHIPPING_THRESHOLD = 2500;
-      const shippingCost = serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
+      const DOMESTIC_SHIPPING_COST = 200;
+      const INTERNATIONAL_SHIPPING_COST = 2500;
+      
+      const isDomestic = selectedCountry === 'Türkiye';
+      const shippingCost = isDomestic 
+        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
+        : INTERNATIONAL_SHIPPING_COST;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
 
       // Generate unique merchant order ID
@@ -1691,7 +1698,7 @@ export async function registerRoutes(
         customerName,
         customerEmail,
         customerPhone,
-        shippingAddress: { address, city, district, postalCode: postalCode || '' },
+        shippingAddress: { address, city, district, postalCode: postalCode || '', country: selectedCountry },
         cartItems: cartItemsForStorage,
         subtotal: serverSubtotal.toFixed(2),
         shippingCost: shippingCost.toFixed(2),
@@ -2081,9 +2088,16 @@ export async function registerRoutes(
         }
       }
       
-      // Calculate shipping and total on server
+      // Calculate shipping and total on server (international shipping is 2500 TL fixed)
       const FREE_SHIPPING_THRESHOLD = 2500;
-      const shippingCost = serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
+      const DOMESTIC_SHIPPING_COST = 200;
+      const INTERNATIONAL_SHIPPING_COST = 2500;
+      
+      const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
+      const isDomestic = orderCountry === 'Türkiye';
+      const shippingCost = isDomestic 
+        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
+        : INTERNATIONAL_SHIPPING_COST;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
       
       const validated = insertOrderSchema.parse({
