@@ -4822,5 +4822,103 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
 
+  // ============= SIZE CHARTS (BEDEN TABLOLARI) =============
+  
+  // Public: Get size chart by category ID
+  app.get("/api/size-charts/category/:categoryId", async (req, res) => {
+    try {
+      const chart = await storage.getSizeChartByCategory(req.params.categoryId);
+      res.json(chart || null);
+    } catch (error) {
+      console.error('[SizeCharts] Get by category error:', error);
+      res.status(500).json({ error: "Beden tablosu alınamadı" });
+    }
+  });
+  
+  // Admin: Get all size charts
+  app.get("/api/admin/size-charts", requireAdmin, async (req, res) => {
+    try {
+      const charts = await storage.getSizeCharts();
+      // Enrich with category info
+      const enriched = await Promise.all(charts.map(async (chart) => {
+        const category = await storage.getCategory(chart.categoryId);
+        return { ...chart, category };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error('[SizeCharts] Get all error:', error);
+      res.status(500).json({ error: "Beden tabloları alınamadı" });
+    }
+  });
+  
+  // Admin: Get single size chart
+  app.get("/api/admin/size-charts/:id", requireAdmin, async (req, res) => {
+    try {
+      const chart = await storage.getSizeChart(req.params.id);
+      if (!chart) {
+        return res.status(404).json({ error: "Beden tablosu bulunamadı" });
+      }
+      const category = await storage.getCategory(chart.categoryId);
+      res.json({ ...chart, category });
+    } catch (error) {
+      console.error('[SizeCharts] Get one error:', error);
+      res.status(500).json({ error: "Beden tablosu alınamadı" });
+    }
+  });
+  
+  // Admin: Create size chart
+  app.post("/api/admin/size-charts", requireAdmin, async (req, res) => {
+    try {
+      const { categoryId, columns, rows } = req.body;
+      
+      if (!categoryId) {
+        return res.status(400).json({ error: "Kategori seçimi zorunludur" });
+      }
+      
+      // Check if category already has a size chart
+      const existing = await storage.getSizeChartByCategory(categoryId);
+      if (existing) {
+        return res.status(400).json({ error: "Bu kategori için zaten bir beden tablosu var" });
+      }
+      
+      const chart = await storage.createSizeChart({
+        categoryId,
+        columns: columns || ["Beden", "Göğüs (cm)", "Boy (cm)"],
+        rows: rows || []
+      });
+      
+      res.status(201).json(chart);
+    } catch (error) {
+      console.error('[SizeCharts] Create error:', error);
+      res.status(500).json({ error: "Beden tablosu oluşturulamadı" });
+    }
+  });
+  
+  // Admin: Update size chart
+  app.put("/api/admin/size-charts/:id", requireAdmin, async (req, res) => {
+    try {
+      const { columns, rows } = req.body;
+      const updated = await storage.updateSizeChart(req.params.id, { columns, rows });
+      if (!updated) {
+        return res.status(404).json({ error: "Beden tablosu bulunamadı" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error('[SizeCharts] Update error:', error);
+      res.status(500).json({ error: "Beden tablosu güncellenemedi" });
+    }
+  });
+  
+  // Admin: Delete size chart
+  app.delete("/api/admin/size-charts/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteSizeChart(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[SizeCharts] Delete error:', error);
+      res.status(500).json({ error: "Beden tablosu silinemedi" });
+    }
+  });
+
   return httpServer;
 }
