@@ -567,14 +567,14 @@ export async function registerRoutes(
 
   // File Upload Route with type validation and image optimization
   app.post("/api/admin/upload/:type", requireAdmin, (req, res, next) => {
-    upload.array("images", 10)(req, res, (err) => {
+    upload.array("images", 20)(req, res, (err) => {
       if (err) {
         console.error('[Upload] Multer error:', err.message);
         if (err.code === 'LIMIT_FILE_SIZE') {
           return res.status(400).json({ error: "Dosya boyutu 10MB'ı geçemez" });
         }
         if (err.code === 'LIMIT_FILE_COUNT') {
-          return res.status(400).json({ error: "En fazla 10 dosya yüklenebilir" });
+          return res.status(400).json({ error: "En fazla 20 dosya yüklenebilir" });
         }
         if (err.code === 'LIMIT_UNEXPECTED_FILE') {
           return res.status(400).json({ error: "Geçersiz dosya alanı" });
