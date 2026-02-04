@@ -816,13 +816,33 @@ export default function AdminDashboard() {
                             <button
                               onClick={() => { setEditingProduct(product); setShowProductModal(true); }}
                               className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                              title="Düzenle"
                               data-testid={`button-edit-product-${product.id}`}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => {
+                                const duplicatedProduct = {
+                                  ...product,
+                                  id: undefined,
+                                  name: `${product.name} (Kopya)`,
+                                  slug: `${product.slug}-kopya-${Date.now()}`,
+                                  sku: product.sku ? `${product.sku}-KOPYA` : undefined,
+                                };
+                                setEditingProduct(duplicatedProduct as any);
+                                setShowProductModal(true);
+                              }}
+                              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                              title="Kopyala"
+                              data-testid={`button-copy-product-${product.id}`}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => { if (confirm('Bu ürünü silmek istediğinize emin misiniz?')) deleteProductMutation.mutate(product.id); }}
                               className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
+                              title="Sil"
                               data-testid={`button-delete-product-${product.id}`}
                             >
                               <Trash2 className="w-4 h-4" />
