@@ -1653,6 +1653,7 @@ function ProductModal({
         const response = await fetch('/api/admin/upload/products', {
           method: 'POST',
           body: formDataUpload,
+          credentials: 'include',
         });
         
         if (response.ok) {
