@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
-import { useCategories } from '@/hooks/useProducts';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import {
   DropdownMenu,
@@ -39,7 +38,6 @@ export function Header() {
   const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
-  const { data: apiCategories = [] } = useCategories();
   
   const { data: menuItems = [] } = useQuery<MenuItemData[]>({
     queryKey: ['menu'],
@@ -51,11 +49,6 @@ export function Header() {
     staleTime: 60000,
   });
   
-  const categories = apiCategories.map(cat => ({
-    href: `/kategori/${cat.slug}`,
-    label: cat.name,
-  }));
-
   const getMenuItemHref = (item: MenuItemData): string => {
     if (item.type === 'category' && item.category) {
       return `/kategori/${item.category.slug}`;
@@ -69,9 +62,6 @@ export function Header() {
   const hasMenuItems = menuItems.length > 0;
   const leftMenuItems = hasMenuItems ? menuItems.slice(0, Math.ceil(menuItems.length / 2)) : [];
   const rightMenuItems = hasMenuItems ? menuItems.slice(Math.ceil(menuItems.length / 2)) : [];
-
-  const leftCategories = !hasMenuItems ? categories.slice(0, Math.ceil(categories.length / 2)) : [];
-  const rightCategories = !hasMenuItems ? categories.slice(Math.ceil(categories.length / 2)) : [];
 
   return (
     <>
@@ -217,30 +207,7 @@ export function Header() {
                       </Link>
                     );
                   })
-                ) : (
-                  leftCategories.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                    >
-                      <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                        location === link.href ? 'text-white' : 'text-white/70'
-                      }`}>
-                        {link.label}
-                        <motion.span
-                          className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                          initial={{ scaleX: 0 }}
-                          whileHover={{ scaleX: 1 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                        {location === link.href && (
-                          <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                        )}
-                      </span>
-                    </Link>
-                  ))
-                )}
+) : null}
               </nav>
 
               <Link href="/" data-testid="link-logo" className="absolute left-1/2 -translate-x-1/2 lg:relative lg:left-auto lg:translate-x-0">
@@ -352,30 +319,7 @@ export function Header() {
                       </Link>
                     );
                   })
-                ) : (
-                  rightCategories.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                    >
-                      <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                        location === link.href ? 'text-white' : 'text-white/70'
-                      }`}>
-                        {link.label}
-                        <motion.span
-                          className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                          initial={{ scaleX: 0 }}
-                          whileHover={{ scaleX: 1 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                        {location === link.href && (
-                          <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                        )}
-                      </span>
-                    </Link>
-                  ))
-                )}
+) : null}
               </nav>
 
               <div className="flex items-center">
@@ -614,29 +558,7 @@ export function Header() {
                         );
                       })}
                     </>
-                  ) : (
-                    <>
-                      <p className="text-xs text-muted-foreground uppercase tracking-widest mb-4">Kategoriler</p>
-                      {categories.map((link, index) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          data-testid={`link-mobile-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <motion.span
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors py-3 border-b border-white/5"
-                            whileHover={{ x: 10 }}
-                          >
-                            {link.label.toUpperCase()}
-                          </motion.span>
-                        </Link>
-                      ))}
-                    </>
-                  )}
+) : null}
                 </nav>
                 
                 <div className="p-6 border-t border-white/10 mt-6">
