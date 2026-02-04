@@ -4937,5 +4937,166 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
 
+  // ==================== MENU ITEMS ====================
+  // Public endpoint for active menu items
+  app.get("/api/menu", async (req, res) => {
+    try {
+      const items = await storage.getActiveMenuItems();
+      const categories = await storage.getCategories();
+      
+      // Build nested structure with category details
+      const menuItemsWithDetails = items.map(item => {
+        let categoryDetails = null;
+        if (item.type === 'category' && item.categoryId) {
+          const category = categories.find(c => c.id === item.categoryId);
+          if (category) {
+            categoryDetails = {
+              id: category.id,
+              name: category.name,
+              slug: category.slug,
+            };
+          }
+        }
+        return {
+          ...item,
+          category: categoryDetails,
+        };
+      });
+
+      // Build tree structure (parent items with children)
+      const rootItems = menuItemsWithDetails.filter(item => !item.parentId);
+      const result = rootItems.map(item => ({
+        ...item,
+        children: menuItemsWithDetails.filter(child => child.parentId === item.id),
+      }));
+
+      res.json(result);
+    } catch (error) {
+      console.error('[Menu] Get menu error:', error);
+      res.status(500).json({ error: "Menü alınamadı" });
+    }
+  });
+
+  // Admin: Get all menu items
+  app.get("/api/admin/menu-items", requireAdmin, async (req, res) => {
+    try {
+      const items = await storage.getMenuItems();
+      const categories = await storage.getCategories();
+      
+      const menuItemsWithDetails = items.map(item => {
+        let categoryDetails = null;
+        if (item.type === 'category' && item.categoryId) {
+          const category = categories.find(c => c.id === item.categoryId);
+          if (category) {
+            categoryDetails = {
+              id: category.id,
+              name: category.name,
+              slug: category.slug,
+            };
+          }
+        }
+        return {
+          ...item,
+          category: categoryDetails,
+        };
+      });
+
+      res.json(menuItemsWithDetails);
+    } catch (error) {
+      console.error('[Menu] Get all menu items error:', error);
+      res.status(500).json({ error: "Menü öğeleri alınamadı" });
+    }
+  });
+
+  // Admin: Create menu item
+  app.post("/api/admin/menu-items", requireAdmin, async (req, res) => {
+    try {
+      const { title, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      
+      if (!title || !type) {
+        return res.status(400).json({ error: "Başlık ve tür zorunludur" });
+      }
+
+      if (type === 'category' && !categoryId) {
+        return res.status(400).json({ error: "Kategori seçmeniz gerekiyor" });
+      }
+
+      if (type === 'link' && !url) {
+        return res.status(400).json({ error: "URL girmeniz gerekiyor" });
+      }
+
+      const menuItem = await storage.createMenuItem({
+        title,
+        type,
+        categoryId: categoryId || null,
+        url: url || null,
+        parentId: parentId || null,
+        displayOrder: displayOrder || 0,
+        isActive: isActive !== false,
+        openInNewTab: openInNewTab || false,
+      });
+
+      res.json(menuItem);
+    } catch (error) {
+      console.error('[Menu] Create menu item error:', error);
+      res.status(500).json({ error: "Menü öğesi oluşturulamadı" });
+    }
+  });
+
+  // Admin: Update menu item
+  app.put("/api/admin/menu-items/:id", requireAdmin, async (req, res) => {
+    try {
+      const { title, type, categoryId, url, parentId, displayOrder, isActive, openInNewTab } = req.body;
+      
+      const menuItem = await storage.updateMenuItem(req.params.id, {
+        title,
+        type,
+        categoryId: categoryId || null,
+        url: url || null,
+        parentId: parentId || null,
+        displayOrder,
+        isActive,
+        openInNewTab,
+      });
+
+      if (!menuItem) {
+        return res.status(404).json({ error: "Menü öğesi bulunamadı" });
+      }
+
+      res.json(menuItem);
+    } catch (error) {
+      console.error('[Menu] Update menu item error:', error);
+      res.status(500).json({ error: "Menü öğesi güncellenemedi" });
+    }
+  });
+
+  // Admin: Delete menu item
+  app.delete("/api/admin/menu-items/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteMenuItem(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[Menu] Delete menu item error:', error);
+      res.status(500).json({ error: "Menü öğesi silinemedi" });
+    }
+  });
+
+  // Admin: Reorder menu items
+  app.post("/api/admin/menu-items/reorder", requireAdmin, async (req, res) => {
+    try {
+      const { items } = req.body;
+      
+      if (!Array.isArray(items)) {
+        return res.status(400).json({ error: "Geçersiz sıralama verisi" });
+      }
+
+      await storage.reorderMenuItems(items);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[Menu] Reorder menu items error:', error);
+      res.status(500).json({ error: "Menü sıralaması güncellenemedi" });
+    }
+  });
+
   return httpServer;
 }
