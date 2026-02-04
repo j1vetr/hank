@@ -4,6 +4,7 @@ import {
   categories, 
   products, 
   productVariants, 
+  productCategories,
   cartItems,
   orders,
   orderItems,
@@ -156,6 +157,11 @@ export interface IStorage {
   createProductVariant(variant: InsertProductVariant): Promise<ProductVariant>;
   updateProductVariant(id: string, variant: Partial<InsertProductVariant>): Promise<ProductVariant | undefined>;
   deleteProductVariant(id: string): Promise<void>;
+
+  // Product Categories (multi-category support)
+  getProductCategoryIds(productId: string): Promise<string[]>;
+  setProductCategories(productId: string, categoryIds: string[]): Promise<void>;
+  getProductsByCategoryIds(categoryIds: string[]): Promise<Product[]>;
 
   getCartItems(sessionId: string): Promise<CartItem[]>;
   getCartItem(id: string): Promise<CartItem | undefined>;
@@ -494,6 +500,45 @@ export class DbStorage implements IStorage {
 
   async deleteProductVariant(id: string): Promise<void> {
     await db.delete(productVariants).where(eq(productVariants.id, id));
+  }
+
+  // Product Categories (multi-category support)
+  async getProductCategoryIds(productId: string): Promise<string[]> {
+    const result = await db.select({ categoryId: productCategories.categoryId })
+      .from(productCategories)
+      .where(eq(productCategories.productId, productId));
+    return result.map(r => r.categoryId);
+  }
+
+  async setProductCategories(productId: string, categoryIds: string[]): Promise<void> {
+    // Delete existing categories for this product
+    await db.delete(productCategories).where(eq(productCategories.productId, productId));
+    
+    // Insert new categories
+    if (categoryIds.length > 0) {
+      await db.insert(productCategories).values(
+        categoryIds.map(categoryId => ({ productId, categoryId }))
+      );
+    }
+  }
+
+  async getProductsByCategoryIds(categoryIds: string[]): Promise<Product[]> {
+    if (categoryIds.length === 0) return [];
+    
+    // Get products that are in any of the specified categories (via product_categories table)
+    const productIdsResult = await db.selectDistinct({ productId: productCategories.productId })
+      .from(productCategories)
+      .where(inArray(productCategories.categoryId, categoryIds));
+    
+    const productIds = productIdsResult.map(r => r.productId);
+    
+    if (productIds.length === 0) return [];
+    
+    return db.select().from(products)
+      .where(and(
+        inArray(products.id, productIds),
+        eq(products.isActive, true)
+      ));
   }
 
   async getCartItems(sessionId: string): Promise<any[]> {
