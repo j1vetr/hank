@@ -119,7 +119,33 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     references: [categories.id],
   }),
   variants: many(productVariants),
+  productCategories: many(productCategories),
 }));
+
+// Many-to-many relationship table for products and categories
+export const productCategories = pgTable("product_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  categoryId: varchar("category_id").references(() => categories.id, { onDelete: "cascade" }).notNull(),
+});
+
+export const productCategoriesRelations = relations(productCategories, ({ one }) => ({
+  product: one(products, {
+    fields: [productCategories.productId],
+    references: [products.id],
+  }),
+  category: one(categories, {
+    fields: [productCategories.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  products: many(products),
+  productCategories: many(productCategories),
+}));
+
+export type ProductCategory = typeof productCategories.$inferSelect;
 
 export const productVariants = pgTable("product_variants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
