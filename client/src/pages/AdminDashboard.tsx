@@ -58,7 +58,8 @@ import {
   Wand2,
   Bot,
   BrainCircuit,
-  Ruler
+  Ruler,
+  Copy
 } from 'lucide-react';
 
 interface Product {
@@ -7252,7 +7253,9 @@ function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
                 >
                   <option value="">Kategori Seçin</option>
                   {editingChart ? (
-                    categories.map(cat => (
+                    categories.filter(cat => 
+                      cat.id === editingChart.categoryId || !sizeCharts.some(sc => sc.categoryId === cat.id)
+                    ).map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))
                   ) : (
@@ -7261,9 +7264,9 @@ function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
                     ))
                   )}
                 </select>
-                {editingChart && (
+                {editingChart && selectedCategoryId !== editingChart.categoryId && (
                   <p className="text-xs text-amber-400 mt-2">
-                    Uyarı: Kategori değiştirirseniz, eski kategorideki beden tablosu silinecektir.
+                    Bu beden tablosu seçilen kategoriye taşınacaktır.
                   </p>
                 )}
               </div>
