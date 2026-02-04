@@ -667,7 +667,14 @@ export async function registerRoutes(
   app.get("/api/admin/products", requireAdmin, async (req, res) => {
     try {
       const products = await storage.getAllProducts();
-      res.json(products);
+      // Add categoryIds to each product for multi-category support
+      const productsWithCategoryIds = await Promise.all(
+        products.map(async (product) => {
+          const categoryIds = await storage.getProductCategoryIds(product.id);
+          return { ...product, categoryIds };
+        })
+      );
+      res.json(productsWithCategoryIds);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch products" });
     }
