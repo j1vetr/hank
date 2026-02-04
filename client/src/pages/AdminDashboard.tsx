@@ -1428,6 +1428,7 @@ function ProductModal({
     isActive: product?.isActive ?? true,
     isFeatured: product?.isFeatured ?? false,
     isNew: product?.isNew ?? false,
+    initialStock: '',
   });
 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -1772,7 +1773,7 @@ function ProductModal({
             )}
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid ${!product ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">Fiyat (₺)</label>
               <input
@@ -1784,6 +1785,21 @@ function ProductModal({
                 data-testid="input-product-price"
               />
             </div>
+            {!product && (
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Başlangıç Stoğu</label>
+                <input
+                  type="number"
+                  value={formData.initialStock}
+                  onChange={(e) => setFormData({ ...formData, initialStock: e.target.value })}
+                  placeholder="Tüm varyasyonlar için"
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+                  min="0"
+                  data-testid="input-product-stock"
+                />
+                <p className="text-xs text-zinc-500 mt-1">Tüm beden/renk kombinasyonlarına uygulanır</p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">Kategoriler</label>
               <div className="flex flex-wrap gap-2">

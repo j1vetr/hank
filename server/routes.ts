@@ -1109,7 +1109,7 @@ export async function registerRoutes(
 
   app.post("/api/admin/products", requireAdmin, async (req, res) => {
     try {
-      const { categoryIds, ...productData } = req.body;
+      const { categoryIds, initialStock, ...productData } = req.body;
       const validated = insertProductSchema.parse(productData);
       const product = await storage.createProduct(validated);
       
@@ -1125,6 +1125,7 @@ export async function registerRoutes(
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];
       const baseSku = product.sku || '';
+      const stockValue = initialStock ? parseInt(initialStock, 10) : 0;
       
       if (sizes.length > 0) {
         if (colors.length > 0) {
@@ -1137,7 +1138,7 @@ export async function registerRoutes(
                 size: size,
                 color: color.name,
                 sku: variantSku,
-                stock: 0,
+                stock: stockValue,
                 price: product.basePrice,
               });
             }
@@ -1151,7 +1152,7 @@ export async function registerRoutes(
               size: size,
               color: null,
               sku: variantSku,
-              stock: 0,
+              stock: stockValue,
               price: product.basePrice,
             });
           }
