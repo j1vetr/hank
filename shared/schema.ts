@@ -708,3 +708,27 @@ export const insertSizeChartSchema = createInsertSchema(sizeCharts).omit({
 
 export type InsertSizeChart = z.infer<typeof insertSizeChartSchema>;
 export type SizeChart = typeof sizeCharts.$inferSelect;
+
+// Menu Items (Menü Öğeleri)
+export const menuItems = pgTable("menu_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  type: text("type").notNull(), // "category", "link", "submenu"
+  categoryId: varchar("category_id").references(() => categories.id, { onDelete: "set null" }),
+  url: text("url"), // for type "link"
+  parentId: varchar("parent_id"), // for submenu items (self-reference)
+  displayOrder: integer("display_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  openInNewTab: boolean("open_in_new_tab").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertMenuItemSchema = createInsertSchema(menuItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
+export type MenuItem = typeof menuItems.$inferSelect;
