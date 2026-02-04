@@ -689,3 +689,22 @@ export const chatMessages = pgTable("chat_messages", {
 });
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// Size Charts (Beden Tabloları)
+export const sizeCharts = pgTable("size_charts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  categoryId: varchar("category_id").references(() => categories.id, { onDelete: "cascade" }).notNull().unique(),
+  columns: jsonb("columns").$type<string[]>().default([]).notNull(), // ["Beden", "Göğüs (cm)", "Boy (cm)", "Omuz (cm)"]
+  rows: jsonb("rows").$type<string[][]>().default([]).notNull(), // [["S", "96-100", "70-72", "44-46"], ["M", "100-104", "72-74", "46-48"]]
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSizeChartSchema = createInsertSchema(sizeCharts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSizeChart = z.infer<typeof insertSizeChartSchema>;
+export type SizeChart = typeof sizeCharts.$inferSelect;
