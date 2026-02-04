@@ -827,7 +827,7 @@ export default function AdminDashboard() {
                                   ...product,
                                   id: undefined,
                                   name: `${product.name} (Kopya)`,
-                                  slug: `${product.slug}-kopya-${Date.now()}`,
+                                  slug: '',
                                   sku: product.sku ? `${product.sku}-KOPYA` : undefined,
                                 };
                                 setEditingProduct(duplicatedProduct as any);
@@ -1523,6 +1523,7 @@ function ProductModal({
 
   const [formData, setFormData] = useState({
     name: product?.name || '',
+    slug: product?.slug || '',
     description: product?.description || '',
     sku: product?.sku || '',
     basePrice: product?.basePrice || '',
@@ -1536,6 +1537,10 @@ function ProductModal({
     isNew: product?.isNew ?? false,
     initialStock: '',
   });
+  
+  const regenerateSlug = () => {
+    setFormData(prev => ({ ...prev, slug: generateSlug(prev.name) }));
+  };
 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -1698,7 +1703,7 @@ function ProductModal({
     onSave({
       ...product,
       ...formData,
-      slug: product?.slug || generateSlug(formData.name),
+      slug: formData.slug || generateSlug(formData.name),
       images: [...formData.images, ...uploadedUrls],
     });
   };
@@ -1753,6 +1758,30 @@ function ProductModal({
                 data-testid="input-product-sku"
               />
             </div>
+          </div>
+          
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-zinc-400">URL Slug</label>
+              <button
+                type="button"
+                onClick={regenerateSlug}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-medium rounded-lg transition-all"
+                data-testid="button-regenerate-slug"
+              >
+                <RefreshCw className="w-3 h-3" />
+                İsimden Oluştur
+              </button>
+            </div>
+            <input
+              type="text"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
+              placeholder="urun-adi-slug"
+              data-testid="input-product-slug"
+            />
+            <p className="text-xs text-zinc-500 mt-1">Site URL'sinde görünecek: hank.com.tr/urun/{formData.slug || 'slug'}</p>
           </div>
           
           <div>
