@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { Link, useParams } from 'wouter';
@@ -372,6 +373,8 @@ export default function Category() {
           </div>
         </section>
       )}
+      
+      <Footer />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ShippingCountdown } from '@/components/ShippingCountdown';
 import { Link, useParams } from 'wouter';
@@ -968,6 +969,8 @@ export default function ProductDetail() {
           )}
         </div>
       </main>
+      
+      <Footer />
     </div>
   );
 }
