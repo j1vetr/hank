@@ -1906,7 +1906,18 @@ function ProductModal({
                     <img
                       src={image}
                       alt={`Ürün ${index + 1}`}
-                      className="w-full h-full object-cover rounded-lg"
+                      className={`w-full h-full object-cover rounded-lg cursor-pointer transition-all ${
+                        index === 0 ? 'ring-2 ring-white' : 'hover:ring-2 hover:ring-zinc-500'
+                      }`}
+                      onClick={() => {
+                        if (index !== 0) {
+                          const newImages = [...formData.images];
+                          const [selected] = newImages.splice(index, 1);
+                          newImages.unshift(selected);
+                          setFormData({ ...formData, images: newImages });
+                        }
+                      }}
+                      title={index === 0 ? 'Ana fotoğraf' : 'Ana fotoğraf olarak ayarla'}
                     />
                     <button
                       type="button"
@@ -1915,10 +1926,23 @@ function ProductModal({
                     >
                       <X className="w-4 h-4" />
                     </button>
-                    {index === 0 && (
+                    {index === 0 ? (
                       <span className="absolute bottom-1 left-1 text-[10px] bg-white text-black px-1.5 py-0.5 rounded font-medium">
                         Ana
                       </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newImages = [...formData.images];
+                          const [selected] = newImages.splice(index, 1);
+                          newImages.unshift(selected);
+                          setFormData({ ...formData, images: newImages });
+                        }}
+                        className="absolute bottom-1 left-1 text-[10px] bg-zinc-700 text-white px-1.5 py-0.5 rounded font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-zinc-600"
+                      >
+                        Ana Yap
+                      </button>
                     )}
                   </div>
                 ))}
