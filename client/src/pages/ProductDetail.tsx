@@ -96,6 +96,8 @@ export default function ProductDetail() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewContent, setReviewContent] = useState('');
+  
+  const [sizeChart, setSizeChart] = useState<{ columns: string[]; rows: string[][] } | null>(null);
 
   const imageRef = useRef<HTMLDivElement>(null);
 
@@ -135,6 +137,28 @@ export default function ProductDetail() {
     lightboxEmblaApi.on('select', onLightboxSelect);
     return () => { lightboxEmblaApi.off('select', onLightboxSelect); };
   }, [lightboxEmblaApi, onLightboxSelect]);
+
+  useEffect(() => {
+    const fetchSizeChart = async () => {
+      if (!product?.categoryId) {
+        setSizeChart(null);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/size-charts/category/${product.categoryId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSizeChart(data);
+        } else {
+          setSizeChart(null);
+        }
+      } catch (error) {
+        console.error('Error fetching size chart:', error);
+        setSizeChart(null);
+      }
+    };
+    fetchSizeChart();
+  }, [product?.id, product?.categoryId]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!imageRef.current) return;
@@ -380,34 +404,37 @@ export default function ProductDetail() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Beden</th>
-                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Göğüs (cm)</th>
-                      <th className="text-center py-3 px-4 font-medium text-muted-foreground">Boy (cm)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { size: 'S', chest: '96-100', length: '70-72' },
-                      { size: 'M', chest: '100-104', length: '72-74' },
-                      { size: 'L', chest: '104-108', length: '74-76' },
-                      { size: 'XL', chest: '108-112', length: '76-78' },
-                      { size: 'XXL', chest: '112-116', length: '78-80' },
-                      { size: '2XL', chest: '116-120', length: '80-82' },
-                      { size: '3XL', chest: '120-124', length: '82-84' },
-                    ].map((row) => (
-                      <tr key={row.size} className="border-b border-white/5">
-                        <td className="py-3 px-4 font-medium">{row.size}</td>
-                        <td className="py-3 px-4 text-center text-muted-foreground">{row.chest}</td>
-                        <td className="py-3 px-4 text-center text-muted-foreground">{row.length}</td>
+              {sizeChart ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        {sizeChart.columns.map((col, i) => (
+                          <th key={i} className={`${i === 0 ? 'text-left' : 'text-center'} py-3 px-4 font-medium text-muted-foreground`}>
+                            {col}
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {sizeChart.rows.map((row, ri) => (
+                        <tr key={ri} className="border-b border-white/5">
+                          {row.map((cell, ci) => (
+                            <td key={ci} className={`py-3 px-4 ${ci === 0 ? 'font-medium' : 'text-center text-muted-foreground'}`}>
+                              {cell || '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Ruler className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                  <p>Bu kategori için beden tablosu henüz eklenmemiş.</p>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
