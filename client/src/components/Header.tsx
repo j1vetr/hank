@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, Menu, X, User, LogOut } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, User, LogOut, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useProducts';
@@ -13,21 +14,64 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+interface MenuItemData {
+  id: string;
+  title: string;
+  type: 'category' | 'link' | 'submenu';
+  categoryId: string | null;
+  url: string | null;
+  parentId: string | null;
+  displayOrder: number;
+  isActive: boolean;
+  openInNewTab: boolean;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  children?: MenuItemData[];
+}
+
 export function Header() {
   const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
   const { data: apiCategories = [] } = useCategories();
+  
+  const { data: menuItems = [] } = useQuery<MenuItemData[]>({
+    queryKey: ['menu'],
+    queryFn: async () => {
+      const res = await fetch('/api/menu');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60000,
+  });
   
   const categories = apiCategories.map(cat => ({
     href: `/kategori/${cat.slug}`,
     label: cat.name,
   }));
 
-  const leftCategories = categories.slice(0, Math.ceil(categories.length / 2));
-  const rightCategories = categories.slice(Math.ceil(categories.length / 2));
+  const getMenuItemHref = (item: MenuItemData): string => {
+    if (item.type === 'category' && item.category) {
+      return `/kategori/${item.category.slug}`;
+    }
+    if (item.type === 'link' && item.url) {
+      return item.url;
+    }
+    return '#';
+  };
+
+  const hasMenuItems = menuItems.length > 0;
+  const leftMenuItems = hasMenuItems ? menuItems.slice(0, Math.ceil(menuItems.length / 2)) : [];
+  const rightMenuItems = hasMenuItems ? menuItems.slice(Math.ceil(menuItems.length / 2)) : [];
+
+  const leftCategories = !hasMenuItems ? categories.slice(0, Math.ceil(categories.length / 2)) : [];
+  const rightCategories = !hasMenuItems ? categories.slice(Math.ceil(categories.length / 2)) : [];
 
   return (
     <>
@@ -65,47 +109,138 @@ export function Header() {
               </div>
 
               <nav className="hidden lg:flex items-center gap-8">
-                <Link
-                  href="/magaza"
-                  data-testid="link-nav-magaza"
-                >
-                  <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                    location === '/magaza' ? 'text-white' : 'text-white/70'
-                  }`}>
-                    MAĞAZA
-                    <motion.span
-                      className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                      initial={{ scaleX: 0 }}
-                      whileHover={{ scaleX: 1 }}
-                      transition={{ duration: 0.3 }}
-                    />
-                    {location === '/magaza' && (
-                      <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                    )}
-                  </span>
-                </Link>
-                {leftCategories.map((link) => (
+                {!hasMenuItems && (
                   <Link
-                    key={link.href}
-                    href={link.href}
-                    data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                    href="/magaza"
+                    data-testid="link-nav-magaza"
                   >
                     <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                      location === link.href ? 'text-white' : 'text-white/70'
+                      location === '/magaza' ? 'text-white' : 'text-white/70'
                     }`}>
-                      {link.label}
+                      MAĞAZA
                       <motion.span
                         className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
                         initial={{ scaleX: 0 }}
                         whileHover={{ scaleX: 1 }}
                         transition={{ duration: 0.3 }}
                       />
-                      {location === link.href && (
+                      {location === '/magaza' && (
                         <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
                       )}
                     </span>
                   </Link>
-                ))}
+                )}
+                {hasMenuItems ? (
+                  leftMenuItems.map((item) => {
+                    const href = getMenuItemHref(item);
+                    const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
+                    
+                    if (hasChildren) {
+                      return (
+                        <DropdownMenu key={item.id}>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                              className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70 flex items-center gap-1"
+                            >
+                              {item.title}
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-48 bg-zinc-900 border-white/10">
+                            {item.children!.map((child) => (
+                              <DropdownMenuItem
+                                key={child.id}
+                                onClick={() => navigate(getMenuItemHref(child))}
+                                data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
+                              >
+                                {child.title}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    }
+                    
+                    const isExternal = item.type === 'link' && item.url?.startsWith('http');
+                    
+                    if (isExternal) {
+                      return (
+                        <a
+                          key={item.id}
+                          href={href}
+                          target={item.openInNewTab ? '_blank' : undefined}
+                          rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
+                        >
+                          {item.title}
+                        </a>
+                      );
+                    }
+                    
+                    if (item.openInNewTab) {
+                      return (
+                        <a
+                          key={item.id}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
+                        >
+                          {item.title}
+                        </a>
+                      );
+                    }
+                    
+                    return (
+                      <Link
+                        key={item.id}
+                        href={href}
+                        data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                      >
+                        <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                          location === href ? 'text-white' : 'text-white/70'
+                        }`}>
+                          {item.title}
+                          <motion.span
+                            className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                            initial={{ scaleX: 0 }}
+                            whileHover={{ scaleX: 1 }}
+                            transition={{ duration: 0.3 }}
+                          />
+                          {location === href && (
+                            <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                          )}
+                        </span>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  leftCategories.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                    >
+                      <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                        location === link.href ? 'text-white' : 'text-white/70'
+                      }`}>
+                        {link.label}
+                        <motion.span
+                          className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                          initial={{ scaleX: 0 }}
+                          whileHover={{ scaleX: 1 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                        {location === link.href && (
+                          <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                        )}
+                      </span>
+                    </Link>
+                  ))
+                )}
               </nav>
 
               <Link href="/" data-testid="link-logo" className="absolute left-1/2 -translate-x-1/2 lg:relative lg:left-auto lg:translate-x-0">
@@ -130,28 +265,117 @@ export function Header() {
               </Link>
 
               <nav className="hidden lg:flex items-center gap-8">
-                {rightCategories.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                  >
-                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                      location === link.href ? 'text-white' : 'text-white/70'
-                    }`}>
-                      {link.label}
-                      <motion.span
-                        className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                        initial={{ scaleX: 0 }}
-                        whileHover={{ scaleX: 1 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                      {location === link.href && (
-                        <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                      )}
-                    </span>
-                  </Link>
-                ))}
+                {hasMenuItems ? (
+                  rightMenuItems.map((item) => {
+                    const href = getMenuItemHref(item);
+                    const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
+                    
+                    if (hasChildren) {
+                      return (
+                        <DropdownMenu key={item.id}>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                              className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70 flex items-center gap-1"
+                            >
+                              {item.title}
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10">
+                            {item.children!.map((child) => (
+                              <DropdownMenuItem
+                                key={child.id}
+                                onClick={() => navigate(getMenuItemHref(child))}
+                                data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
+                              >
+                                {child.title}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    }
+                    
+                    const isExternal = item.type === 'link' && item.url?.startsWith('http');
+                    
+                    if (isExternal) {
+                      return (
+                        <a
+                          key={item.id}
+                          href={href}
+                          target={item.openInNewTab ? '_blank' : undefined}
+                          rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
+                        >
+                          {item.title}
+                        </a>
+                      );
+                    }
+                    
+                    if (item.openInNewTab) {
+                      return (
+                        <a
+                          key={item.id}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
+                        >
+                          {item.title}
+                        </a>
+                      );
+                    }
+                    
+                    return (
+                      <Link
+                        key={item.id}
+                        href={href}
+                        data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                      >
+                        <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                          location === href ? 'text-white' : 'text-white/70'
+                        }`}>
+                          {item.title}
+                          <motion.span
+                            className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                            initial={{ scaleX: 0 }}
+                            whileHover={{ scaleX: 1 }}
+                            transition={{ duration: 0.3 }}
+                          />
+                          {location === href && (
+                            <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                          )}
+                        </span>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  rightCategories.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      data-testid={`link-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                    >
+                      <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                        location === link.href ? 'text-white' : 'text-white/70'
+                      }`}>
+                        {link.label}
+                        <motion.span
+                          className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                          initial={{ scaleX: 0 }}
+                          whileHover={{ scaleX: 1 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                        {location === link.href && (
+                          <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                        )}
+                      </span>
+                    </Link>
+                  ))
+                )}
               </nav>
 
               <div className="flex items-center">
@@ -289,26 +513,130 @@ export function Header() {
                   
                   <div className="h-px bg-gradient-to-r from-white/20 via-white/10 to-transparent mb-6" />
                   
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-4">Kategoriler</p>
-                  
-                  {categories.map((link, index) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      data-testid={`link-mobile-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <motion.span
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors py-3 border-b border-white/5"
-                        whileHover={{ x: 10 }}
-                      >
-                        {link.label.toUpperCase()}
-                      </motion.span>
-                    </Link>
-                  ))}
+                  {hasMenuItems ? (
+                    <>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest mb-4">Menü</p>
+                      {menuItems.map((item, index) => {
+                        const href = getMenuItemHref(item);
+                        const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
+                        
+                        if (hasChildren) {
+                          return (
+                            <div key={item.id}>
+                              <button
+                                onClick={() => setExpandedSubmenu(expandedSubmenu === item.id ? null : item.id)}
+                                className="w-full flex items-center justify-between py-3 border-b border-white/5"
+                                data-testid={`button-mobile-submenu-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                              >
+                                <motion.span
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                  className="font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors"
+                                >
+                                  {item.title.toUpperCase()}
+                                </motion.span>
+                                <ChevronDown className={`w-5 h-5 transition-transform ${expandedSubmenu === item.id ? 'rotate-180' : ''}`} />
+                              </button>
+                              <AnimatePresence>
+                                {expandedSubmenu === item.id && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden pl-4"
+                                  >
+                                    {item.children!.map((child, childIndex) => (
+                                      <Link
+                                        key={child.id}
+                                        href={getMenuItemHref(child)}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        data-testid={`link-mobile-submenu-${child.title.toLowerCase().replace(/\s/g, '-')}`}
+                                      >
+                                        <motion.span
+                                          initial={{ opacity: 0, x: -10 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ delay: childIndex * 0.05 }}
+                                          className="block font-display text-xl tracking-wider hover:text-muted-foreground transition-colors py-2 border-b border-white/5"
+                                        >
+                                          {child.title.toUpperCase()}
+                                        </motion.span>
+                                      </Link>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          );
+                        }
+                        
+                        const isExternal = item.type === 'link' && item.url?.startsWith('http');
+                        
+                        if (isExternal) {
+                          return (
+                            <a
+                              key={item.id}
+                              href={href}
+                              target={item.openInNewTab ? '_blank' : undefined}
+                              rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                              onClick={() => setMobileMenuOpen(false)}
+                              data-testid={`link-mobile-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                            >
+                              <motion.span
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors py-3 border-b border-white/5"
+                              >
+                                {item.title.toUpperCase()}
+                              </motion.span>
+                            </a>
+                          );
+                        }
+                        
+                        return (
+                          <Link
+                            key={item.id}
+                            href={href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-testid={`link-mobile-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                          >
+                            <motion.span
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors py-3 border-b border-white/5"
+                              whileHover={{ x: 10 }}
+                            >
+                              {item.title.toUpperCase()}
+                            </motion.span>
+                          </Link>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest mb-4">Kategoriler</p>
+                      {categories.map((link, index) => (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          data-testid={`link-mobile-nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <motion.span
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors py-3 border-b border-white/5"
+                            whileHover={{ x: 10 }}
+                          >
+                            {link.label.toUpperCase()}
+                          </motion.span>
+                        </Link>
+                      ))}
+                    </>
+                  )}
                 </nav>
                 
                 <div className="p-6 border-t border-white/10 mt-6">
