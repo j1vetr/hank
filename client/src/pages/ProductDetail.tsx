@@ -396,45 +396,102 @@ export default function ProductDetail() {
 
       <AnimatePresence>
         {showSizeGuide && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-900 rounded-2xl p-8 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-display text-xl">Beden Tablosu</h3>
-                <button onClick={() => setShowSizeGuide(false)} className="p-2 hover:bg-white/10 rounded-full">
-                  <X className="w-5 h-5" />
-                </button>
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6" 
+            onClick={() => setShowSizeGuide(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.95, opacity: 0, y: 10 }} 
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-b from-zinc-900 to-zinc-950 rounded-2xl sm:rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-zinc-800 shadow-2xl" 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-amber-600/10 via-amber-500/5 to-transparent border-b border-zinc-800 p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center border border-amber-500/20">
+                      <Ruler className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-display text-lg sm:text-xl text-white">Beden Rehberi</h3>
+                      <p className="text-xs sm:text-sm text-zinc-400">Doğru bedeni seçmenize yardımcı olur</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowSizeGuide(false)} 
+                    className="p-2 sm:p-2.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-xl transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              {sizeChart ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-white/10">
-                        {sizeChart.columns.map((col, i) => (
-                          <th key={i} className={`${i === 0 ? 'text-left' : 'text-center'} py-3 px-4 font-medium text-muted-foreground`}>
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sizeChart.rows.map((row, ri) => (
-                        <tr key={ri} className="border-b border-white/5">
-                          {row.map((cell, ci) => (
-                            <td key={ci} className={`py-3 px-4 ${ci === 0 ? 'font-medium' : 'text-center text-muted-foreground'}`}>
-                              {cell || '-'}
-                            </td>
+              
+              <div className="p-4 sm:p-6 overflow-auto max-h-[calc(90vh-100px)]">
+                {sizeChart ? (
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto rounded-xl border border-zinc-800">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-zinc-800/50">
+                            {sizeChart.columns.map((col, i) => (
+                              <th 
+                                key={i} 
+                                className={`${i === 0 ? 'text-left' : 'text-center'} py-3 sm:py-4 px-3 sm:px-5 font-semibold text-white text-xs sm:text-sm uppercase tracking-wide whitespace-nowrap`}
+                              >
+                                {col}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sizeChart.rows.map((row, ri) => (
+                            <tr 
+                              key={ri} 
+                              className={`border-t border-zinc-800/50 ${ri % 2 === 0 ? 'bg-zinc-900/30' : 'bg-zinc-900/10'} hover:bg-amber-500/5 transition-colors`}
+                            >
+                              {row.map((cell, ci) => (
+                                <td 
+                                  key={ci} 
+                                  className={`py-3 sm:py-4 px-3 sm:px-5 ${
+                                    ci === 0 
+                                      ? 'font-bold text-amber-400 text-sm sm:text-base' 
+                                      : 'text-center text-zinc-300 text-xs sm:text-sm'
+                                  } whitespace-nowrap`}
+                                >
+                                  {cell || '-'}
+                                </td>
+                              ))}
+                            </tr>
                           ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Ruler className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                  <p>Bu kategori için beden tablosu henüz eklenmemiş.</p>
-                </div>
-              )}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div className="flex items-start gap-3 p-3 sm:p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <Package className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <div className="text-xs sm:text-sm text-zinc-400">
+                        <p className="font-medium text-zinc-300 mb-1">Ölçü Alma İpucu</p>
+                        <p>En doğru sonuç için, vücudunuzu mezura ile ölçün ve tablodaki değerlerle karşılaştırın. Eğer iki beden arasında kalırsanız, rahat bir kesim için büyük bedeni tercih edebilirsiniz.</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zinc-800/50 flex items-center justify-center">
+                      <Ruler className="w-8 h-8 text-zinc-600" />
+                    </div>
+                    <h4 className="text-lg font-medium text-white mb-2">Beden Tablosu Bulunamadı</h4>
+                    <p className="text-sm text-zinc-400 max-w-sm mx-auto">Bu kategori için henüz beden tablosu eklenmemiş. Lütfen ürün açıklamasındaki beden bilgilerini kontrol edin.</p>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -695,8 +752,12 @@ export default function ProductDetail() {
                       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Beden: <span className="text-white">{selectedSize || ''}</span>
                       </span>
-                      <button onClick={() => setShowSizeGuide(true)} className="text-xs text-white/60 hover:text-white underline transition-colors">
-                        Beden Tablosu
+                      <button 
+                        onClick={() => setShowSizeGuide(true)} 
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600/20 to-amber-500/10 border border-amber-500/30 rounded-lg text-amber-400 hover:from-amber-600/30 hover:to-amber-500/20 hover:border-amber-500/50 transition-all group"
+                      >
+                        <Ruler className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-medium">Beden Rehberi</span>
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
