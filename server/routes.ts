@@ -566,7 +566,24 @@ export async function registerRoutes(
   const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];
 
   // File Upload Route with type validation and image optimization
-  app.post("/api/admin/upload/:type", requireAdmin, upload.array("images", 10), async (req, res) => {
+  app.post("/api/admin/upload/:type", requireAdmin, (req, res, next) => {
+    upload.array("images", 10)(req, res, (err) => {
+      if (err) {
+        console.error('[Upload] Multer error:', err.message);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: "Dosya boyutu 10MB'ı geçemez" });
+        }
+        if (err.code === 'LIMIT_FILE_COUNT') {
+          return res.status(400).json({ error: "En fazla 10 dosya yüklenebilir" });
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return res.status(400).json({ error: "Geçersiz dosya alanı" });
+        }
+        return res.status(400).json({ error: err.message || "Yükleme hatası" });
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
       const type = req.params.type;
       
