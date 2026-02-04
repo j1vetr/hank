@@ -27,6 +27,7 @@ import {
   dealers,
   quotes,
   quoteItems,
+  menuItems,
   type AdminUser,
   type InsertAdminUser,
   type Category,
@@ -78,7 +79,9 @@ import {
   type InsertProductAttributes,
   sizeCharts,
   type SizeChart,
-  type InsertSizeChart
+  type InsertSizeChart,
+  type MenuItem,
+  type InsertMenuItem
 } from "@shared/schema";
 import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
 
@@ -1617,6 +1620,48 @@ export class DbStorage implements IStorage {
 
   async deleteSizeChart(id: string): Promise<void> {
     await db.delete(sizeCharts).where(eq(sizeCharts.id, id));
+  }
+
+  // Menu Items (Menü Öğeleri)
+  async getMenuItems(): Promise<MenuItem[]> {
+    return db.select().from(menuItems).orderBy(asc(menuItems.displayOrder));
+  }
+
+  async getActiveMenuItems(): Promise<MenuItem[]> {
+    return db.select().from(menuItems)
+      .where(eq(menuItems.isActive, true))
+      .orderBy(asc(menuItems.displayOrder));
+  }
+
+  async getMenuItem(id: string): Promise<MenuItem | undefined> {
+    const [item] = await db.select().from(menuItems).where(eq(menuItems.id, id));
+    return item;
+  }
+
+  async createMenuItem(menuItem: InsertMenuItem): Promise<MenuItem> {
+    const [created] = await db.insert(menuItems).values(menuItem).returning();
+    return created;
+  }
+
+  async updateMenuItem(id: string, menuItem: Partial<InsertMenuItem>): Promise<MenuItem | undefined> {
+    const [updated] = await db.update(menuItems)
+      .set({ ...menuItem, updatedAt: new Date() })
+      .where(eq(menuItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteMenuItem(id: string): Promise<void> {
+    await db.delete(menuItems).where(eq(menuItems.parentId, id));
+    await db.delete(menuItems).where(eq(menuItems.id, id));
+  }
+
+  async reorderMenuItems(items: { id: string; displayOrder: number }[]): Promise<void> {
+    for (const item of items) {
+      await db.update(menuItems)
+        .set({ displayOrder: item.displayOrder, updatedAt: new Date() })
+        .where(eq(menuItems.id, item.id));
+    }
   }
 }
 
