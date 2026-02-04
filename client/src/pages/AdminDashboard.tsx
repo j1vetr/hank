@@ -401,25 +401,62 @@ export default function AdminDashboard() {
 
   if (!adminUser) return null;
 
-  const sidebarItems = [
-    { id: 'dashboard' as TabType, icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'analytics' as TabType, icon: BarChart3, label: 'Analitik' },
-    { id: 'products' as TabType, icon: Package, label: 'Ürünler' },
-    { id: 'size-charts' as TabType, icon: Ruler, label: 'Beden Tabloları' },
-    { id: 'categories' as TabType, icon: Grid3x3, label: 'Kategoriler' },
-    { id: 'inventory' as TabType, icon: Warehouse, label: 'Stok Yönetimi' },
-    { id: 'orders' as TabType, icon: ShoppingCart, label: 'Siparişler' },
-    { id: 'dealers' as TabType, icon: Building2, label: 'Bayiler' },
-    { id: 'quotes' as TabType, icon: ClipboardList, label: 'Teklifler' },
-    { id: 'marketing' as TabType, icon: Megaphone, label: 'Pazarlama' },
-    { id: 'influencers' as TabType, icon: UserCircle, label: 'Influencer' },
-    { id: 'users' as TabType, icon: Users, label: 'Kullanıcılar' },
-    { id: 'ai-descriptions' as TabType, icon: Wand2, label: 'AI Açıklamalar' },
-    { id: 'ai-chatbot' as TabType, icon: Bot, label: 'AI Chatbot' },
-    { id: 'woocommerce' as TabType, icon: Link2, label: 'WooCommerce' },
-    { id: 'settings' as TabType, icon: Settings, label: 'Ayarlar' },
-    { id: 'database' as TabType, icon: Database, label: 'Veritabanı' },
+  const sidebarCategories = [
+    {
+      title: 'Genel',
+      items: [
+        { id: 'dashboard' as TabType, icon: LayoutDashboard, label: 'Dashboard' },
+        { id: 'analytics' as TabType, icon: BarChart3, label: 'Analitik' },
+      ]
+    },
+    {
+      title: 'Ürün Yönetimi',
+      items: [
+        { id: 'products' as TabType, icon: Package, label: 'Ürünler' },
+        { id: 'categories' as TabType, icon: Grid3x3, label: 'Kategoriler' },
+        { id: 'size-charts' as TabType, icon: Ruler, label: 'Beden Tabloları' },
+        { id: 'inventory' as TabType, icon: Warehouse, label: 'Stok Yönetimi' },
+      ]
+    },
+    {
+      title: 'Satış & Siparişler',
+      items: [
+        { id: 'orders' as TabType, icon: ShoppingCart, label: 'Siparişler' },
+        { id: 'dealers' as TabType, icon: Building2, label: 'Bayiler' },
+        { id: 'quotes' as TabType, icon: ClipboardList, label: 'Teklifler' },
+      ]
+    },
+    {
+      title: 'Pazarlama',
+      items: [
+        { id: 'marketing' as TabType, icon: Megaphone, label: 'Kampanyalar' },
+        { id: 'influencers' as TabType, icon: UserCircle, label: 'Influencer' },
+      ]
+    },
+    {
+      title: 'Müşteriler',
+      items: [
+        { id: 'users' as TabType, icon: Users, label: 'Kullanıcılar' },
+      ]
+    },
+    {
+      title: 'AI Araçları',
+      items: [
+        { id: 'ai-descriptions' as TabType, icon: Wand2, label: 'AI Açıklamalar' },
+        { id: 'ai-chatbot' as TabType, icon: Bot, label: 'AI Chatbot' },
+      ]
+    },
+    {
+      title: 'Sistem',
+      items: [
+        { id: 'woocommerce' as TabType, icon: Link2, label: 'WooCommerce' },
+        { id: 'settings' as TabType, icon: Settings, label: 'Ayarlar' },
+        { id: 'database' as TabType, icon: Database, label: 'Veritabanı' },
+      ]
+    },
   ];
+  
+  const allSidebarItems = sidebarCategories.flatMap(cat => cat.items);
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -457,21 +494,28 @@ export default function AdminDashboard() {
           <p className="text-xs text-zinc-500">Admin Panel</p>
         </div>
         
-        <nav className="flex-1 p-4">
-          {sidebarItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-                activeTab === item.id
-                  ? 'bg-white text-black'
-                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-              }`}
-              data-testid={`tab-${item.id}`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </button>
+        <nav className="flex-1 p-3 overflow-y-auto">
+          {sidebarCategories.map((category, catIndex) => (
+            <div key={category.title} className={catIndex > 0 ? 'mt-4' : ''}>
+              <p className="px-3 py-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                {category.title}
+              </p>
+              {category.items.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 transition-colors ${
+                    activeTab === item.id
+                      ? 'bg-white text-black'
+                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                  }`}
+                  data-testid={`tab-${item.id}`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -499,7 +543,7 @@ export default function AdminDashboard() {
       <main className="flex-1 overflow-auto">
         <header className="bg-zinc-900/50 border-b border-zinc-800 px-8 py-6">
           <h2 className="text-2xl font-semibold text-white">
-            {sidebarItems.find(i => i.id === activeTab)?.label}
+            {allSidebarItems.find(i => i.id === activeTab)?.label}
           </h2>
         </header>
 
