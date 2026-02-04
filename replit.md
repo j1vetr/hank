@@ -48,9 +48,21 @@ Database tables include:
 - `users` - Customer accounts
 - `categories` - Product categories
 - `products` - Product catalog
+- `product_categories` - Many-to-many relationship for multi-category products
 - `product_variants` - Size/color variants with stock
 - `cart_items` - Shopping cart persistence
 - `orders` and `order_items` - Order management
+
+### Multi-Category Product Support
+- **Many-to-Many Relationship**: Products can belong to multiple categories via `product_categories` junction table
+- **Primary Category**: `products.categoryId` remains as the primary category for backward compatibility
+- **Additional Categories**: `categoryIds` array returned with products for all assigned categories
+- **Admin UI**: Category selection uses toggle buttons (like sizes) for multi-select
+- **Frontend Filtering**: Products appear in all their categories, not just the primary one
+- **Storage Functions**:
+  - `getProductCategoryIds(productId)` - Get all category IDs for a product
+  - `setProductCategories(productId, categoryIds)` - Set all categories for a product
+  - `getProductsByCategoryIds(categoryIds)` - Get products in any of the specified categories
 
 ### Authentication (JWT-based, Fully Stateless)
 - **Architecture**: Stateless JWT + HttpOnly Cookie + Refresh Token Rotation (no express-session)
