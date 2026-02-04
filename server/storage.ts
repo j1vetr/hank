@@ -75,7 +75,10 @@ import {
   type InsertQuoteItem,
   productAttributes,
   type ProductAttributes,
-  type InsertProductAttributes
+  type InsertProductAttributes,
+  sizeCharts,
+  type SizeChart,
+  type InsertSizeChart
 } from "@shared/schema";
 import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
 
@@ -213,6 +216,14 @@ export interface IStorage {
   // Product Attributes for Chatbot
   getProductAttributes(productId: string): Promise<ProductAttributes | undefined>;
   upsertProductAttributes(productId: string, attrs: Partial<InsertProductAttributes>): Promise<ProductAttributes>;
+
+  // Size Charts (Beden Tabloları)
+  getSizeCharts(): Promise<SizeChart[]>;
+  getSizeChart(id: string): Promise<SizeChart | undefined>;
+  getSizeChartByCategory(categoryId: string): Promise<SizeChart | undefined>;
+  createSizeChart(sizeChart: InsertSizeChart): Promise<SizeChart>;
+  updateSizeChart(id: string, sizeChart: Partial<InsertSizeChart>): Promise<SizeChart | undefined>;
+  deleteSizeChart(id: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -1574,6 +1585,38 @@ export class DbStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Size Charts (Beden Tabloları)
+  async getSizeCharts(): Promise<SizeChart[]> {
+    return db.select().from(sizeCharts).orderBy(asc(sizeCharts.createdAt));
+  }
+
+  async getSizeChart(id: string): Promise<SizeChart | undefined> {
+    const [chart] = await db.select().from(sizeCharts).where(eq(sizeCharts.id, id));
+    return chart;
+  }
+
+  async getSizeChartByCategory(categoryId: string): Promise<SizeChart | undefined> {
+    const [chart] = await db.select().from(sizeCharts).where(eq(sizeCharts.categoryId, categoryId));
+    return chart;
+  }
+
+  async createSizeChart(sizeChart: InsertSizeChart): Promise<SizeChart> {
+    const [created] = await db.insert(sizeCharts).values(sizeChart).returning();
+    return created;
+  }
+
+  async updateSizeChart(id: string, sizeChart: Partial<InsertSizeChart>): Promise<SizeChart | undefined> {
+    const [updated] = await db.update(sizeCharts)
+      .set({ ...sizeChart, updatedAt: new Date() })
+      .where(eq(sizeCharts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSizeChart(id: string): Promise<void> {
+    await db.delete(sizeCharts).where(eq(sizeCharts.id, id));
   }
 }
 
