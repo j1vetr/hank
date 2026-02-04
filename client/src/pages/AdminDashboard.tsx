@@ -7010,6 +7010,14 @@ function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
     setShowModal(true);
   };
 
+  const openCopyModal = (chart: SizeChart) => {
+    setEditingChart(null);
+    setSelectedCategoryId('');
+    setColumns([...chart.columns]);
+    setRows(chart.rows.map(row => [...row]));
+    setShowModal(true);
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setEditingChart(null);
@@ -7048,7 +7056,7 @@ function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
   };
 
   const handleSave = async () => {
-    if (!editingChart && !selectedCategoryId) {
+    if (!selectedCategoryId) {
       alert('Lütfen bir kategori seçin');
       return;
     }
@@ -7163,12 +7171,22 @@ function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
                   <button
                     onClick={() => openEditModal(chart)}
                     className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                    title="Düzenle"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
+                    onClick={() => openCopyModal(chart)}
+                    disabled={categoriesWithoutChart.length === 0}
+                    className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Kopyala"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleDelete(chart.id)}
                     className="p-2 bg-zinc-800 hover:bg-red-900/50 text-zinc-400 hover:text-red-400 rounded-lg transition-colors"
+                    title="Sil"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -7225,21 +7243,30 @@ function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
             </div>
             
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {!editingChart && (
-                <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-2">Kategori</label>
-                  <select
-                    value={selectedCategoryId}
-                    onChange={(e) => setSelectedCategoryId(e.target.value)}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  >
-                    <option value="">Kategori Seçin</option>
-                    {categoriesWithoutChart.map(cat => (
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Kategori</label>
+                <select
+                  value={selectedCategoryId}
+                  onChange={(e) => setSelectedCategoryId(e.target.value)}
+                  className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                >
+                  <option value="">Kategori Seçin</option>
+                  {editingChart ? (
+                    categories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                    ))
+                  ) : (
+                    categoriesWithoutChart.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))
+                  )}
+                </select>
+                {editingChart && (
+                  <p className="text-xs text-amber-400 mt-2">
+                    Uyarı: Kategori değiştirirseniz, eski kategorideki beden tablosu silinecektir.
+                  </p>
+                )}
+              </div>
 
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -7335,7 +7362,7 @@ function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
               </button>
               <button
                 onClick={handleSave}
-                disabled={isSaving || (!editingChart && !selectedCategoryId)}
+                disabled={isSaving || !selectedCategoryId}
                 className="px-6 py-2.5 bg-white text-black rounded-lg font-medium disabled:opacity-50 flex items-center gap-2"
               >
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
