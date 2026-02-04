@@ -57,7 +57,8 @@ import {
   Sparkles,
   Wand2,
   Bot,
-  BrainCircuit
+  BrainCircuit,
+  Ruler
 } from 'lucide-react';
 
 interface Product {
@@ -130,7 +131,7 @@ interface ProductVariant {
   stock: number;
 }
 
-type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'influencers' | 'dealers' | 'quotes' | 'settings' | 'database' | 'ai-descriptions' | 'ai-chatbot';
+type TabType = 'dashboard' | 'products' | 'categories' | 'orders' | 'users' | 'woocommerce' | 'analytics' | 'inventory' | 'marketing' | 'influencers' | 'dealers' | 'quotes' | 'settings' | 'database' | 'ai-descriptions' | 'ai-chatbot' | 'size-charts';
 
 interface Dealer {
   id: string;
@@ -403,6 +404,7 @@ export default function AdminDashboard() {
     { id: 'dashboard' as TabType, icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'analytics' as TabType, icon: BarChart3, label: 'Analitik' },
     { id: 'products' as TabType, icon: Package, label: 'Ürünler' },
+    { id: 'size-charts' as TabType, icon: Ruler, label: 'Beden Tabloları' },
     { id: 'categories' as TabType, icon: Grid3x3, label: 'Kategoriler' },
     { id: 'inventory' as TabType, icon: Warehouse, label: 'Stok Yönetimi' },
     { id: 'orders' as TabType, icon: ShoppingCart, label: 'Siparişler' },
@@ -1007,6 +1009,10 @@ export default function AdminDashboard() {
           
           {activeTab === 'ai-chatbot' && (
             <AIChatbotPanel />
+          )}
+          
+          {activeTab === 'size-charts' && (
+            <SizeChartsPanel categories={categories} />
           )}
         </div>
       </main>
@@ -6940,6 +6946,405 @@ function AIChatbotPanel() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Size Charts Panel Component
+interface SizeChartsPanelProps {
+  categories: Category[];
+}
+
+interface SizeChart {
+  id: string;
+  categoryId: string;
+  columns: string[];
+  rows: string[][];
+  category?: Category;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function SizeChartsPanel({ categories }: SizeChartsPanelProps) {
+  const [sizeCharts, setSizeCharts] = useState<SizeChart[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingChart, setEditingChart] = useState<SizeChart | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [columns, setColumns] = useState<string[]>(['Beden', 'Göğüs (cm)', 'Boy (cm)']);
+  const [rows, setRows] = useState<string[][]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchSizeCharts = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/admin/size-charts', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        setSizeCharts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching size charts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSizeCharts();
+  }, []);
+
+  const openNewModal = () => {
+    setEditingChart(null);
+    setSelectedCategoryId('');
+    setColumns(['Beden', 'Göğüs (cm)', 'Boy (cm)']);
+    setRows([['S', '', ''], ['M', '', ''], ['L', '', ''], ['XL', '', '']]);
+    setShowModal(true);
+  };
+
+  const openEditModal = (chart: SizeChart) => {
+    setEditingChart(chart);
+    setSelectedCategoryId(chart.categoryId);
+    setColumns([...chart.columns]);
+    setRows(chart.rows.map(row => [...row]));
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingChart(null);
+  };
+
+  const addColumn = () => {
+    setColumns([...columns, 'Yeni Ölçü (cm)']);
+    setRows(rows.map(row => [...row, '']));
+  };
+
+  const removeColumn = (index: number) => {
+    if (columns.length <= 2) return;
+    setColumns(columns.filter((_, i) => i !== index));
+    setRows(rows.map(row => row.filter((_, i) => i !== index)));
+  };
+
+  const updateColumn = (index: number, value: string) => {
+    const newCols = [...columns];
+    newCols[index] = value;
+    setColumns(newCols);
+  };
+
+  const addRow = () => {
+    setRows([...rows, columns.map(() => '')]);
+  };
+
+  const removeRow = (index: number) => {
+    setRows(rows.filter((_, i) => i !== index));
+  };
+
+  const updateCell = (rowIndex: number, colIndex: number, value: string) => {
+    const newRows = rows.map((row, ri) => 
+      ri === rowIndex ? row.map((cell, ci) => ci === colIndex ? value : cell) : [...row]
+    );
+    setRows(newRows);
+  };
+
+  const handleSave = async () => {
+    if (!editingChart && !selectedCategoryId) {
+      alert('Lütfen bir kategori seçin');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const url = editingChart 
+        ? `/api/admin/size-charts/${editingChart.id}` 
+        : '/api/admin/size-charts';
+      
+      const response = await fetch(url, {
+        method: editingChart ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          categoryId: selectedCategoryId,
+          columns,
+          rows
+        })
+      });
+
+      if (response.ok) {
+        await fetchSizeCharts();
+        closeModal();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Kaydetme hatası');
+      }
+    } catch (error) {
+      console.error('Error saving size chart:', error);
+      alert('Kaydetme hatası');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bu beden tablosunu silmek istediğinizden emin misiniz?')) return;
+    
+    try {
+      const response = await fetch(`/api/admin/size-charts/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        await fetchSizeCharts();
+      }
+    } catch (error) {
+      console.error('Error deleting size chart:', error);
+    }
+  };
+
+  const categoriesWithoutChart = categories.filter(
+    cat => !sizeCharts.some(sc => sc.categoryId === cat.id)
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-display text-white">Beden Tabloları</h2>
+          <p className="text-muted-foreground mt-1">Kategori bazlı beden tabloları düzenleyin</p>
+        </div>
+        <button
+          onClick={openNewModal}
+          disabled={categoriesWithoutChart.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-white/90 transition-colors disabled:opacity-50"
+        >
+          <Plus className="w-4 h-4" />
+          Yeni Beden Tablosu
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+        </div>
+      ) : sizeCharts.length === 0 ? (
+        <div className="text-center py-20 bg-zinc-900/50 rounded-xl border border-zinc-800">
+          <Ruler className="w-16 h-16 mx-auto text-zinc-600 mb-4" />
+          <h3 className="text-xl font-medium text-white mb-2">Henüz beden tablosu yok</h3>
+          <p className="text-muted-foreground mb-6">
+            Kategori bazlı beden tabloları oluşturarak müşterilerinize yardımcı olun
+          </p>
+          <button
+            onClick={openNewModal}
+            className="px-6 py-3 bg-white text-black rounded-lg font-medium hover:bg-white/90 transition-colors"
+          >
+            İlk Beden Tablosunu Oluştur
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {sizeCharts.map(chart => (
+            <div key={chart.id} className="bg-zinc-900/50 rounded-xl border border-zinc-800 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                    <Ruler className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-white">
+                      {chart.category?.name || 'Bilinmeyen Kategori'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {chart.columns.length} sütun, {chart.rows.length} satır
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEditModal(chart)}
+                    className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(chart.id)}
+                    className="p-2 bg-zinc-800 hover:bg-red-900/50 text-zinc-400 hover:text-red-400 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-700">
+                      {chart.columns.map((col, i) => (
+                        <th key={i} className="text-left py-2 px-3 font-medium text-zinc-400">
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chart.rows.slice(0, 5).map((row, ri) => (
+                      <tr key={ri} className="border-b border-zinc-800">
+                        {row.map((cell, ci) => (
+                          <td key={ci} className={`py-2 px-3 ${ci === 0 ? 'font-medium text-white' : 'text-zinc-400'}`}>
+                            {cell || '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    {chart.rows.length > 5 && (
+                      <tr>
+                        <td colSpan={chart.columns.length} className="py-2 px-3 text-center text-zinc-500">
+                          +{chart.rows.length - 5} daha...
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Size Chart Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+          <div className="bg-zinc-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-zinc-800">
+              <h3 className="text-xl font-medium text-white">
+                {editingChart ? 'Beden Tablosunu Düzenle' : 'Yeni Beden Tablosu'}
+              </h3>
+              <button onClick={closeModal} className="p-2 hover:bg-zinc-800 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {!editingChart && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-2">Kategori</label>
+                  <select
+                    value={selectedCategoryId}
+                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  >
+                    <option value="">Kategori Seçin</option>
+                    {categoriesWithoutChart.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-zinc-400">Sütunlar (Ölçü Başlıkları)</label>
+                  <button
+                    onClick={addColumn}
+                    className="text-sm px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Sütun Ekle
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {columns.map((col, i) => (
+                    <div key={i} className="flex items-center gap-1 bg-zinc-800 rounded-lg overflow-hidden">
+                      <input
+                        type="text"
+                        value={col}
+                        onChange={(e) => updateColumn(i, e.target.value)}
+                        className="px-3 py-2 bg-transparent text-white text-sm focus:outline-none w-32"
+                      />
+                      {columns.length > 2 && (
+                        <button
+                          onClick={() => removeColumn(i)}
+                          className="p-2 hover:bg-red-900/50 text-zinc-400 hover:text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-zinc-400">Beden Satırları</label>
+                  <button
+                    onClick={addRow}
+                    className="text-sm px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-lg flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Satır Ekle
+                  </button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-700">
+                        {columns.map((col, i) => (
+                          <th key={i} className="text-left py-2 px-2 font-medium text-zinc-400 whitespace-nowrap">
+                            {col}
+                          </th>
+                        ))}
+                        <th className="w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row, ri) => (
+                        <tr key={ri} className="border-b border-zinc-800">
+                          {row.map((cell, ci) => (
+                            <td key={ci} className="py-1 px-1">
+                              <input
+                                type="text"
+                                value={cell}
+                                onChange={(e) => updateCell(ri, ci, e.target.value)}
+                                placeholder={ci === 0 ? 'Beden' : 'Ölçü'}
+                                className="w-full px-2 py-2 bg-zinc-800 border border-zinc-700 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                              />
+                            </td>
+                          ))}
+                          <td className="py-1 px-1">
+                            <button
+                              onClick={() => removeRow(ri)}
+                              className="p-2 hover:bg-red-900/50 text-zinc-400 hover:text-red-400 rounded"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-zinc-800">
+              <button
+                onClick={closeModal}
+                className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg font-medium"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving || (!editingChart && !selectedCategoryId)}
+                className="px-6 py-2.5 bg-white text-black rounded-lg font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {editingChart ? 'Güncelle' : 'Oluştur'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
