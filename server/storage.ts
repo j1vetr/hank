@@ -374,9 +374,16 @@ export class DbStorage implements IStorage {
   }): Promise<Product[]> {
     const conditions = [eq(products.isActive, true)];
     
+    // Handle category filter with multi-category support
+    let categoryProductIds: string[] | null = null;
     if (filters?.categoryId) {
-      conditions.push(eq(products.categoryId, filters.categoryId));
+      // Get products that have this category in their categoryIds (via product_categories table)
+      const productIdsResult = await db.selectDistinct({ productId: productCategories.productId })
+        .from(productCategories)
+        .where(eq(productCategories.categoryId, filters.categoryId));
+      categoryProductIds = productIdsResult.map(r => r.productId);
     }
+    
     if (filters?.isFeatured !== undefined) {
       conditions.push(eq(products.isFeatured, filters.isFeatured));
     }
@@ -413,7 +420,17 @@ export class DbStorage implements IStorage {
         query = query.orderBy(desc(products.createdAt));
     }
 
-    return query;
+    let result = await query;
+    
+    // Filter by category (includes products from both primary categoryId and product_categories table)
+    if (filters?.categoryId && categoryProductIds !== null) {
+      result = result.filter(p => 
+        p.categoryId === filters.categoryId || 
+        categoryProductIds!.includes(p.id)
+      );
+    }
+    
+    return result;
   }
 
   async getProduct(id: string): Promise<Product | undefined> {

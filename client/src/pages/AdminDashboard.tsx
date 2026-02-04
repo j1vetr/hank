@@ -68,6 +68,7 @@ interface Product {
   sku?: string;
   basePrice: string;
   categoryId: string;
+  categoryIds?: string[];
   images: string[];
   availableSizes: string[];
   availableColors: { name: string; hex: string }[];
@@ -699,7 +700,15 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-zinc-400">
-                          {categories.find(c => c.id === product.categoryId)?.name || '-'}
+                          <div className="flex flex-wrap gap-1">
+                            {(product.categoryIds && product.categoryIds.length > 0
+                              ? product.categoryIds.map(catId => categories.find(c => c.id === catId)?.name).filter(Boolean)
+                              : [categories.find(c => c.id === product.categoryId)?.name]
+                            ).filter(Boolean).map((name, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-zinc-800 rounded text-xs">{name}</span>
+                            ))}
+                            {!product.categoryId && (!product.categoryIds || product.categoryIds.length === 0) && '-'}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-white font-medium">{product.basePrice}₺</td>
                         <td className="px-6 py-4">
@@ -1412,6 +1421,7 @@ function ProductModal({
     sku: product?.sku || '',
     basePrice: product?.basePrice || '',
     categoryId: product?.categoryId || '',
+    categoryIds: product?.categoryIds || (product?.categoryId ? [product.categoryId] : []) as string[],
     images: product?.images || [] as string[],
     availableSizes: product?.availableSizes || [],
     availableColors: product?.availableColors || [],
@@ -1775,19 +1785,36 @@ function ProductModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Kategori</label>
-              <select
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-zinc-500"
-                required
-                data-testid="select-product-category"
-              >
-                <option value="">Seçin</option>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Kategoriler</label>
+              <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      const newIds = formData.categoryIds.includes(cat.id)
+                        ? formData.categoryIds.filter(id => id !== cat.id)
+                        : [...formData.categoryIds, cat.id];
+                      setFormData({
+                        ...formData,
+                        categoryIds: newIds,
+                        categoryId: newIds[0] || ''
+                      });
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      formData.categoryIds.includes(cat.id)
+                        ? 'bg-white text-black'
+                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                    }`}
+                    data-testid={`button-category-${cat.id}`}
+                  >
+                    {cat.name}
+                  </button>
                 ))}
-              </select>
+              </div>
+              {formData.categoryIds.length === 0 && (
+                <p className="text-xs text-red-400 mt-1">En az bir kategori seçin</p>
+              )}
             </div>
           </div>
 
@@ -6402,7 +6429,9 @@ function AIDescriptionsPanel({ products, categories }: { products: Product[], ca
   ];
 
   const filteredProducts = products.filter(p => {
-    const categoryMatch = selectedCategory === 'all' || p.categoryId === selectedCategory;
+    const categoryMatch = selectedCategory === 'all' || 
+      p.categoryId === selectedCategory || 
+      (p.categoryIds && p.categoryIds.includes(selectedCategory));
     if (descriptionMode === 'empty') {
       return categoryMatch && (!p.description || p.description.trim() === '');
     }

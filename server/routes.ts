@@ -1093,7 +1093,8 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Product not found" });
       }
       const variants = await storage.getProductVariants(product.id);
-      res.json({ ...product, variants });
+      const categoryIds = await storage.getProductCategoryIds(product.id);
+      res.json({ ...product, variants, categoryIds });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch product" });
     }
@@ -1101,8 +1102,17 @@ export async function registerRoutes(
 
   app.post("/api/admin/products", requireAdmin, async (req, res) => {
     try {
-      const validated = insertProductSchema.parse(req.body);
+      const { categoryIds, ...productData } = req.body;
+      const validated = insertProductSchema.parse(productData);
       const product = await storage.createProduct(validated);
+      
+      // Set product categories (multi-category support)
+      if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
+        await storage.setProductCategories(product.id, categoryIds);
+      } else if (product.categoryId) {
+        // Fallback: also add the main categoryId to product_categories for consistency
+        await storage.setProductCategories(product.id, [product.categoryId]);
+      }
       
       // Auto-create variants for all size/color combinations
       const sizes = product.availableSizes || [];
@@ -1141,7 +1151,9 @@ export async function registerRoutes(
         }
       }
       
-      res.status(201).json(product);
+      // Return product with categoryIds
+      const productCategoryIds = await storage.getProductCategoryIds(product.id);
+      res.status(201).json({ ...product, categoryIds: productCategoryIds });
     } catch (error) {
       console.error('Product creation error:', error);
       res.status(400).json({ error: "Invalid product data" });
@@ -1150,8 +1162,9 @@ export async function registerRoutes(
 
   app.patch("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
-      console.log('Updating product:', req.params.id, 'with data:', JSON.stringify(req.body, null, 2));
-      const product = await storage.updateProduct(req.params.id, req.body);
+      const { categoryIds, ...productData } = req.body;
+      console.log('Updating product:', req.params.id, 'with data:', JSON.stringify(productData, null, 2));
+      const product = await storage.updateProduct(req.params.id, productData);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
@@ -1202,8 +1215,16 @@ export async function registerRoutes(
         }
       }
       
+      // Update product categories (multi-category support)
+      if (categoryIds && Array.isArray(categoryIds)) {
+        await storage.setProductCategories(product.id, categoryIds);
+      }
+      
       console.log('Updated product result:', JSON.stringify(product, null, 2));
-      res.json(product);
+      
+      // Return product with categoryIds
+      const productCategoryIds = await storage.getProductCategoryIds(product.id);
+      res.json({ ...product, categoryIds: productCategoryIds });
     } catch (error) {
       console.error('Product update error:', error);
       res.status(400).json({ error: "Failed to update product" });
