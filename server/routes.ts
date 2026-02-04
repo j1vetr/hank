@@ -4979,8 +4979,11 @@ Sitemap: ${baseUrl}/sitemap.xml
 
   // Admin: Get all menu items
   app.get("/api/admin/menu-items", requireAdmin, async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     try {
       const items = await storage.getMenuItems();
+      console.log('[Menu] Admin fetched menu items:', items.length, 'items');
       const categories = await storage.getCategories();
       
       const menuItemsWithDetails = items.map(item => {
