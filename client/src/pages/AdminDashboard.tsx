@@ -8038,6 +8038,14 @@ function MenuManagementPanel({ categories }: MenuManagementPanelProps) {
                 </div>
               )}
 
+              {formData.type === 'submenu' && (
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <p className="text-sm text-blue-400">
+                    Alt Menü türü bir dropdown oluşturur. Bu öğeyi oluşturduktan sonra, diğer öğeleri bu alt menünün altına ekleyebilirsiniz.
+                  </p>
+                </div>
+              )}
+
               {formData.type !== 'submenu' && submenuParents.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-zinc-400 mb-2">Üst Menü (Opsiyonel)</label>
@@ -8052,6 +8060,15 @@ function MenuManagementPanel({ categories }: MenuManagementPanelProps) {
                       <option key={parent.id} value={parent.id}>{parent.title}</option>
                     ))}
                   </select>
+                  <p className="text-xs text-zinc-500 mt-1">Bir alt menünün altında göstermek için seçin</p>
+                </div>
+              )}
+
+              {formData.type !== 'submenu' && submenuParents.length === 0 && (
+                <div className="p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+                  <p className="text-sm text-zinc-400">
+                    Alt menü öğesi eklemek için önce "Alt Menü" türünde bir öğe oluşturun.
+                  </p>
                 </div>
               )}
 

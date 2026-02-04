@@ -154,7 +154,7 @@ export function Header() {
                     
                     const isExternal = item.type === 'link' && item.url?.startsWith('http');
                     
-                    if (isExternal) {
+                    if (isExternal || item.openInNewTab) {
                       return (
                         <a
                           key={item.id}
@@ -162,24 +162,21 @@ export function Header() {
                           target={item.openInNewTab ? '_blank' : undefined}
                           rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
                           data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
                         >
-                          {item.title}
-                        </a>
-                      );
-                    }
-                    
-                    if (item.openInNewTab) {
-                      return (
-                        <a
-                          key={item.id}
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
-                        >
-                          {item.title}
+                          <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                            location === href ? 'text-white' : 'text-white/70'
+                          }`}>
+                            {item.title}
+                            <motion.span
+                              className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                              initial={{ scaleX: 0 }}
+                              whileHover={{ scaleX: 1 }}
+                              transition={{ duration: 0.3 }}
+                            />
+                            {location === href && (
+                              <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                            )}
+                          </span>
                         </a>
                       );
                     }
@@ -266,7 +263,7 @@ export function Header() {
                     
                     const isExternal = item.type === 'link' && item.url?.startsWith('http');
                     
-                    if (isExternal) {
+                    if (isExternal || item.openInNewTab) {
                       return (
                         <a
                           key={item.id}
@@ -274,24 +271,21 @@ export function Header() {
                           target={item.openInNewTab ? '_blank' : undefined}
                           rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
                           data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
                         >
-                          {item.title}
-                        </a>
-                      );
-                    }
-                    
-                    if (item.openInNewTab) {
-                      return (
-                        <a
-                          key={item.id}
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                          className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70"
-                        >
-                          {item.title}
+                          <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                            location === href ? 'text-white' : 'text-white/70'
+                          }`}>
+                            {item.title}
+                            <motion.span
+                              className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                              initial={{ scaleX: 0 }}
+                              whileHover={{ scaleX: 1 }}
+                              transition={{ duration: 0.3 }}
+                            />
+                            {location === href && (
+                              <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                            )}
+                          </span>
                         </a>
                       );
                     }
@@ -516,7 +510,7 @@ export function Header() {
                         
                         const isExternal = item.type === 'link' && item.url?.startsWith('http');
                         
-                        if (isExternal) {
+                        if (isExternal || item.openInNewTab) {
                           return (
                             <a
                               key={item.id}
@@ -531,6 +525,7 @@ export function Header() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.05 }}
                                 className="block font-display text-2xl tracking-wider hover:text-muted-foreground transition-colors py-3 border-b border-white/5"
+                                whileHover={{ x: 10 }}
                               >
                                 {item.title.toUpperCase()}
                               </motion.span>
