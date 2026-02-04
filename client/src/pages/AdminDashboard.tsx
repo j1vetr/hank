@@ -59,7 +59,8 @@ import {
   Bot,
   BrainCircuit,
   Ruler,
-  Copy
+  Copy,
+  Menu
 } from 'lucide-react';
 
 interface Product {
@@ -212,6 +213,7 @@ export default function AdminDashboard() {
     return 'dashboard';
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
@@ -482,16 +484,42 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 flex">
-      <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-        <div className="p-6 border-b border-zinc-800">
-          <img 
-            src="https://toov.com.tr/assets/toov_logo-DODYNPrj.png" 
-            alt="TOOV" 
-            className="h-8 mb-2"
-          />
-          <p className="text-xs text-zinc-500">Admin Panel</p>
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden" 
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Hidden on mobile, shown as overlay when mobileMenuOpen */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col transform transition-transform duration-300 ease-in-out
+        md:relative md:translate-x-0 md:w-64
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-4 md:p-6 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <img 
+              src="https://toov.com.tr/assets/toov_logo-DODYNPrj.png" 
+              alt="TOOV" 
+              className="h-7 md:h-8 mb-1"
+            />
+            <p className="text-xs text-zinc-500">Admin Panel</p>
+          </div>
+          <button 
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2 hover:bg-zinc-800 rounded-lg md:hidden"
+          >
+            <X className="w-5 h-5 text-zinc-400" />
+          </button>
         </div>
         
         <nav className="flex-1 p-3 overflow-y-auto">
@@ -503,7 +531,7 @@ export default function AdminDashboard() {
               {category.items.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabChange(item.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 transition-colors ${
                     activeTab === item.id
                       ? 'bg-white text-black'
@@ -540,14 +568,21 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <header className="bg-zinc-900/50 border-b border-zinc-800 px-8 py-6">
-          <h2 className="text-2xl font-semibold text-white">
+      <main className="flex-1 overflow-auto w-full">
+        {/* Mobile Header */}
+        <header className="bg-zinc-900/50 border-b border-zinc-800 px-4 py-4 md:px-8 md:py-6 flex items-center gap-4">
+          <button 
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 hover:bg-zinc-800 rounded-lg md:hidden"
+          >
+            <Menu className="w-6 h-6 text-white" />
+          </button>
+          <h2 className="text-lg md:text-2xl font-semibold text-white">
             {allSidebarItems.find(i => i.id === activeTab)?.label}
           </h2>
         </header>
 
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
