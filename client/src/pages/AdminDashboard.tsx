@@ -4462,6 +4462,11 @@ function InfluencerModal({
   onSave: (influencer: any) => void;
   isSaving: boolean;
 }) {
+  const formatPrice = (price: string | number) => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(num || 0);
+  };
+
   const [formData, setFormData] = useState({
     name: influencer?.influencerName || '',
     code: influencer?.code || '',
@@ -4609,6 +4614,28 @@ function InfluencerModal({
               Aktif (Kod kullanılabilir)
             </label>
           </div>
+
+          {influencer && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-400">Güncel Komisyon Kazancı</span>
+                <span className="text-lg font-semibold text-emerald-400">
+                  {formatPrice(influencer.totalCommissionEarned || 0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-sm text-zinc-400">Kullanım Sayısı</span>
+                <span className="text-lg font-semibold text-white">
+                  {influencer.usageCount || 0}
+                </span>
+              </div>
+              {influencer.isPaid && (
+                <div className="mt-2 text-xs text-emerald-400 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Ödendi olarak işaretlendi
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="p-6 border-t border-zinc-800 flex items-center justify-end gap-3">
