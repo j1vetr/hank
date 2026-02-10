@@ -22,6 +22,7 @@ interface Product {
   basePrice: string;
   images: string[];
   isNew?: boolean;
+  discountBadge?: string | null;
   variants?: ProductVariant[];
   availableSizes?: string[];
   availableColors?: { name: string; hex: string }[];
@@ -89,7 +90,21 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-              {product.isNew && !isOutOfStock && (
+              {product.discountBadge && !isOutOfStock && (
+                <motion.div
+                  className="absolute top-2 left-2 z-10"
+                  initial={{ scale: 0, rotate: -12 }}
+                  animate={{ scale: 1, rotate: -3 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  data-testid={`badge-discount-${product.id}`}
+                >
+                  <div className="bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-md shadow-lg shadow-red-900/40 tracking-wide">
+                    {product.discountBadge}
+                  </div>
+                </motion.div>
+              )}
+
+              {product.isNew && !isOutOfStock && !product.discountBadge && (
                 <motion.span
                   className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 tracking-wider rounded"
                   animate={{ 

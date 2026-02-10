@@ -1478,6 +1478,27 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/products/bulk-badge", requireAdmin, async (req, res) => {
+    try {
+      const { productIds, badge } = req.body;
+      
+      if (!productIds || !Array.isArray(productIds)) {
+        return res.status(400).json({ error: "productIds array is required" });
+      }
+      
+      let updated = 0;
+      for (const id of productIds) {
+        await storage.updateProduct(id, { discountBadge: badge || null });
+        updated++;
+      }
+      
+      res.json({ success: true, updated });
+    } catch (error) {
+      console.error('Bulk badge update error:', error);
+      res.status(500).json({ error: "Toplu etiket güncellemesi başarısız" });
+    }
+  });
+
   // Delete all products (for WooCommerce re-import)
   app.delete("/api/admin/products-all", requireAdmin, async (req, res) => {
     try {

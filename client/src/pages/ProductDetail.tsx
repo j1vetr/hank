@@ -615,8 +615,15 @@ export default function ProductDetail() {
                           <img src={images[selectedImage]} alt={product.name} className="w-full h-full object-cover" draggable={false} />
                         </motion.div>
                       </AnimatePresence>
-                      {product.isNew && (
-                        <span className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded z-20">%YENİ</span>
+                      {product.discountBadge && (
+                        <div className="absolute top-4 left-4 z-20">
+                          <div className="bg-red-600 text-white text-sm font-black px-3 py-1.5 rounded-lg shadow-lg shadow-red-900/40 transform -rotate-2">
+                            {product.discountBadge}
+                          </div>
+                        </div>
+                      )}
+                      {product.isNew && !product.discountBadge && (
+                        <span className="absolute top-4 left-4 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
                       )}
                     </motion.div>
                   </div>
@@ -633,8 +640,15 @@ export default function ProductDetail() {
                           </div>
                         ))}
                       </div>
-                      {product.isNew && (
-                        <span className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded z-20">%YENİ</span>
+                      {product.discountBadge && (
+                        <div className="absolute top-4 left-4 z-20">
+                          <div className="bg-red-600 text-white text-sm font-black px-3 py-1.5 rounded-lg shadow-lg shadow-red-900/40 transform -rotate-2">
+                            {product.discountBadge}
+                          </div>
+                        </div>
+                      )}
+                      {product.isNew && !product.discountBadge && (
+                        <span className="absolute top-4 left-4 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
                       )}
                     </div>
                   </div>
