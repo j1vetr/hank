@@ -50,11 +50,14 @@ export default function ValentinePopup() {
               <X className="w-5 h-5" />
             </button>
 
-            <img
-              src="/images/valentine-popup.jpg"
-              alt="14 Şubat Sevgililer Günü'ne Özel İndirim"
-              className="w-full h-auto block"
-            />
+            <picture>
+              <source srcSet="/images/valentine-popup.webp" type="image/webp" />
+              <img
+                src="/images/valentine-popup-opt.jpg"
+                alt="14 Şubat Sevgililer Günü'ne Özel İndirim"
+                className="w-full h-auto block"
+              />
+            </picture>
           </motion.div>
         </motion.div>
       )}
