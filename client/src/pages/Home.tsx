@@ -275,23 +275,31 @@ export default function Home() {
               className="mb-5 sm:mb-6"
             >
               <Link href="/magaza">
-                <div className="relative inline-flex flex-col items-center gap-1 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-full hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer overflow-hidden group">
-                  <div className="absolute inset-0 rounded-full" style={{
-                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-                    backgroundSize: '200% 100%',
-                    animation: 'borderShine 2.5s linear infinite',
-                    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                    maskComposite: 'exclude',
-                    WebkitMaskComposite: 'xor',
-                    padding: '2px',
-                    borderRadius: '9999px',
-                  }} />
-                  <span className="flex items-center gap-2 text-sm sm:text-base font-bold tracking-wide">
+                <div className="relative inline-flex flex-col items-center gap-1 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-full hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer overflow-hidden group valentine-cta-border">
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 400 80" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="398" height="78" rx="39" ry="39" stroke="url(#borderGrad)" strokeWidth="2" className="valentine-border-path" />
+                    <defs>
+                      <linearGradient id="borderGrad">
+                        <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+                        <stop offset="40%" stopColor="rgba(255,255,255,0)" />
+                        <stop offset="50%" stopColor="rgba(255,182,193,0.9)" />
+                        <stop offset="60%" stopColor="rgba(255,255,255,0)" />
+                        <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="valentine-heart-orbit">
+                    <span className="valentine-orbit-heart">❤️</span>
+                    <span className="valentine-orbit-trail t1">💕</span>
+                    <span className="valentine-orbit-trail t2">✨</span>
+                    <span className="valentine-orbit-trail t3">💗</span>
+                  </div>
+                  <span className="relative z-10 flex items-center gap-2 text-sm sm:text-base font-bold tracking-wide">
                     <Heart className="w-4 h-4 fill-white" />
                     14 Şubat'a Özel %30'a Varan İndirim
                     <Heart className="w-4 h-4 fill-white" />
                   </span>
-                  <span className="text-xs sm:text-sm font-medium text-pink-100/90 tracking-wide">
+                  <span className="relative z-10 text-xs sm:text-sm font-medium text-pink-100/90 tracking-wide">
                     Fırsatını Kaçırma!
                   </span>
                 </div>
