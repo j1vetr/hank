@@ -75,8 +75,8 @@ export function ValentineBanner() {
                   <Heart className="w-4 h-4 text-pink-300 fill-pink-300" />
                 </motion.div>
                 <span className="text-xs sm:text-sm font-medium text-pink-100 tracking-wide">
-                  <span className="hidden sm:inline">Sevgililer Günü'ne Özel İndirimler Başladı!</span>
-                  <span className="sm:hidden">Sevgililer Günü İndirimi!</span>
+                  <span className="hidden sm:inline">Sevgililer Günü'ne Özel %30'a Varan İndirim Başladı!</span>
+                  <span className="sm:hidden">%30'a Varan İndirim!</span>
                   <span className="ml-2 text-white font-bold">14 ŞUBAT</span>
                 </span>
                 <motion.div

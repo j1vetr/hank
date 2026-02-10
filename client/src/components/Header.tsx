@@ -80,7 +80,7 @@ export function Header() {
                     </span>
                     <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
                       <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
-                      <span className="text-pink-400 font-medium">💕 SEVGİLİLER GÜNÜ İNDİRİMİ • 2.500₺ ÜZERİ ÜCRETSİZ KARGO</span>
+                      <span className="text-pink-400 font-medium">💕 SEVGİLİLER GÜNÜ'NE ÖZEL %30'A VARAN İNDİRİM • 2.500₺ ÜZERİ ÜCRETSİZ KARGO</span>
                     </span>
                   </div>
                 ))}

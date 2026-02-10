@@ -277,7 +277,7 @@ export default function Home() {
               <Link href="/magaza">
                 <span className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wide border border-pink-400/30 hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer">
                   <Heart className="w-3.5 h-3.5 fill-white" />
-                  14 Şubat'a Özel %20 İndirim Fırsatını Kaçırma!
+                  14 Şubat'a Özel %30'a Varan İndirim Fırsatını Kaçırma!
                   <Heart className="w-3.5 h-3.5 fill-white" />
                 </span>
               </Link>
