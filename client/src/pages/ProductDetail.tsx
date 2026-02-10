@@ -623,7 +623,7 @@ export default function ProductDetail() {
                         </div>
                       )}
                       {product.isNew && !product.discountBadge && (
-                        <span className="absolute top-4 left-4 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
+                        <span className="absolute top-4 left-4 bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
                       )}
                     </motion.div>
                   </div>
@@ -648,7 +648,7 @@ export default function ProductDetail() {
                         </div>
                       )}
                       {product.isNew && !product.discountBadge && (
-                        <span className="absolute top-4 left-4 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
+                        <span className="absolute top-4 left-4 bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
                       )}
                     </div>
                   </div>

@@ -105,7 +105,7 @@ export function ShippingCountdownBanner() {
   if (!info) return null;
 
   return (
-    <div className={`fixed top-0 left-0 right-0 z-50 ${info.isSameDay ? 'bg-emerald-600' : 'bg-zinc-900 border-b border-zinc-800'} text-white py-2.5 text-center`}>
+    <div className={`fixed top-0 left-0 right-0 z-50 ${info.isSameDay ? 'bg-pink-600' : 'bg-zinc-900 border-b border-zinc-800'} text-white py-2.5 text-center`}>
       <p className="text-xs sm:text-sm font-medium tracking-wide">
         <span className="inline-flex items-center gap-2">
           <Clock className="w-4 h-4" />

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { SearchOverlay } from '@/components/SearchOverlay';
+import { ValentineBanner } from '@/components/ValentineTheme';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +67,7 @@ export function Header() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50">
+        <ValentineBanner />
         <div className="bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-xl border-b border-white/5">
           <div className="hidden lg:block border-b border-white/5 overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900">
             <div className="relative h-9 flex items-center">
@@ -77,8 +79,8 @@ export function Header() {
                       <span className="text-white font-medium">WORLDWIDE SHIPPING</span>
                     </span>
                     <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-emerald-400 font-medium">2.500₺ VE ÜZERİ ÜCRETSİZ KARGO</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
+                      <span className="text-pink-400 font-medium">💕 SEVGİLİLER GÜNÜ İNDİRİMİ • 2.500₺ ÜZERİ ÜCRETSİZ KARGO</span>
                     </span>
                   </div>
                 ))}

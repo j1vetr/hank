@@ -73,7 +73,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
             <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900 rounded-lg border border-white/10 group-hover:border-white/20 transition-all duration-300"
               style={{
                 boxShadow: isHovered 
-                  ? 'inset 0 0 20px 0 rgba(255,255,255,0.08), inset 0 0 40px 0 rgba(52,211,153,0.05)' 
+                  ? 'inset 0 0 20px 0 rgba(255,255,255,0.08), inset 0 0 40px 0 rgba(236,72,153,0.05)' 
                   : 'inset 0 0 0 0 rgba(255,255,255,0)'
               }}
             >
@@ -106,9 +106,9 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
               {product.isNew && !isOutOfStock && !product.discountBadge && (
                 <motion.span
-                  className="absolute top-3 left-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 tracking-wider rounded"
+                  className="absolute top-3 left-3 bg-pink-500 text-white text-[10px] font-bold px-2 py-1 tracking-wider rounded"
                   animate={{ 
-                    boxShadow: ['0 0 0 0 rgba(52,211,153,0.4)', '0 0 0 8px rgba(52,211,153,0)', '0 0 0 0 rgba(52,211,153,0.4)']
+                    boxShadow: ['0 0 0 0 rgba(236,72,153,0.4)', '0 0 0 8px rgba(236,72,153,0)', '0 0 0 0 rgba(236,72,153,0.4)']
                   }}
                   transition={{ duration: 2, repeat: Infinity }}
                   data-testid={`badge-new-${product.id}`}
@@ -180,7 +180,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               {product.name}
             </h3>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-emerald-400" data-testid={`text-price-${product.id}`}>
+              <span className="text-sm font-bold text-pink-400" data-testid={`text-price-${product.id}`}>
                 {price.toLocaleString('tr-TR')} ₺
               </span>
             </div>

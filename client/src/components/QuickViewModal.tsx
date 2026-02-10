@@ -165,7 +165,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                   {product.name}
                 </h2>
                 
-                <p className="text-2xl font-bold text-emerald-400 mb-6">
+                <p className="text-2xl font-bold text-pink-400 mb-6">
                   ₺{price.toLocaleString('tr-TR')}
                 </p>
 

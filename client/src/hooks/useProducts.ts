@@ -14,6 +14,7 @@ export interface Product {
   isActive: boolean;
   isFeatured: boolean;
   isNew: boolean;
+  discountBadge?: string | null;
   createdAt: string;
   updatedAt: string;
   variants?: ProductVariant[];

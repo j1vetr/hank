@@ -2,7 +2,8 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
-import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
+import { ValentineHearts } from '@/components/ValentineTheme';
+import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Heart } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
@@ -23,7 +24,7 @@ const defaultCategoryImages: Record<string, string> = {
   'tshirt': categoryTshirt,
 };
 
-const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
+const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • 💕 SEVGİLİLER GÜNÜ • HANK • GÜÇ • PERFORMANS • STİL • 💕 SEVGİLİLER GÜNÜ • ';
 
 function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
   const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
@@ -43,7 +44,7 @@ function HeroProductSlider({ products }: { products: Array<{ id: string; name: s
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-2">
                 <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-medium truncate">{product.name}</p>
-                <p className="text-emerald-400 text-[9px] sm:text-[10px] lg:text-xs font-bold">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
+                <p className="text-pink-400 text-[9px] sm:text-[10px] lg:text-xs font-bold">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
               </div>
             </div>
           </Link>
@@ -213,6 +214,7 @@ export default function Home() {
         url="/"
       />
       <Header />
+      <ValentineHearts />
 
       <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
         {heroImages.map((img, index) => (
@@ -378,6 +380,54 @@ export default function Home() {
                 </Link>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 lg:py-16 px-6 relative overflow-hidden" data-testid="section-valentine">
+        <div className="absolute inset-0 bg-gradient-to-br from-rose-950/40 via-pink-950/30 to-background" />
+        <div className="absolute inset-0 noise-overlay opacity-20" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-pink-500/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-pink-500/30 to-transparent" />
+
+        <div className="max-w-[1400px] mx-auto relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-10"
+          >
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
+              </motion.div>
+              <span className="text-sm tracking-[0.3em] uppercase text-pink-400/80 font-medium">14 Şubat Özel</span>
+              <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.75 }}>
+                <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
+              </motion.div>
+            </div>
+            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl tracking-wide mb-3">
+              SEVGİLİLER GÜNÜ
+            </h2>
+            <p className="text-white/50 text-sm sm:text-base max-w-lg mx-auto">
+              Sevdiğinize özel hediyeler keşfedin. Sınırlı süre indirimlerle.
+            </p>
+          </motion.div>
+
+          <div className="flex justify-center">
+            <Link href="/magaza">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="group px-8 py-3.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white font-semibold tracking-wide uppercase rounded-full flex items-center gap-3 hover:from-pink-500 hover:to-rose-500 transition-all shadow-lg shadow-pink-900/30"
+                data-testid="button-valentine-shop"
+              >
+                <Heart className="w-4 h-4 fill-white" />
+                Hediyeleri Keşfet
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </motion.button>
+            </Link>
           </div>
         </div>
       </section>
