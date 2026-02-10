@@ -10,6 +10,7 @@ import { lazy, Suspense, memo } from "react";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import Chatbot from "@/components/Chatbot";
+import ValentinePopup from "@/components/ValentinePopup";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Category = lazy(() => import("@/pages/Category"));
@@ -99,6 +100,7 @@ function App() {
               <Toaster />
               <Router />
               <ChatbotWrapper />
+              <ValentinePopup />
             </TooltipProvider>
           </CartModalProvider>
         </CartProvider>
