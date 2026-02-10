@@ -272,14 +272,29 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="mb-4 sm:mb-5"
+              className="mb-5 sm:mb-6"
             >
               <Link href="/magaza">
-                <span className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wide border border-pink-400/30 hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer">
-                  <Heart className="w-3.5 h-3.5 fill-white" />
-                  14 Şubat'a Özel %30'a Varan İndirim Fırsatını Kaçırma!
-                  <Heart className="w-3.5 h-3.5 fill-white" />
-                </span>
+                <div className="relative inline-flex flex-col items-center gap-1 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-full hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer overflow-hidden group">
+                  <div className="absolute inset-0 rounded-full" style={{
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'borderShine 2.5s linear infinite',
+                    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    maskComposite: 'exclude',
+                    WebkitMaskComposite: 'xor',
+                    padding: '2px',
+                    borderRadius: '9999px',
+                  }} />
+                  <span className="flex items-center gap-2 text-sm sm:text-base font-bold tracking-wide">
+                    <Heart className="w-4 h-4 fill-white" />
+                    14 Şubat'a Özel %30'a Varan İndirim
+                    <Heart className="w-4 h-4 fill-white" />
+                  </span>
+                  <span className="text-xs sm:text-sm font-medium text-pink-100/90 tracking-wide">
+                    Fırsatını Kaçırma!
+                  </span>
+                </div>
               </Link>
             </motion.div>
             <motion.h1 
