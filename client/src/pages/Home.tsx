@@ -5,7 +5,7 @@ import { SEO } from '@/components/SEO';
 import { ValentineHearts } from '@/components/ValentineTheme';
 import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Heart } from 'lucide-react';
 import { Link } from 'wouter';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import heroImage1 from '@assets/hero-1.webp';
 import heroImage2 from '@assets/hero-2.webp';
@@ -25,6 +25,154 @@ const defaultCategoryImages: Record<string, string> = {
 };
 
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • 💕 SEVGİLİLER GÜNÜ • HANK • GÜÇ • PERFORMANS • STİL • 💕 SEVGİLİLER GÜNÜ • ';
+
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  opacity: number;
+  scale: number;
+  emoji: string;
+}
+
+function OrbitingHeartButton({ children }: { children: ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [heartPos, setHeartPos] = useState({ x: 0, y: 0 });
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const particleId = useRef(0);
+  const progressRef = useRef(0);
+
+  const getPointOnRoundedRect = useCallback((progress: number, w: number, h: number, r: number) => {
+    const clampedR = Math.min(r, w / 2, h / 2);
+    const straightH = w - 2 * clampedR;
+    const straightV = h - 2 * clampedR;
+    const cornerArc = (Math.PI / 2) * clampedR;
+    const perimeter = 2 * straightH + 2 * straightV + 2 * Math.PI * clampedR;
+    let d = ((progress % 1) + 1) % 1 * perimeter;
+
+    if (d < straightH / 2) {
+      return { x: w / 2 + d, y: 0 };
+    }
+    d -= straightH / 2;
+    if (d < cornerArc) {
+      const angle = -Math.PI / 2 + d / clampedR;
+      return { x: w - clampedR + Math.cos(angle) * clampedR, y: clampedR + Math.sin(angle) * clampedR };
+    }
+    d -= cornerArc;
+    if (d < straightV) {
+      return { x: w, y: clampedR + d };
+    }
+    d -= straightV;
+    if (d < cornerArc) {
+      const angle = 0 + d / clampedR;
+      return { x: w - clampedR + Math.cos(angle) * clampedR, y: h - clampedR + Math.sin(angle) * clampedR };
+    }
+    d -= cornerArc;
+    if (d < straightH) {
+      return { x: w - clampedR - d, y: h };
+    }
+    d -= straightH;
+    if (d < cornerArc) {
+      const angle = Math.PI / 2 + d / clampedR;
+      return { x: clampedR + Math.cos(angle) * clampedR, y: h - clampedR + Math.sin(angle) * clampedR };
+    }
+    d -= cornerArc;
+    if (d < straightV) {
+      return { x: 0, y: h - clampedR - d };
+    }
+    d -= straightV;
+    if (d < cornerArc) {
+      const angle = Math.PI + d / clampedR;
+      return { x: clampedR + Math.cos(angle) * clampedR, y: clampedR + Math.sin(angle) * clampedR };
+    }
+    d -= cornerArc;
+    return { x: clampedR + d, y: 0 };
+  }, []);
+
+  useEffect(() => {
+    let animId: number;
+    const emojis = ['💗', '💕', '✨', '♥'];
+    let lastParticleTime = 0;
+
+    const animate = (time: number) => {
+      const el = containerRef.current;
+      if (!el) { animId = requestAnimationFrame(animate); return; }
+
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      const r = h / 2;
+
+      progressRef.current = (progressRef.current + 0.002) % 1;
+      const pos = getPointOnRoundedRect(progressRef.current, w, h, r);
+      setHeartPos(pos);
+
+      if (time - lastParticleTime > 120) {
+        lastParticleTime = time;
+        const pId = particleId.current++;
+        const emoji = emojis[pId % emojis.length];
+        setParticles(prev => {
+          const next = [...prev, { id: pId, x: pos.x, y: pos.y, opacity: 0.8, scale: 1, emoji }];
+          return next.slice(-12);
+        });
+      }
+
+      animId = requestAnimationFrame(animate);
+    };
+
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [getPointOnRoundedRect]);
+
+  useEffect(() => {
+    if (particles.length === 0) return;
+    const interval = setInterval(() => {
+      setParticles(prev =>
+        prev
+          .map(p => ({ ...p, opacity: p.opacity - 0.04, scale: p.scale - 0.03, y: p.y - 0.5 }))
+          .filter(p => p.opacity > 0)
+      );
+    }, 50);
+    return () => clearInterval(interval);
+  }, [particles.length > 0]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative inline-flex flex-col items-center gap-1 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-full hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer border border-pink-400/30"
+    >
+      {particles.map(p => (
+        <span
+          key={p.id}
+          className="absolute pointer-events-none select-none"
+          style={{
+            left: p.x,
+            top: p.y,
+            transform: `translate(-50%, -50%) scale(${Math.max(p.scale, 0)})`,
+            opacity: p.opacity,
+            fontSize: '10px',
+            transition: 'opacity 0.05s, transform 0.05s',
+            zIndex: 15,
+          }}
+        >
+          {p.emoji}
+        </span>
+      ))}
+      <span
+        className="absolute pointer-events-none select-none z-20"
+        style={{
+          left: heartPos.x,
+          top: heartPos.y,
+          transform: 'translate(-50%, -50%)',
+          fontSize: '16px',
+          filter: 'drop-shadow(0 0 8px rgba(255,100,150,0.9))',
+        }}
+      >
+        ❤️
+      </span>
+      {children}
+    </div>
+  );
+}
 
 function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
   const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
@@ -275,25 +423,7 @@ export default function Home() {
               className="mb-5 sm:mb-6"
             >
               <Link href="/magaza">
-                <div className="relative inline-flex flex-col items-center gap-1 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-full hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer overflow-hidden group valentine-cta-border">
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 400 80" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="1" y="1" width="398" height="78" rx="39" ry="39" stroke="url(#borderGrad)" strokeWidth="2" className="valentine-border-path" />
-                    <defs>
-                      <linearGradient id="borderGrad">
-                        <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-                        <stop offset="40%" stopColor="rgba(255,255,255,0)" />
-                        <stop offset="50%" stopColor="rgba(255,182,193,0.9)" />
-                        <stop offset="60%" stopColor="rgba(255,255,255,0)" />
-                        <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div className="valentine-heart-orbit">
-                    <span className="valentine-orbit-heart">❤️</span>
-                    <span className="valentine-orbit-trail t1">💕</span>
-                    <span className="valentine-orbit-trail t2">✨</span>
-                    <span className="valentine-orbit-trail t3">💗</span>
-                  </div>
+                <OrbitingHeartButton>
                   <span className="relative z-10 flex items-center gap-2 text-sm sm:text-base font-bold tracking-wide">
                     <Heart className="w-4 h-4 fill-white" />
                     14 Şubat'a Özel %30'a Varan İndirim
@@ -302,7 +432,7 @@ export default function Home() {
                   <span className="relative z-10 text-xs sm:text-sm font-medium text-pink-100/90 tracking-wide">
                     Fırsatını Kaçırma!
                   </span>
-                </div>
+                </OrbitingHeartButton>
               </Link>
             </motion.div>
             <motion.h1 
