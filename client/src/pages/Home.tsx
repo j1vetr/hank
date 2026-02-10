@@ -268,6 +268,20 @@ export default function Home() {
 
         <div className="relative z-10 h-full flex flex-col justify-center items-center">
           <div className="text-center px-6 w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-4 sm:mb-5"
+            >
+              <Link href="/magaza">
+                <span className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-5 py-2 rounded-full text-xs sm:text-sm font-semibold tracking-wide border border-pink-400/30 hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer">
+                  <Heart className="w-3.5 h-3.5 fill-white" />
+                  14 Şubat'a Özel %20 İndirim Fırsatını Kaçırma!
+                  <Heart className="w-3.5 h-3.5 fill-white" />
+                </span>
+              </Link>
+            </motion.div>
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
