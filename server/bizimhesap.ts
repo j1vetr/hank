@@ -40,10 +40,12 @@ export async function sendInvoiceToBizimHesap(
       city: string;
       district: string;
       postalCode?: string;
+      country?: string;
     };
 
     const invoiceDate = new Date().toISOString();
-    const KDV_RATE = 20;
+    const isTurkey = !shippingAddress.country || shippingAddress.country === "Türkiye" || shippingAddress.country === "Turkey";
+    const KDV_RATE = isTurkey ? 20 : 0;
 
     // Calculate original subtotal (sum of item subtotals)
     const originalSubtotal = orderItems.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
@@ -143,7 +145,8 @@ export async function sendInvoiceToBizimHesap(
       details: details,
     };
 
-    console.log("[BizimHesap] Sending invoice:", JSON.stringify(invoiceData, null, 2));
+    console.log(`[BizimHesap] Sending invoice for ${order.orderNumber} | Country: ${shippingAddress.country || 'Türkiye'} | KDV: %${KDV_RATE}`);
+    console.log("[BizimHesap] Invoice data:", JSON.stringify(invoiceData, null, 2));
 
     const response = await fetch(BIZIMHESAP_API_URL, {
       method: "POST",
