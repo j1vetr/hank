@@ -3,6 +3,7 @@ import { X, Minus, Plus, Loader2, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
 import { useCartModal } from '@/hooks/useCartModal';
+import { getOriginalPrice } from '@/lib/discountPrice';
 
 interface ProductVariant {
   id: string;
@@ -67,6 +68,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
   if (!product) return null;
 
   const price = parseFloat(product.basePrice || '0');
+  const originalPrice = getOriginalPrice(price, product.discountBadge);
   const sizes = product.availableSizes || [];
   const colors = product.availableColors || [];
 
@@ -165,9 +167,16 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                   {product.name}
                 </h2>
                 
-                <p className="text-2xl font-bold text-pink-400 mb-6">
-                  ₺{price.toLocaleString('tr-TR')}
-                </p>
+                <div className="flex items-baseline gap-3 mb-6">
+                  {originalPrice && (
+                    <span className="text-lg text-white/40 line-through">
+                      ₺{originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                    </span>
+                  )}
+                  <p className="text-2xl font-bold text-pink-400">
+                    ₺{price.toLocaleString('tr-TR')}
+                  </p>
+                </div>
 
                 {colors.length > 0 && (
                   <div className="mb-6">

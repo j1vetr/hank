@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { QuickViewModal } from './QuickViewModal';
+import { getOriginalPrice } from '@/lib/discountPrice';
 
 interface ProductVariant {
   id: string;
@@ -41,6 +42,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const isLiked = favoriteIds.includes(product.id);
 
   const price = parseFloat(product.basePrice || '0') || 0;
+  const originalPrice = getOriginalPrice(price, product.discountBadge);
   const mainImage = product.images && product.images.length > 0 
     ? product.images[0] 
     : 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop';
@@ -180,6 +182,11 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
               {product.name}
             </h3>
             <div className="flex items-center gap-2">
+              {originalPrice && (
+                <span className="text-xs text-white/40 line-through" data-testid={`text-original-price-${product.id}`}>
+                  {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                </span>
+              )}
               <span className="text-sm font-bold text-pink-400" data-testid={`text-price-${product.id}`}>
                 {price.toLocaleString('tr-TR')} ₺
               </span>

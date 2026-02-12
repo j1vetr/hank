@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { getOriginalPrice } from '@/lib/discountPrice';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
@@ -317,6 +318,7 @@ export default function ProductDetail() {
     : ['https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop'];
 
   const price = parseFloat(product.basePrice || '0');
+  const originalPrice = getOriginalPrice(price, product.discountBadge);
   const relatedProducts = allProducts
     .filter(p => p.id !== product.id && p.categoryId === product.categoryId)
     .slice(0, 4);
@@ -717,6 +719,11 @@ export default function ProductDetail() {
               </h1>
               
               <div className="flex items-baseline gap-3 mb-6">
+                {originalPrice && (
+                  <span className="text-base text-white/40 line-through" data-testid="text-original-price">
+                    {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                  </span>
+                )}
                 <span className="text-xl font-semibold" data-testid="text-price">
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                 </span>
