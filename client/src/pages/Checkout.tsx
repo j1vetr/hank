@@ -41,6 +41,7 @@ interface UserAddress {
 
 const FREE_SHIPPING_THRESHOLD = 2500;
 const INTERNATIONAL_SHIPPING_COST = 2500;
+const IRAQ_SHIPPING_COST = 5700;
 const DOMESTIC_SHIPPING_COST = 200;
 
 const steps = [
@@ -172,9 +173,10 @@ export default function Checkout() {
 
   // Calculate shipping based on country
   const isDomestic = formData.country === 'Türkiye';
+  const isIraq = formData.country === 'Irak';
   const shippingCost = isDomestic 
     ? (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-    : INTERNATIONAL_SHIPPING_COST;
+    : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
   const remainingForFreeShipping = isDomestic ? (FREE_SHIPPING_THRESHOLD - subtotal) : 0;
   const shippingProgress = isDomestic ? Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100) : 100;
   
@@ -872,7 +874,7 @@ export default function Checkout() {
                           {formData.country !== 'Türkiye' && (
                             <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                               <p className="text-sm text-amber-200">
-                                <strong>Uluslararası Kargo:</strong> Türkiye dışı siparişlerde sabit 2.500 TL kargo ücreti uygulanır.
+                                <strong>Uluslararası Kargo:</strong> {isIraq ? 'Irak siparişlerinde sabit 5.700 TL' : 'Türkiye dışı siparişlerde sabit 2.500 TL'} kargo ücreti uygulanır.
                               </p>
                             </div>
                           )}

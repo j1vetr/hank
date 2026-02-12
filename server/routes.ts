@@ -1890,15 +1890,17 @@ export async function registerRoutes(
         }
       }
 
-      // Calculate shipping and total (international shipping is 2500 TL fixed)
+      // Calculate shipping and total
       const FREE_SHIPPING_THRESHOLD = 2500;
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
+      const IRAQ_SHIPPING_COST = 5700;
       
       const isDomestic = selectedCountry === 'Türkiye';
+      const isIraq = selectedCountry === 'Irak';
       const shippingCost = isDomestic 
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : INTERNATIONAL_SHIPPING_COST;
+        : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
 
       // Generate unique merchant order ID
@@ -2314,16 +2316,18 @@ export async function registerRoutes(
         }
       }
       
-      // Calculate shipping and total on server (international shipping is 2500 TL fixed)
+      // Calculate shipping and total on server
       const FREE_SHIPPING_THRESHOLD = 2500;
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
+      const IRAQ_SHIPPING_COST = 5700;
       
       const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
       const isDomestic = orderCountry === 'Türkiye';
+      const isIraq = orderCountry === 'Irak';
       const shippingCost = isDomestic 
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : INTERNATIONAL_SHIPPING_COST;
+        : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
       
       const validated = insertOrderSchema.parse({
