@@ -572,16 +572,28 @@ export default function AdminDashboard() {
 
       <main className="flex-1 overflow-auto w-full">
         {/* Mobile Header */}
-        <header className="bg-zinc-900/50 border-b border-zinc-800 px-4 py-4 md:px-8 md:py-6 flex items-center gap-4">
-          <button 
-            onClick={() => setMobileMenuOpen(true)}
-            className="p-2 hover:bg-zinc-800 rounded-lg md:hidden"
+        <header className="bg-zinc-900/50 border-b border-zinc-800 px-4 py-4 md:px-8 md:py-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 hover:bg-zinc-800 rounded-lg md:hidden"
+            >
+              <Menu className="w-6 h-6 text-white" />
+            </button>
+            <h2 className="text-lg md:text-2xl font-semibold text-white">
+              {allSidebarItems.find(i => i.id === activeTab)?.label}
+            </h2>
+          </div>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg transition-colors"
+            data-testid="button-view-site"
           >
-            <Menu className="w-6 h-6 text-white" />
-          </button>
-          <h2 className="text-lg md:text-2xl font-semibold text-white">
-            {allSidebarItems.find(i => i.id === activeTab)?.label}
-          </h2>
+            <ExternalLink className="w-4 h-4" />
+            <span className="hidden sm:inline">Siteyi Görüntüle</span>
+          </a>
         </header>
 
         <div className="p-4 md:p-8">
