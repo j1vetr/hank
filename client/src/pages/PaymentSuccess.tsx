@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLocation, Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ArrowRight, Loader2, Package } from 'lucide-react';
+import { trackPurchase } from '@/lib/metaPixel';
 
 export default function PaymentSuccess() {
   const [location] = useLocation();
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const purchaseTracked = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -32,6 +34,20 @@ export default function PaymentSuccess() {
           if (data.status === 'completed') {
             setOrderNumber(data.orderNumber);
             setLoading(false);
+            if (!purchaseTracked.current && data.items && data.total) {
+              purchaseTracked.current = true;
+              trackPurchase({
+                contentIds: data.items.map((i: any) => i.productId),
+                value: parseFloat(data.total),
+                numItems: data.items.reduce((sum: number, i: any) => sum + i.quantity, 0),
+                orderId: data.orderNumber,
+                contents: data.items.map((i: any) => ({
+                  id: i.productId,
+                  quantity: i.quantity,
+                  price: parseFloat(i.price),
+                })),
+              });
+            }
           } else if (data.status === 'failed') {
             setError('Ödeme işlemi başarısız oldu');
             setLoading(false);

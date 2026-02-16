@@ -28,6 +28,7 @@ import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./pa
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
+import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -2119,6 +2120,38 @@ export async function registerRoutes(
         // Send invoice to BizimHesap
         sendInvoiceToBizimHesap(order, orderItems, variantSkus).catch(err => console.error('[BizimHesap] Invoice failed:', err));
 
+        // Send Meta CAPI Purchase event (server-side for 100% accuracy)
+        const purchaseEventId = `purchase-${orderNumber}`;
+        const purchaseContents = pendingPayment.cartItems.map((item: any) => ({
+          id: item.productId,
+          quantity: item.quantity,
+          price: parseFloat(item.price),
+          title: item.productName,
+        }));
+        const purchaseContentIds = pendingPayment.cartItems.map((item: any) => item.productId);
+        const shippingAddr = pendingPayment.shippingAddress as any;
+        sendCapiEvent({
+          eventName: 'Purchase',
+          eventId: purchaseEventId,
+          eventSourceUrl: 'https://hank.com.tr/odeme-basarili',
+          userData: {
+            email: pendingPayment.customerEmail,
+            phone: pendingPayment.customerPhone,
+            firstName: pendingPayment.customerName.split(' ')[0],
+            lastName: pendingPayment.customerName.split(' ').slice(1).join(' '),
+            city: shippingAddr?.city,
+            country: shippingAddr?.country || 'Türkiye',
+          },
+          customData: {
+            value: parseFloat(pendingPayment.total),
+            currency: 'TRY',
+            contentIds: purchaseContentIds,
+            contentType: 'product',
+            contents: purchaseContents,
+            numItems: pendingPayment.cartItems.length,
+          },
+        }).catch(err => console.error('[Meta CAPI] Purchase event failed:', err));
+
         // Create user account if requested during checkout
         if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
           try {
@@ -2201,10 +2234,18 @@ export async function registerRoutes(
       // If completed, get the order
       if (pendingPayment.status === 'completed') {
         const order = await storage.getOrderByNumber(pendingPayment.merchantOid);
+        const orderItems = order ? await storage.getOrderItems(order.id) : [];
         return res.json({
           status: 'completed',
           orderNumber: order?.orderNumber,
           orderId: order?.id,
+          total: order?.total,
+          items: orderItems.map(item => ({
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            price: item.price,
+          })),
         });
       }
 
@@ -5123,6 +5164,92 @@ Sitemap: ${baseUrl}/sitemap.xml
     } catch (error) {
       console.error('[Menu] Reorder menu items error:', error);
       res.status(500).json({ error: "Menü sıralaması güncellenemedi" });
+    }
+  });
+
+  // Meta CAPI tracking endpoints
+  app.post("/api/track/view-content", async (req: Request, res) => {
+    try {
+      const { eventId, contentId, contentName, contentCategory, value, sourceUrl } = req.body;
+      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'] || '';
+
+      sendCapiEvent({
+        eventName: 'ViewContent',
+        eventId,
+        eventSourceUrl: sourceUrl || 'https://hank.com.tr',
+        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        customData: {
+          value,
+          currency: 'TRY',
+          contentIds: [contentId],
+          contentType: 'product',
+          contentName,
+          contentCategory,
+        },
+      }).catch(err => console.error('[Meta CAPI] ViewContent error:', err));
+
+      res.json({ success: true });
+    } catch (error) {
+      res.json({ success: false });
+    }
+  });
+
+  app.post("/api/track/add-to-cart", async (req: Request, res) => {
+    try {
+      const { eventId, contentId, contentName, contentCategory, value, quantity, sourceUrl } = req.body;
+      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'] || '';
+
+      sendCapiEvent({
+        eventName: 'AddToCart',
+        eventId,
+        eventSourceUrl: sourceUrl || 'https://hank.com.tr',
+        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        customData: {
+          value,
+          currency: 'TRY',
+          contentIds: [contentId],
+          contentType: 'product',
+          contentName,
+          contentCategory,
+          contents: [{ id: contentId, quantity: quantity || 1, price: value }],
+        },
+      }).catch(err => console.error('[Meta CAPI] AddToCart error:', err));
+
+      res.json({ success: true });
+    } catch (error) {
+      res.json({ success: false });
+    }
+  });
+
+  app.post("/api/track/initiate-checkout", async (req: Request, res) => {
+    try {
+      const { eventId, contentIds, value, numItems, contents, sourceUrl } = req.body;
+      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'] || '';
+
+      sendCapiEvent({
+        eventName: 'InitiateCheckout',
+        eventId,
+        eventSourceUrl: sourceUrl || 'https://hank.com.tr',
+        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        customData: {
+          value,
+          currency: 'TRY',
+          contentIds,
+          contentType: 'product',
+          numItems,
+          contents,
+        },
+      }).catch(err => console.error('[Meta CAPI] InitiateCheckout error:', err));
+
+      res.json({ success: true });
+    } catch (error) {
+      res.json({ success: false });
     }
   });
 

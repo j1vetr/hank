@@ -16,6 +16,7 @@ import {
   CheckCircle2, UserPlus, Tag, X, Instagram
 } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
+import { trackInitiateCheckout, trackAddPaymentInfo } from '@/lib/metaPixel';
 
 interface Product {
   id: string;
@@ -342,6 +343,24 @@ export default function Checkout() {
       setMerchantOid(data.merchantOid);
       setSavedOrderTotal(total);
       setCurrentStep(3);
+
+      const trackContentIds = cartItemsWithProducts.map(item => item.productId);
+      const trackContents = cartItemsWithProducts.map(item => ({
+        id: item.productId,
+        quantity: item.quantity,
+        price: parseFloat(item.product?.basePrice || '0'),
+      }));
+      trackInitiateCheckout({
+        contentIds: trackContentIds,
+        value: total,
+        numItems: totalItems,
+        contents: trackContents,
+      });
+      trackAddPaymentInfo({
+        contentIds: trackContentIds,
+        value: total,
+        contents: trackContents,
+      });
     } catch (error: any) {
       setPaymentError(error.message || 'Ödeme başlatılamadı');
       toast({ 

@@ -90,6 +90,23 @@ RESTful API endpoints under `/api/`:
 - `/api/admin/influencer-coupons` - Influencer tracking and commission management
 - `/api/admin/settings` - Database-stored SMTP and site settings
 
+### Meta Pixel + Conversion API (CAPI)
+- **Pixel ID**: 2039736916872906 (stored in META_PIXEL_ID secret)
+- **CAPI Access Token**: Stored in META_CAPI_ACCESS_TOKEN secret
+- **SDK**: facebook-nodejs-business-sdk for server-side CAPI events
+- **Client Helper**: `client/src/lib/metaPixel.ts` - fbq wrapper with event ID generation
+- **Server Service**: `server/metaCapi.ts` - CAPI event sender with user data extraction
+- **Event Deduplication**: Matching event_id sent to both Pixel and CAPI
+- **Events Tracked**:
+  - PageView: Pixel base code in index.html (automatic on page load)
+  - ViewContent: Product detail page (Pixel + CAPI via /api/track/view-content)
+  - AddToCart: Sepete ekleme (Pixel + CAPI via /api/track/add-to-cart)
+  - InitiateCheckout: Ödeme adımına geçiş (Pixel + CAPI via /api/track/initiate-checkout)
+  - AddPaymentInfo: Payment step (Pixel only, client-side)
+  - Purchase: PayTR callback (CAPI server-side) + PaymentSuccess page (Pixel client-side)
+- **User Data**: fbp/fbc cookies, client IP, user agent extracted for match quality
+- **Dynamic Data**: Product ID, price, name, category sent with all events
+
 ### Marketing & Influencer System
 - **Influencer Tracking**: Influencers are managed via coupons with `isInfluencerCode=true`
 - **Commission Types**: 
