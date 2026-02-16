@@ -2,10 +2,9 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
-import { ValentineHearts } from '@/components/ValentineTheme';
-import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Heart } from 'lucide-react';
+import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
 import { Link } from 'wouter';
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import heroImage1 from '@assets/hero-1.webp';
 import heroImage2 from '@assets/hero-2.webp';
@@ -24,155 +23,7 @@ const defaultCategoryImages: Record<string, string> = {
   'tshirt': categoryTshirt,
 };
 
-const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • 💕 SEVGİLİLER GÜNÜ • HANK • GÜÇ • PERFORMANS • STİL • 💕 SEVGİLİLER GÜNÜ • ';
-
-interface Particle {
-  id: number;
-  x: number;
-  y: number;
-  opacity: number;
-  scale: number;
-  emoji: string;
-}
-
-function OrbitingHeartButton({ children }: { children: ReactNode }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [heartPos, setHeartPos] = useState({ x: 0, y: 0 });
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const particleId = useRef(0);
-  const progressRef = useRef(0);
-
-  const getPointOnRoundedRect = useCallback((progress: number, w: number, h: number, r: number) => {
-    const clampedR = Math.min(r, w / 2, h / 2);
-    const straightH = w - 2 * clampedR;
-    const straightV = h - 2 * clampedR;
-    const cornerArc = (Math.PI / 2) * clampedR;
-    const perimeter = 2 * straightH + 2 * straightV + 2 * Math.PI * clampedR;
-    let d = ((progress % 1) + 1) % 1 * perimeter;
-
-    if (d < straightH / 2) {
-      return { x: w / 2 + d, y: 0 };
-    }
-    d -= straightH / 2;
-    if (d < cornerArc) {
-      const angle = -Math.PI / 2 + d / clampedR;
-      return { x: w - clampedR + Math.cos(angle) * clampedR, y: clampedR + Math.sin(angle) * clampedR };
-    }
-    d -= cornerArc;
-    if (d < straightV) {
-      return { x: w, y: clampedR + d };
-    }
-    d -= straightV;
-    if (d < cornerArc) {
-      const angle = 0 + d / clampedR;
-      return { x: w - clampedR + Math.cos(angle) * clampedR, y: h - clampedR + Math.sin(angle) * clampedR };
-    }
-    d -= cornerArc;
-    if (d < straightH) {
-      return { x: w - clampedR - d, y: h };
-    }
-    d -= straightH;
-    if (d < cornerArc) {
-      const angle = Math.PI / 2 + d / clampedR;
-      return { x: clampedR + Math.cos(angle) * clampedR, y: h - clampedR + Math.sin(angle) * clampedR };
-    }
-    d -= cornerArc;
-    if (d < straightV) {
-      return { x: 0, y: h - clampedR - d };
-    }
-    d -= straightV;
-    if (d < cornerArc) {
-      const angle = Math.PI + d / clampedR;
-      return { x: clampedR + Math.cos(angle) * clampedR, y: clampedR + Math.sin(angle) * clampedR };
-    }
-    d -= cornerArc;
-    return { x: clampedR + d, y: 0 };
-  }, []);
-
-  useEffect(() => {
-    let animId: number;
-    const emojis = ['💗', '💕', '✨', '♥'];
-    let lastParticleTime = 0;
-
-    const animate = (time: number) => {
-      const el = containerRef.current;
-      if (!el) { animId = requestAnimationFrame(animate); return; }
-
-      const w = el.offsetWidth;
-      const h = el.offsetHeight;
-      const r = h / 2;
-
-      progressRef.current = (progressRef.current + 0.002) % 1;
-      const pos = getPointOnRoundedRect(progressRef.current, w, h, r);
-      setHeartPos(pos);
-
-      if (time - lastParticleTime > 120) {
-        lastParticleTime = time;
-        const pId = particleId.current++;
-        const emoji = emojis[pId % emojis.length];
-        setParticles(prev => {
-          const next = [...prev, { id: pId, x: pos.x, y: pos.y, opacity: 0.8, scale: 1, emoji }];
-          return next.slice(-12);
-        });
-      }
-
-      animId = requestAnimationFrame(animate);
-    };
-
-    animId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animId);
-  }, [getPointOnRoundedRect]);
-
-  useEffect(() => {
-    if (particles.length === 0) return;
-    const interval = setInterval(() => {
-      setParticles(prev =>
-        prev
-          .map(p => ({ ...p, opacity: p.opacity - 0.04, scale: p.scale - 0.03, y: p.y - 0.5 }))
-          .filter(p => p.opacity > 0)
-      );
-    }, 50);
-    return () => clearInterval(interval);
-  }, [particles.length > 0]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="relative inline-flex flex-col items-center gap-1 bg-gradient-to-r from-pink-600/90 to-rose-600/90 backdrop-blur-sm text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-full hover:from-pink-500/90 hover:to-rose-500/90 transition-all cursor-pointer border border-pink-400/30"
-    >
-      {particles.map(p => (
-        <span
-          key={p.id}
-          className="absolute pointer-events-none select-none"
-          style={{
-            left: p.x,
-            top: p.y,
-            transform: `translate(-50%, -50%) scale(${Math.max(p.scale, 0)})`,
-            opacity: p.opacity,
-            fontSize: '10px',
-            transition: 'opacity 0.05s, transform 0.05s',
-            zIndex: 15,
-          }}
-        >
-          {p.emoji}
-        </span>
-      ))}
-      <span
-        className="absolute pointer-events-none select-none z-20"
-        style={{
-          left: heartPos.x,
-          top: heartPos.y,
-          transform: 'translate(-50%, -50%)',
-          fontSize: '16px',
-          filter: 'drop-shadow(0 0 8px rgba(255,100,150,0.9))',
-        }}
-      >
-        ❤️
-      </span>
-      {children}
-    </div>
-  );
-}
+const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
 function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
   const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
@@ -362,7 +213,6 @@ export default function Home() {
         url="/"
       />
       <Header />
-      <ValentineHearts />
 
       <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
         {heroImages.map((img, index) => (
@@ -423,16 +273,14 @@ export default function Home() {
               className="mb-5 sm:mb-6"
             >
               <Link href="/magaza">
-                <OrbitingHeartButton>
-                  <span className="relative z-10 flex items-center gap-2 text-sm sm:text-base font-bold tracking-wide">
-                    <Heart className="w-4 h-4 fill-white" />
-                    14 Şubat'a Özel %30'a Varan İndirim
-                    <Heart className="w-4 h-4 fill-white" />
-                  </span>
-                  <span className="relative z-10 text-xs sm:text-sm font-medium text-pink-100/90 tracking-wide">
-                    Fırsatını Kaçırma!
-                  </span>
-                </OrbitingHeartButton>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-white text-black px-8 sm:px-10 py-3 sm:py-3.5 rounded-full text-sm sm:text-base font-bold tracking-wider uppercase hover:bg-white/90 transition-all"
+                  data-testid="button-hero-shop"
+                >
+                  ALIŞVERİŞE BAŞLA
+                </motion.button>
               </Link>
             </motion.div>
             <motion.h1 
@@ -547,54 +395,6 @@ export default function Home() {
                 </Link>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 lg:py-16 px-6 relative overflow-hidden" data-testid="section-valentine">
-        <div className="absolute inset-0 bg-gradient-to-br from-rose-950/40 via-pink-950/30 to-background" />
-        <div className="absolute inset-0 noise-overlay opacity-20" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-pink-500/30 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-pink-500/30 to-transparent" />
-
-        <div className="max-w-[1400px] mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-10"
-          >
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
-              </motion.div>
-              <span className="text-sm tracking-[0.3em] uppercase text-pink-400/80 font-medium">14 Şubat Özel</span>
-              <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.75 }}>
-                <Heart className="w-5 h-5 text-pink-400 fill-pink-400" />
-              </motion.div>
-            </div>
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl tracking-wide mb-3">
-              SEVGİLİLER GÜNÜ
-            </h2>
-            <p className="text-white/50 text-sm sm:text-base max-w-lg mx-auto">
-              Sevdiğinize özel hediyeler keşfedin. Sınırlı süre indirimlerle.
-            </p>
-          </motion.div>
-
-          <div className="flex justify-center">
-            <Link href="/magaza">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="group px-8 py-3.5 bg-gradient-to-r from-pink-600 to-rose-600 text-white font-semibold tracking-wide uppercase rounded-full flex items-center gap-3 hover:from-pink-500 hover:to-rose-500 transition-all shadow-lg shadow-pink-900/30"
-                data-testid="button-valentine-shop"
-              >
-                <Heart className="w-4 h-4 fill-white" />
-                Hediyeleri Keşfet
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </motion.button>
-            </Link>
           </div>
         </div>
       </section>
