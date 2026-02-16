@@ -173,7 +173,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                       ₺{originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
                     </span>
                   )}
-                  <p className="text-2xl font-bold text-pink-400">
+                  <p className="text-2xl font-bold text-white">
                     ₺{price.toLocaleString('tr-TR')}
                   </p>
                 </div>

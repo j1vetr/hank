@@ -43,7 +43,7 @@ function HeroProductSlider({ products }: { products: Array<{ id: string; name: s
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-2">
                 <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-medium truncate">{product.name}</p>
-                <p className="text-pink-400 text-[9px] sm:text-[10px] lg:text-xs font-bold">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
+                <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-bold">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
               </div>
             </div>
           </Link>

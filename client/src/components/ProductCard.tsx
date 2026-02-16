@@ -187,7 +187,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                   {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                 </span>
               )}
-              <span className="text-sm font-bold text-pink-400" data-testid={`text-price-${product.id}`}>
+              <span className="text-sm font-bold text-white" data-testid={`text-price-${product.id}`}>
                 {price.toLocaleString('tr-TR')} ₺
               </span>
             </div>
