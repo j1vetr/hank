@@ -78,8 +78,8 @@ export function Header() {
                       <span className="text-white font-medium">WORLDWIDE SHIPPING</span>
                     </span>
                     <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-pulse" />
-                      <span className="text-pink-400 font-medium">💕 SEVGİLİLER GÜNÜ'NE ÖZEL %30'A VARAN İNDİRİM • 2.500₺ ÜZERİ ÜCRETSİZ KARGO</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      <span className="text-white font-medium">2.500₺ ÜZERİ ÜCRETSİZ KARGO</span>
                     </span>
                   </div>
                 ))}
