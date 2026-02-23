@@ -107,6 +107,15 @@ RESTful API endpoints under `/api/`:
 - **User Data**: fbp/fbc cookies, client IP, user agent extracted for match quality
 - **Dynamic Data**: Product ID, price, name, category sent with all events
 
+### Google Merchant Center Feed
+- **Endpoint**: `/feeds/google-merchant.xml`
+- **Format**: RSS 2.0 with Google namespace (`xmlns:g`)
+- **Data**: All active products with variants (each size/color = separate item)
+- **Fields**: id, title, description (HTML stripped), link, image_link, additional_image_link, price, availability, brand, condition, google_product_category, product_type, size, color, gender, age_group, shipping
+- **Variant Grouping**: `item_group_id` groups variants of same product
+- **Stock**: `in_stock` / `out_of_stock` based on variant stock count
+- **Usage**: Add `https://hank.com.tr/feeds/google-merchant.xml` as feed URL in Google Merchant Center
+
 ### Marketing & Influencer System
 - **Influencer Tracking**: Influencers are managed via coupons with `isInfluencerCode=true`
 - **Commission Types**: 

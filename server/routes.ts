@@ -5253,5 +5253,129 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
 
+  app.get("/feeds/google-merchant.xml", async (_req: Request, res: Response) => {
+    try {
+      const allProducts = await storage.getAllProducts();
+      const allCategories = await storage.getCategories();
+      const categoryMap = new Map(allCategories.map(c => [c.id, c.name]));
+
+      const baseUrl = "https://hank.com.tr";
+      const items: string[] = [];
+
+      for (const product of allProducts) {
+        if (!product.isActive) continue;
+
+        const variants = await storage.getProductVariants(product.id);
+        const categoryName = product.categoryId ? categoryMap.get(product.categoryId) || "" : "";
+        const productUrl = `${baseUrl}/urun/${product.slug}`;
+        const imageUrl = product.images && product.images.length > 0
+          ? (product.images[0].startsWith("http") ? product.images[0] : `${baseUrl}${product.images[0]}`)
+          : "";
+
+        const additionalImages = (product.images || []).slice(1, 10).map(img => {
+          const url = img.startsWith("http") ? img : `${baseUrl}${img}`;
+          return `      <g:additional_image_link>${escapeXml(url)}</g:additional_image_link>`;
+        }).join("\n");
+
+        const description = product.description
+          ? product.description.replace(/<[^>]*>/g, '').substring(0, 5000)
+          : product.name;
+
+        if (variants.length > 0) {
+          for (const variant of variants) {
+            if (!variant.isActive) continue;
+
+            const variantPrice = variant.price || product.basePrice;
+            const availability = variant.stock > 0 ? "in_stock" : "out_of_stock";
+            const sizeLabel = variant.size || "";
+            const colorLabel = variant.color || "";
+            const variantTitle = [product.name, colorLabel, sizeLabel].filter(Boolean).join(" - ");
+            const variantSku = variant.sku || `${product.id}-${variant.id}`;
+
+            let sizeAttr = "";
+            if (sizeLabel) {
+              sizeAttr = `      <g:size>${escapeXml(sizeLabel)}</g:size>`;
+            }
+            let colorAttr = "";
+            if (colorLabel) {
+              colorAttr = `      <g:color>${escapeXml(colorLabel)}</g:color>`;
+            }
+
+            items.push(`    <item>
+      <g:id>${escapeXml(variantSku)}</g:id>
+      <g:item_group_id>${escapeXml(product.id)}</g:item_group_id>
+      <g:title>${escapeXml(variantTitle)}</g:title>
+      <g:description>${escapeXml(description)}</g:description>
+      <g:link>${escapeXml(productUrl)}</g:link>
+      <g:image_link>${escapeXml(imageUrl)}</g:image_link>
+${additionalImages}
+      <g:price>${Number(variantPrice).toFixed(2)} TRY</g:price>
+      <g:availability>${availability}</g:availability>
+      <g:brand>HANK</g:brand>
+      <g:condition>new</g:condition>
+      <g:google_product_category>Giyim ve Aksesuar > Giyim</g:google_product_category>
+      <g:product_type>${escapeXml(categoryName)}</g:product_type>
+${sizeAttr}
+${colorAttr}
+      <g:gender>unisex</g:gender>
+      <g:age_group>adult</g:age_group>
+      <g:shipping>
+        <g:country>TR</g:country>
+        <g:price>200.00 TRY</g:price>
+      </g:shipping>
+    </item>`);
+          }
+        } else {
+          const availability = "in_stock";
+          items.push(`    <item>
+      <g:id>${escapeXml(product.id)}</g:id>
+      <g:title>${escapeXml(product.name)}</g:title>
+      <g:description>${escapeXml(description)}</g:description>
+      <g:link>${escapeXml(productUrl)}</g:link>
+      <g:image_link>${escapeXml(imageUrl)}</g:image_link>
+${additionalImages}
+      <g:price>${Number(product.basePrice).toFixed(2)} TRY</g:price>
+      <g:availability>${availability}</g:availability>
+      <g:brand>HANK</g:brand>
+      <g:condition>new</g:condition>
+      <g:google_product_category>Giyim ve Aksesuar > Giyim</g:google_product_category>
+      <g:product_type>${escapeXml(categoryName)}</g:product_type>
+      <g:gender>unisex</g:gender>
+      <g:age_group>adult</g:age_group>
+      <g:shipping>
+        <g:country>TR</g:country>
+        <g:price>200.00 TRY</g:price>
+      </g:shipping>
+    </item>`);
+        }
+      }
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>HANK - Fitness &amp; Bodybuilding Giyim</title>
+    <link>${baseUrl}</link>
+    <description>Premium fitness ve bodybuilding giyim markası</description>
+${items.join("\n")}
+  </channel>
+</rss>`;
+
+      res.set("Content-Type", "application/xml; charset=utf-8");
+      res.send(xml);
+    } catch (error) {
+      console.error("[Google Merchant Feed] Error:", error);
+      res.status(500).send("Feed generation error");
+    }
+  });
+
   return httpServer;
+}
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
