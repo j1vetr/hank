@@ -6480,7 +6480,6 @@ function CreateQuoteModal({
   const [isLoading, setIsLoading] = useState(false);
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [productSearch, setProductSearch] = useState('');
-  const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
   const [productVariantsMap, setProductVariantsMap] = useState<Record<string, ProductVariant[]>>({});
 
   const { data: products = [] } = useQuery<Product[]>({
@@ -6505,31 +6504,39 @@ function CreateQuoteModal({
     return [];
   };
 
-  const selectProductForVariant = async (product: Product) => {
-    const variants = await fetchVariants(product.id);
-    if (variants.length > 0) {
-      setSelectedProductForVariant(product);
-    } else {
-      addProductDirect(product, null);
-    }
-  };
-
-  const addProductDirect = (product: Product, variant: ProductVariant | null) => {
-    const variantDetails = variant ? `${variant.size || ''}${variant.size && variant.color ? ' / ' : ''}${variant.color || ''}` : null;
-    const variantSku = variant ? (variant as any).sku : null;
+  const addProduct = async (product: Product) => {
+    await fetchVariants(product.id);
     setItems(prev => [...prev, {
       productId: product.id,
-      variantId: variant?.id || null,
+      variantId: null,
       productName: product.name,
-      productSku: variantSku || product.sku || null,
+      productSku: product.sku || null,
       productImage: product.images?.[0] || null,
-      variantDetails,
+      variantDetails: null,
       quantity: 1,
-      unitPrice: variant?.price || product.basePrice,
+      unitPrice: product.basePrice,
       discountPercent: 0
     }]);
-    setSelectedProductForVariant(null);
     setShowProductSelector(false);
+  };
+
+  const handleVariantChange = (index: number, variantId: string) => {
+    const item = items[index];
+    const variants = productVariantsMap[item.productId] || [];
+    const variant = variants.find(v => v.id === variantId);
+    if (variant) {
+      const variantDetails = `${variant.size || ''}${variant.size && variant.color ? ' / ' : ''}${variant.color || ''}`;
+      const variantSku = (variant as any).sku;
+      const updated = [...items];
+      updated[index] = {
+        ...updated[index],
+        variantId: variant.id,
+        variantDetails,
+        productSku: variantSku || item.productSku,
+        unitPrice: variant.price,
+      };
+      setItems(updated);
+    }
   };
 
   const removeItem = (index: number) => {
@@ -6542,13 +6549,18 @@ function CreateQuoteModal({
     setItems(updated);
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
+    return items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
+  };
+
+  const calculateDiscount = () => {
     return items.reduce((sum, item) => {
       const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
-      const discount = lineSubtotal * (item.discountPercent / 100);
-      return sum + (lineSubtotal - discount);
+      return sum + lineSubtotal * (item.discountPercent / 100);
     }, 0);
   };
+
+  const calculateTotal = () => calculateSubtotal() - calculateDiscount();
 
   const handleSubmit = async () => {
     if (!selectedDealerId) {
@@ -6568,6 +6580,7 @@ function CreateQuoteModal({
         credentials: 'include',
         body: JSON.stringify({
           dealerId: selectedDealerId,
+          status: 'draft',
           validUntil: validUntil || null,
           paymentTerms: paymentTerms || null,
           notes: notes || null,
@@ -6593,65 +6606,83 @@ function CreateQuoteModal({
   ));
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-4xl my-8 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl my-8 flex flex-col max-h-[92vh] shadow-2xl">
         <div className="p-6 border-b border-zinc-800 flex items-center justify-between shrink-0">
-          <h3 className="text-lg font-semibold text-white">Yeni Teklif Oluştur</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+          <div>
+            <h3 className="text-xl font-bold text-white">Yeni Teklif Oluştur</h3>
+            <p className="text-sm text-zinc-500 mt-1">Teklif taslak olarak kaydedilecektir</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Bayi *</label>
-              <select
-                value={selectedDealerId}
-                onChange={(e) => setSelectedDealerId(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
-                data-testid="select-quote-dealer"
-              >
-                <option value="">Bayi Seçin</option>
-                {dealers.filter(d => d.status === 'active').map(dealer => (
-                  <option key={dealer.id} value={dealer.id}>{dealer.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Geçerlilik Tarihi</label>
-              <input
-                type="date"
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
-                data-testid="input-quote-valid-until"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Ödeme Koşulları</label>
-              <select
-                value={paymentTerms}
-                onChange={(e) => setPaymentTerms(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
-                data-testid="select-quote-payment-terms"
-              >
-                <option value="">Seçin</option>
-                <option value="cash">Pesin</option>
-                <option value="net15">15 Gün</option>
-                <option value="net30">30 Gün</option>
-                <option value="net45">45 Gün</option>
-                <option value="net60">60 Gün</option>
-              </select>
+          <div className="bg-zinc-800/30 border border-zinc-800 rounded-xl p-5">
+            <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Teklif Bilgileri</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Bayi *</label>
+                <select
+                  value={selectedDealerId}
+                  onChange={(e) => setSelectedDealerId(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-white focus:ring-1 focus:ring-white/20 transition-all"
+                  data-testid="select-quote-dealer"
+                >
+                  <option value="">Bayi Seçin</option>
+                  {dealers.filter(d => d.status === 'active').map(dealer => (
+                    <option key={dealer.id} value={dealer.id}>{dealer.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Geçerlilik Tarihi</label>
+                <input
+                  type="date"
+                  value={validUntil}
+                  onChange={(e) => setValidUntil(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-white focus:ring-1 focus:ring-white/20 transition-all"
+                  data-testid="input-quote-valid-until"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">Ödeme Koşulları</label>
+                <select
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-white focus:ring-1 focus:ring-white/20 transition-all"
+                  data-testid="select-quote-payment-terms"
+                >
+                  <option value="">Seçin</option>
+                  <option value="cash">Peşin Ödeme</option>
+                  <option value="credit_card">Kredi Kartı</option>
+                  <option value="eft">Havale / EFT</option>
+                  <option value="net15">15 Gün Vadeli</option>
+                  <option value="net30">30 Gün Vadeli</option>
+                  <option value="net45">45 Gün Vadeli</option>
+                  <option value="net60">60 Gün Vadeli</option>
+                  <option value="net90">90 Gün Vadeli</option>
+                  <option value="installment_3">3 Taksit</option>
+                  <option value="installment_6">6 Taksit</option>
+                  <option value="installment_9">9 Taksit</option>
+                  <option value="installment_12">12 Taksit</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-4 sticky top-0 bg-zinc-900 z-10 py-2">
-              <label className="text-sm font-medium text-zinc-400">Ürünler ({items.length} kalem)</label>
+          <div className="bg-zinc-800/30 border border-zinc-800 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-sm font-semibold text-white uppercase tracking-wider">Ürünler</h4>
+                {items.length > 0 && (
+                  <p className="text-xs text-zinc-500 mt-0.5">{items.length} kalem eklendi</p>
+                )}
+              </div>
               <button
-                onClick={() => setShowProductSelector(true)}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors font-medium"
+                onClick={() => { setShowProductSelector(true); setProductSearch(''); }}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors font-semibold shadow-lg shadow-white/5"
                 data-testid="button-add-product-to-quote"
               >
                 <Plus className="w-4 h-4" />
@@ -6660,255 +6691,250 @@ function CreateQuoteModal({
             </div>
 
             {items.length > 0 ? (
-              <div className="border border-zinc-800 rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-zinc-800/50 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">Ürün</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Beden</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Adet</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Birim Fiyat</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">İskonto %</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Toplam</th>
-                      <th className="px-4 py-3"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800">
-                    {items.map((item, index) => {
-                      const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
-                      const discount = lineSubtotal * (item.discountPercent / 100);
-                      const lineTotal = lineSubtotal - discount;
-                      
-                      return (
-                        <tr key={index}>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              {item.productImage ? (
-                                <img src={item.productImage} alt="" className="w-10 h-10 object-cover rounded border border-zinc-700" />
-                              ) : (
-                                <div className="w-10 h-10 bg-zinc-800 rounded border border-zinc-700 flex items-center justify-center">
-                                  <Package className="w-4 h-4 text-zinc-500" />
-                                </div>
-                              )}
-                              <div>
-                                <p className="text-white text-sm">{item.productName}</p>
-                                {item.productSku && (
-                                  <p className="text-xs text-zinc-500 font-mono">{item.productSku}</p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm text-zinc-300">
-                            {item.variantDetails || '-'}
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                              className="w-16 px-2 py-1 text-center bg-zinc-800 border border-zinc-700 rounded text-white text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.unitPrice}
-                              onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
-                              className="w-24 px-2 py-1 text-right bg-zinc-800 border border-zinc-700 rounded text-white text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={item.discountPercent}
-                              onChange={(e) => updateItem(index, 'discountPercent', parseFloat(e.target.value) || 0)}
-                              className="w-16 px-2 py-1 text-center bg-zinc-800 border border-zinc-700 rounded text-white text-sm"
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right text-white text-sm font-medium whitespace-nowrap">
-                            {lineTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                          </td>
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => removeItem(index)}
-                              className="p-1 text-zinc-400 hover:text-red-400"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot className="bg-zinc-800/30">
-                    <tr>
-                      <td colSpan={5} className="px-4 py-3 text-right text-white font-semibold">
-                        Genel Toplam:
-                      </td>
-                      <td className="px-4 py-3 text-right text-white font-bold text-lg">
-                        {calculateTotal().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            ) : (
-              <div className="border border-dashed border-zinc-700 rounded-lg p-8 text-center text-zinc-500">
-                Henüz ürün eklenmedi. Yukarıdaki butonu kullanarak ürün ekleyin.
-              </div>
-            )}
+              <div className="space-y-3">
+                {items.map((item, index) => {
+                  const lineSubtotal = parseFloat(item.unitPrice) * item.quantity;
+                  const discount = lineSubtotal * (item.discountPercent / 100);
+                  const lineTotal = lineSubtotal - discount;
+                  const variants = productVariantsMap[item.productId] || [];
 
-            {items.length > 0 && (
-              <div className="mt-3 flex justify-center">
+                  return (
+                    <div key={index} className="bg-zinc-800/60 border border-zinc-700/50 rounded-xl p-4 group hover:border-zinc-600 transition-colors">
+                      <div className="flex items-start gap-4">
+                        <div className="shrink-0">
+                          {item.productImage ? (
+                            <img src={item.productImage} alt="" className="w-14 h-14 object-cover rounded-lg border border-zinc-700" />
+                          ) : (
+                            <div className="w-14 h-14 bg-zinc-700 rounded-lg flex items-center justify-center">
+                              <Package className="w-5 h-5 text-zinc-500" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-white font-medium text-sm truncate">{item.productName}</p>
+                              {item.productSku && (
+                                <p className="text-[11px] text-zinc-500 font-mono mt-0.5">{item.productSku}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <p className="text-white font-bold text-sm whitespace-nowrap">
+                                {lineTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                              </p>
+                              <button
+                                onClick={() => removeItem(index)}
+                                className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 mt-3">
+                            {variants.length > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                <label className="text-[11px] text-zinc-500 uppercase tracking-wider">Beden</label>
+                                <select
+                                  value={item.variantId || ''}
+                                  onChange={(e) => handleVariantChange(index, e.target.value)}
+                                  className="px-2 py-1 bg-zinc-700 border border-zinc-600 rounded-md text-white text-xs focus:border-white transition-colors min-w-[90px]"
+                                >
+                                  <option value="">Seçin</option>
+                                  {variants.map(v => (
+                                    <option key={v.id} value={v.id}>
+                                      {v.size}{v.color ? ` / ${v.color}` : ''} ({v.stock} stok)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                              <label className="text-[11px] text-zinc-500 uppercase tracking-wider">Adet</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                                className="w-16 px-2 py-1 text-center bg-zinc-700 border border-zinc-600 rounded-md text-white text-xs focus:border-white transition-colors"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <label className="text-[11px] text-zinc-500 uppercase tracking-wider">Fiyat</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.unitPrice}
+                                onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
+                                className="w-24 px-2 py-1 text-right bg-zinc-700 border border-zinc-600 rounded-md text-white text-xs focus:border-white transition-colors"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <label className="text-[11px] text-zinc-500 uppercase tracking-wider">İskonto %</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={item.discountPercent}
+                                onChange={(e) => updateItem(index, 'discountPercent', parseFloat(e.target.value) || 0)}
+                                className="w-14 px-2 py-1 text-center bg-zinc-700 border border-zinc-600 rounded-md text-white text-xs focus:border-white transition-colors"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
                 <button
-                  onClick={() => setShowProductSelector(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm border border-dashed border-zinc-600 text-zinc-400 rounded-lg hover:border-white hover:text-white transition-colors"
+                  onClick={() => { setShowProductSelector(true); setProductSearch(''); }}
+                  className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-zinc-700 rounded-xl text-zinc-500 hover:text-white hover:border-zinc-500 transition-colors text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Daha Fazla Ürün Ekle
                 </button>
+
+                <div className="bg-zinc-900/80 border border-zinc-700 rounded-xl p-4 mt-2">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Ara Toplam</span>
+                      <span className="text-white">{calculateSubtotal().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+                    </div>
+                    {calculateDiscount() > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-emerald-400">Toplam İskonto</span>
+                        <span className="text-emerald-400">-{calculateDiscount().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+                      </div>
+                    )}
+                    <div className="border-t border-zinc-700 pt-2 flex justify-between">
+                      <span className="text-white font-bold">Genel Toplam</span>
+                      <span className="text-white font-bold text-lg">{calculateTotal().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="border border-dashed border-zinc-700 rounded-xl p-10 text-center">
+                <Package className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
+                <p className="text-zinc-500 text-sm">Henüz ürün eklenmedi</p>
+                <p className="text-zinc-600 text-xs mt-1">Yukarıdaki "Ürün Ekle" butonunu kullanın</p>
               </div>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Notlar</label>
+          <div className="bg-zinc-800/30 border border-zinc-800 rounded-xl p-5">
+            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Notlar</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors resize-none"
+              className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-white focus:ring-1 focus:ring-white/20 transition-all resize-none"
               placeholder="Teklif ile ilgili özel notlar..."
               data-testid="input-quote-notes"
             />
           </div>
         </div>
 
-        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3 shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
-          >
-            İptal
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading || !selectedDealerId || items.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 font-medium"
-            data-testid="button-submit-quote"
-          >
-            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-            Teklifi Oluştur
-          </button>
+        <div className="p-6 border-t border-zinc-800 flex items-center justify-between shrink-0 bg-zinc-900/80">
+          <div className="text-sm text-zinc-500">
+            {items.length > 0 && (
+              <span>Toplam: <strong className="text-white">{calculateTotal().toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</strong></span>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 text-zinc-400 hover:text-white border border-zinc-700 rounded-lg hover:border-zinc-500 transition-colors text-sm"
+            >
+              İptal
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading || !selectedDealerId || items.length === 0}
+              className="flex items-center gap-2 px-6 py-2.5 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 font-semibold text-sm shadow-lg shadow-white/10"
+              data-testid="button-submit-quote"
+            >
+              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Taslak Olarak Kaydet
+            </button>
+          </div>
         </div>
       </div>
 
       {showProductSelector && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-            <div className="p-4 border-b border-zinc-800">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="p-5 border-b border-zinc-800">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-white">Ürün Seç</h4>
-                <button onClick={() => { setShowProductSelector(false); setSelectedProductForVariant(null); }} className="text-zinc-400 hover:text-white">
+                <h4 className="font-bold text-white text-lg">Ürün Seç</h4>
+                <button onClick={() => setShowProductSelector(false)} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <input
-                type="text"
-                placeholder="Ürün adı veya kodu ile ara..."
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-white transition-colors"
-                data-testid="input-quote-product-search"
-                autoFocus
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Ürün adı veya kodu ile ara..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-white focus:ring-1 focus:ring-white/20 transition-all"
+                  data-testid="input-quote-product-search"
+                  autoFocus
+                />
+              </div>
+              {filteredProducts.length > 0 && (
+                <p className="text-xs text-zinc-500 mt-2">{filteredProducts.length} ürün bulundu</p>
+              )}
             </div>
 
-            {selectedProductForVariant ? (
-              <div className="flex-1 overflow-y-auto p-4">
-                <button
-                  onClick={() => setSelectedProductForVariant(null)}
-                  className="flex items-center gap-1 text-sm text-zinc-400 hover:text-white mb-4"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  Geri
-                </button>
-                <p className="text-white font-medium mb-1">{selectedProductForVariant.name}</p>
-                {selectedProductForVariant.sku && (
-                  <p className="text-xs text-zinc-500 font-mono mb-3">{selectedProductForVariant.sku}</p>
-                )}
-                <p className="text-sm text-zinc-400 mb-3">Beden / Renk seçin:</p>
-                <div className="grid gap-2">
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid gap-2">
+                {filteredProducts.map(product => (
                   <button
-                    onClick={() => addProductDirect(selectedProductForVariant, null)}
-                    className="flex items-center justify-between p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
+                    key={product.id}
+                    onClick={() => addProduct(product)}
+                    className="flex items-center gap-3 p-3 bg-zinc-800/60 hover:bg-zinc-700/60 border border-zinc-700/50 hover:border-zinc-600 rounded-xl transition-all text-left group"
                   >
-                    <span className="text-zinc-300 text-sm">Bedensiz / Genel</span>
-                    <span className="text-sm text-zinc-400">
-                      {parseFloat(selectedProductForVariant.basePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                    </span>
-                  </button>
-                  {(productVariantsMap[selectedProductForVariant.id] || []).map(variant => (
-                    <button
-                      key={variant.id}
-                      onClick={() => addProductDirect(selectedProductForVariant!, variant)}
-                      className="flex items-center justify-between p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
-                    >
-                      <div>
-                        <span className="text-white text-sm font-medium">
-                          {variant.size}{variant.size && variant.color ? ' / ' : ''}{variant.color}
-                        </span>
-                        <span className="text-xs text-zinc-500 ml-2">Stok: {variant.stock}</span>
+                    {product.images?.[0] ? (
+                      <img src={product.images[0]} alt="" className="w-14 h-14 object-cover rounded-lg border border-zinc-700" />
+                    ) : (
+                      <div className="w-14 h-14 bg-zinc-700 rounded-lg flex items-center justify-center">
+                        <Package className="w-5 h-5 text-zinc-500" />
                       </div>
-                      <span className="text-sm text-zinc-400">
-                        {parseFloat(variant.price).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="grid gap-2">
-                  {filteredProducts.map(product => (
-                    <button
-                      key={product.id}
-                      onClick={() => selectProductForVariant(product)}
-                      className="flex items-center gap-3 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
-                    >
-                      {product.images?.[0] ? (
-                        <img src={product.images[0]} alt="" className="w-12 h-12 object-cover rounded" />
-                      ) : (
-                        <div className="w-12 h-12 bg-zinc-700 rounded flex items-center justify-center">
-                          <Package className="w-5 h-5 text-zinc-500" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium text-sm truncate">{product.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {product.sku && (
+                          <span className="text-[11px] text-zinc-500 font-mono bg-zinc-700/50 px-1.5 py-0.5 rounded">{product.sku}</span>
+                        )}
+                        <span className="text-xs text-zinc-400">
+                          {parseFloat(product.basePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                        </span>
+                      </div>
+                      {product.availableSizes?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {product.availableSizes.map(size => (
+                            <span key={size} className="text-[10px] text-zinc-500 bg-zinc-700/50 px-1.5 py-0.5 rounded">
+                              {size}
+                            </span>
+                          ))}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium truncate">{product.name}</p>
-                        <div className="flex items-center gap-2">
-                          {product.sku && (
-                            <span className="text-xs text-zinc-500 font-mono">{product.sku}</span>
-                          )}
-                          <span className="text-sm text-zinc-400">
-                            {parseFloat(product.basePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-zinc-400 shrink-0" />
-                    </button>
-                  ))}
-                  {filteredProducts.length === 0 && (
-                    <p className="text-center text-zinc-500 py-8">Ürün bulunamadı</p>
-                  )}
-                </div>
+                    </div>
+                    <Plus className="w-5 h-5 text-zinc-500 group-hover:text-white transition-colors shrink-0" />
+                  </button>
+                ))}
+                {filteredProducts.length === 0 && (
+                  <div className="text-center py-10">
+                    <Search className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+                    <p className="text-zinc-500 text-sm">Ürün bulunamadı</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -6967,11 +6993,18 @@ function QuoteDetailModal({
 
   const paymentTermsLabel = (terms: string | null) => {
     switch (terms) {
-      case 'cash': return 'Peşin';
-      case 'net15': return '15 Gün';
-      case 'net30': return '30 Gün';
-      case 'net45': return '45 Gün';
-      case 'net60': return '60 Gün';
+      case 'cash': return 'Peşin Ödeme';
+      case 'credit_card': return 'Kredi Kartı';
+      case 'eft': return 'Havale / EFT';
+      case 'net15': return '15 Gün Vadeli';
+      case 'net30': return '30 Gün Vadeli';
+      case 'net45': return '45 Gün Vadeli';
+      case 'net60': return '60 Gün Vadeli';
+      case 'net90': return '90 Gün Vadeli';
+      case 'installment_3': return '3 Taksit';
+      case 'installment_6': return '6 Taksit';
+      case 'installment_9': return '9 Taksit';
+      case 'installment_12': return '12 Taksit';
       default: return terms || '-';
     }
   };

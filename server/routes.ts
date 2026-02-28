@@ -196,7 +196,8 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       doc.fillColor('#666666').text('Geçerlilik:', 320, yStart + 45);
       doc.fillColor('#000000').text(quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-', 420, yStart + 45);
       doc.fillColor('#666666').text('Ödeme:', 320, yStart + 60);
-      const paymentLabel = { cash: 'Peşin', net15: '15 Gün', net30: '30 Gün', net45: '45 Gün', net60: '60 Gün' }[quote.paymentTerms || ''] || '-';
+      const paymentLabels: Record<string, string> = { cash: 'Peşin Ödeme', credit_card: 'Kredi Kartı', eft: 'Havale / EFT', net15: '15 Gün Vadeli', net30: '30 Gün Vadeli', net45: '45 Gün Vadeli', net60: '60 Gün Vadeli', net90: '90 Gün Vadeli', installment_3: '3 Taksit', installment_6: '6 Taksit', installment_9: '9 Taksit', installment_12: '12 Taksit' };
+      const paymentLabel = paymentLabels[quote.paymentTerms || ''] || '-';
       doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
       doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
       doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
@@ -4394,7 +4395,8 @@ Sitemap: ${baseUrl}/sitemap.xml
       doc.fillColor('#666666').text('Geçerlilik:', 320, yStart + 45);
       doc.fillColor('#000000').text(quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-', 420, yStart + 45);
       doc.fillColor('#666666').text('Ödeme:', 320, yStart + 60);
-      const paymentLabel = { cash: 'Peşin', net15: '15 Gün', net30: '30 Gün', net45: '45 Gün', net60: '60 Gün' }[quote.paymentTerms || ''] || '-';
+      const paymentLabels: Record<string, string> = { cash: 'Peşin Ödeme', credit_card: 'Kredi Kartı', eft: 'Havale / EFT', net15: '15 Gün Vadeli', net30: '30 Gün Vadeli', net45: '45 Gün Vadeli', net60: '60 Gün Vadeli', net90: '90 Gün Vadeli', installment_3: '3 Taksit', installment_6: '6 Taksit', installment_9: '9 Taksit', installment_12: '12 Taksit' };
+      const paymentLabel = paymentLabels[quote.paymentTerms || ''] || '-';
       doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
       doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
       doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
