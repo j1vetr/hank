@@ -2073,6 +2073,45 @@ export async function registerRoutes(
         // Update pending payment status
         await storage.updatePendingPaymentStatus(callbackData.merchant_oid, 'completed');
 
+        // Send Meta CAPI Purchase event FIRST (server-side for 100% accuracy)
+        try {
+          const purchaseEventId = `purchase-${orderNumber}`;
+          const cartItemsArray = Array.isArray(pendingPayment.cartItems) ? pendingPayment.cartItems : [];
+          const purchaseContents = cartItemsArray.map((item: any) => ({
+            id: item.productId,
+            quantity: item.quantity,
+            price: parseFloat(item.price),
+            title: item.productName,
+          }));
+          const purchaseContentIds = cartItemsArray.map((item: any) => item.productId);
+          const shippingAddr = pendingPayment.shippingAddress as any;
+          console.log('[Meta CAPI] Sending Purchase event:', { eventId: purchaseEventId, value: pendingPayment.total, itemCount: cartItemsArray.length });
+          await sendCapiEvent({
+            eventName: 'Purchase',
+            eventId: purchaseEventId,
+            eventSourceUrl: 'https://hank.com.tr/odeme-basarili',
+            userData: {
+              email: pendingPayment.customerEmail,
+              phone: pendingPayment.customerPhone,
+              firstName: pendingPayment.customerName.split(' ')[0],
+              lastName: pendingPayment.customerName.split(' ').slice(1).join(' '),
+              city: shippingAddr?.city,
+              country: shippingAddr?.country || 'Türkiye',
+            },
+            customData: {
+              value: parseFloat(pendingPayment.total),
+              currency: 'TRY',
+              contentIds: purchaseContentIds,
+              contentType: 'product',
+              contents: purchaseContents,
+              numItems: cartItemsArray.length,
+            },
+          });
+          console.log('[Meta CAPI] Purchase event sent successfully for:', orderNumber);
+        } catch (capiErr) {
+          console.error('[Meta CAPI] Purchase event failed:', capiErr);
+        }
+
         // Send confirmation emails
         const orderItems = await storage.getOrderItems(order.id);
         sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
@@ -2091,38 +2130,6 @@ export async function registerRoutes(
 
         // Send invoice to BizimHesap
         sendInvoiceToBizimHesap(order, orderItems, variantSkus).catch(err => console.error('[BizimHesap] Invoice failed:', err));
-
-        // Send Meta CAPI Purchase event (server-side for 100% accuracy)
-        const purchaseEventId = `purchase-${orderNumber}`;
-        const purchaseContents = pendingPayment.cartItems.map((item: any) => ({
-          id: item.productId,
-          quantity: item.quantity,
-          price: parseFloat(item.price),
-          title: item.productName,
-        }));
-        const purchaseContentIds = pendingPayment.cartItems.map((item: any) => item.productId);
-        const shippingAddr = pendingPayment.shippingAddress as any;
-        sendCapiEvent({
-          eventName: 'Purchase',
-          eventId: purchaseEventId,
-          eventSourceUrl: 'https://hank.com.tr/odeme-basarili',
-          userData: {
-            email: pendingPayment.customerEmail,
-            phone: pendingPayment.customerPhone,
-            firstName: pendingPayment.customerName.split(' ')[0],
-            lastName: pendingPayment.customerName.split(' ').slice(1).join(' '),
-            city: shippingAddr?.city,
-            country: shippingAddr?.country || 'Türkiye',
-          },
-          customData: {
-            value: parseFloat(pendingPayment.total),
-            currency: 'TRY',
-            contentIds: purchaseContentIds,
-            contentType: 'product',
-            contents: purchaseContents,
-            numItems: pendingPayment.cartItems.length,
-          },
-        }).catch(err => console.error('[Meta CAPI] Purchase event failed:', err));
 
         // Create user account if requested during checkout
         if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
@@ -5246,6 +5253,8 @@ Sitemap: ${baseUrl}/sitemap.xml
       const clientIp = getClientIp(req);
       const userAgent = req.headers['user-agent'] || '';
 
+      console.log('[Meta CAPI] Client Purchase tracking:', { eventId, value, orderId, contentIds });
+
       sendCapiEvent({
         eventName: 'Purchase',
         eventId,
@@ -5259,7 +5268,8 @@ Sitemap: ${baseUrl}/sitemap.xml
           numItems,
           contents,
         },
-      }).catch(err => console.error('[Meta CAPI] Purchase (client) error:', err));
+      }).then(() => console.log('[Meta CAPI] Client Purchase sent successfully:', eventId))
+        .catch(err => console.error('[Meta CAPI] Purchase (client) error:', err));
 
       res.json({ success: true });
     } catch (error) {

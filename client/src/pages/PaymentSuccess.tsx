@@ -34,17 +34,20 @@ export default function PaymentSuccess() {
           if (data.status === 'completed') {
             setOrderNumber(data.orderNumber);
             setLoading(false);
-            if (!purchaseTracked.current && data.items && data.total) {
+            if (!purchaseTracked.current) {
               purchaseTracked.current = true;
+              const items = data.items || [];
+              const totalValue = parseFloat(data.total || '0');
+              const orderNum = data.orderNumber || oid;
               trackPurchase({
-                contentIds: data.items.map((i: any) => i.productId),
-                value: parseFloat(data.total),
-                numItems: data.items.reduce((sum: number, i: any) => sum + i.quantity, 0),
-                orderId: data.orderNumber,
-                contents: data.items.map((i: any) => ({
+                contentIds: items.map((i: any) => i.productId),
+                value: totalValue,
+                numItems: items.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0) || 1,
+                orderId: orderNum,
+                contents: items.map((i: any) => ({
                   id: i.productId,
-                  quantity: i.quantity,
-                  price: parseFloat(i.price),
+                  quantity: i.quantity || 1,
+                  price: parseFloat(i.price || '0'),
                 })),
               });
             }
