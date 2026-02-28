@@ -17,6 +17,7 @@ import {
   TrendingUp,
   DollarSign,
   Clock,
+  ChevronLeft,
   ChevronRight,
   Upload,
   ImageIcon,
@@ -6478,6 +6479,9 @@ function CreateQuoteModal({
   }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showProductSelector, setShowProductSelector] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
+  const [productVariantsMap, setProductVariantsMap] = useState<Record<string, ProductVariant[]>>({});
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['admin', 'products'],
@@ -6488,18 +6492,43 @@ function CreateQuoteModal({
     }
   });
 
-  const addProduct = (product: Product) => {
-    setItems([...items, {
+  const fetchVariants = async (productId: string) => {
+    if (productVariantsMap[productId]) return productVariantsMap[productId];
+    try {
+      const res = await fetch(`/api/admin/products/${productId}/variants`, { credentials: 'include' });
+      if (res.ok) {
+        const variants = await res.json();
+        setProductVariantsMap(prev => ({ ...prev, [productId]: variants }));
+        return variants as ProductVariant[];
+      }
+    } catch {}
+    return [];
+  };
+
+  const selectProductForVariant = async (product: Product) => {
+    const variants = await fetchVariants(product.id);
+    if (variants.length > 0) {
+      setSelectedProductForVariant(product);
+    } else {
+      addProductDirect(product, null);
+    }
+  };
+
+  const addProductDirect = (product: Product, variant: ProductVariant | null) => {
+    const variantDetails = variant ? `${variant.size || ''}${variant.size && variant.color ? ' / ' : ''}${variant.color || ''}` : null;
+    const variantSku = variant ? (variant as any).sku : null;
+    setItems(prev => [...prev, {
       productId: product.id,
-      variantId: null,
+      variantId: variant?.id || null,
       productName: product.name,
-      productSku: product.sku || null,
+      productSku: variantSku || product.sku || null,
       productImage: product.images?.[0] || null,
-      variantDetails: null,
+      variantDetails,
       quantity: 1,
-      unitPrice: product.basePrice,
+      unitPrice: variant?.price || product.basePrice,
       discountPercent: 0
     }]);
+    setSelectedProductForVariant(null);
     setShowProductSelector(false);
   };
 
@@ -6557,17 +6586,23 @@ function CreateQuoteModal({
     }
   };
 
+  const filteredProducts = products.filter(p => p.isActive && (
+    !productSearch || 
+    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    (p.sku && p.sku.toLowerCase().includes(productSearch.toLowerCase()))
+  ));
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-4xl my-8">
-        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-4xl my-8 flex flex-col max-h-[90vh]">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between shrink-0">
           <h3 className="text-lg font-semibold text-white">Yeni Teklif Oluştur</h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">Bayi *</label>
@@ -6602,7 +6637,7 @@ function CreateQuoteModal({
                 data-testid="select-quote-payment-terms"
               >
                 <option value="">Seçin</option>
-                <option value="cash">Peşin</option>
+                <option value="cash">Pesin</option>
                 <option value="net15">15 Gün</option>
                 <option value="net30">30 Gün</option>
                 <option value="net45">45 Gün</option>
@@ -6612,11 +6647,11 @@ function CreateQuoteModal({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <label className="text-sm font-medium text-zinc-400">Ürünler</label>
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-zinc-900 z-10 py-2">
+              <label className="text-sm font-medium text-zinc-400">Ürünler ({items.length} kalem)</label>
               <button
                 onClick={() => setShowProductSelector(true)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors font-medium"
                 data-testid="button-add-product-to-quote"
               >
                 <Plus className="w-4 h-4" />
@@ -6627,9 +6662,10 @@ function CreateQuoteModal({
             {items.length > 0 ? (
               <div className="border border-zinc-800 rounded-lg overflow-hidden">
                 <table className="w-full">
-                  <thead className="bg-zinc-800/50">
+                  <thead className="bg-zinc-800/50 sticky top-0">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">Ürün</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Beden</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Adet</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Birim Fiyat</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">İskonto %</th>
@@ -6654,8 +6690,16 @@ function CreateQuoteModal({
                                   <Package className="w-4 h-4 text-zinc-500" />
                                 </div>
                               )}
-                              <p className="text-white text-sm">{item.productName}</p>
+                              <div>
+                                <p className="text-white text-sm">{item.productName}</p>
+                                {item.productSku && (
+                                  <p className="text-xs text-zinc-500 font-mono">{item.productSku}</p>
+                                )}
+                              </div>
                             </div>
+                          </td>
+                          <td className="px-4 py-3 text-center text-sm text-zinc-300">
+                            {item.variantDetails || '-'}
                           </td>
                           <td className="px-4 py-3">
                             <input
@@ -6686,7 +6730,7 @@ function CreateQuoteModal({
                               className="w-16 px-2 py-1 text-center bg-zinc-800 border border-zinc-700 rounded text-white text-sm"
                             />
                           </td>
-                          <td className="px-4 py-3 text-right text-white text-sm font-medium">
+                          <td className="px-4 py-3 text-right text-white text-sm font-medium whitespace-nowrap">
                             {lineTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                           </td>
                           <td className="px-4 py-3">
@@ -6703,7 +6747,7 @@ function CreateQuoteModal({
                   </tbody>
                   <tfoot className="bg-zinc-800/30">
                     <tr>
-                      <td colSpan={4} className="px-4 py-3 text-right text-white font-semibold">
+                      <td colSpan={5} className="px-4 py-3 text-right text-white font-semibold">
                         Genel Toplam:
                       </td>
                       <td className="px-4 py-3 text-right text-white font-bold text-lg">
@@ -6717,6 +6761,18 @@ function CreateQuoteModal({
             ) : (
               <div className="border border-dashed border-zinc-700 rounded-lg p-8 text-center text-zinc-500">
                 Henüz ürün eklenmedi. Yukarıdaki butonu kullanarak ürün ekleyin.
+              </div>
+            )}
+
+            {items.length > 0 && (
+              <div className="mt-3 flex justify-center">
+                <button
+                  onClick={() => setShowProductSelector(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-dashed border-zinc-600 text-zinc-400 rounded-lg hover:border-white hover:text-white transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Daha Fazla Ürün Ekle
+                </button>
               </div>
             )}
           </div>
@@ -6734,7 +6790,7 @@ function CreateQuoteModal({
           </div>
         </div>
 
-        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3 shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
@@ -6756,38 +6812,103 @@ function CreateQuoteModal({
       {showProductSelector && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-              <h4 className="font-semibold text-white">Ürün Seç</h4>
-              <button onClick={() => setShowProductSelector(false)} className="text-zinc-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="grid gap-2">
-                {products.filter(p => p.isActive).map(product => (
-                  <button
-                    key={product.id}
-                    onClick={() => addProduct(product)}
-                    className="flex items-center gap-3 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
-                  >
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt="" className="w-12 h-12 object-cover rounded" />
-                    ) : (
-                      <div className="w-12 h-12 bg-zinc-700 rounded flex items-center justify-center">
-                        <Package className="w-5 h-5 text-zinc-500" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{product.name}</p>
-                      <p className="text-sm text-zinc-400">
-                        {parseFloat(product.basePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                      </p>
-                    </div>
-                    <Plus className="w-5 h-5 text-zinc-400" />
-                  </button>
-                ))}
+            <div className="p-4 border-b border-zinc-800">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-white">Ürün Seç</h4>
+                <button onClick={() => { setShowProductSelector(false); setSelectedProductForVariant(null); }} className="text-zinc-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
+              <input
+                type="text"
+                placeholder="Ürün adı veya kodu ile ara..."
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white text-sm focus:border-white transition-colors"
+                data-testid="input-quote-product-search"
+                autoFocus
+              />
             </div>
+
+            {selectedProductForVariant ? (
+              <div className="flex-1 overflow-y-auto p-4">
+                <button
+                  onClick={() => setSelectedProductForVariant(null)}
+                  className="flex items-center gap-1 text-sm text-zinc-400 hover:text-white mb-4"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Geri
+                </button>
+                <p className="text-white font-medium mb-1">{selectedProductForVariant.name}</p>
+                {selectedProductForVariant.sku && (
+                  <p className="text-xs text-zinc-500 font-mono mb-3">{selectedProductForVariant.sku}</p>
+                )}
+                <p className="text-sm text-zinc-400 mb-3">Beden / Renk seçin:</p>
+                <div className="grid gap-2">
+                  <button
+                    onClick={() => addProductDirect(selectedProductForVariant, null)}
+                    className="flex items-center justify-between p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
+                  >
+                    <span className="text-zinc-300 text-sm">Bedensiz / Genel</span>
+                    <span className="text-sm text-zinc-400">
+                      {parseFloat(selectedProductForVariant.basePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                    </span>
+                  </button>
+                  {(productVariantsMap[selectedProductForVariant.id] || []).map(variant => (
+                    <button
+                      key={variant.id}
+                      onClick={() => addProductDirect(selectedProductForVariant!, variant)}
+                      className="flex items-center justify-between p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
+                    >
+                      <div>
+                        <span className="text-white text-sm font-medium">
+                          {variant.size}{variant.size && variant.color ? ' / ' : ''}{variant.color}
+                        </span>
+                        <span className="text-xs text-zinc-500 ml-2">Stok: {variant.stock}</span>
+                      </div>
+                      <span className="text-sm text-zinc-400">
+                        {parseFloat(variant.price).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="grid gap-2">
+                  {filteredProducts.map(product => (
+                    <button
+                      key={product.id}
+                      onClick={() => selectProductForVariant(product)}
+                      className="flex items-center gap-3 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors text-left"
+                    >
+                      {product.images?.[0] ? (
+                        <img src={product.images[0]} alt="" className="w-12 h-12 object-cover rounded" />
+                      ) : (
+                        <div className="w-12 h-12 bg-zinc-700 rounded flex items-center justify-center">
+                          <Package className="w-5 h-5 text-zinc-500" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium truncate">{product.name}</p>
+                        <div className="flex items-center gap-2">
+                          {product.sku && (
+                            <span className="text-xs text-zinc-500 font-mono">{product.sku}</span>
+                          )}
+                          <span className="text-sm text-zinc-400">
+                            {parseFloat(product.basePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-zinc-400 shrink-0" />
+                    </button>
+                  ))}
+                  {filteredProducts.length === 0 && (
+                    <p className="text-center text-zinc-500 py-8">Ürün bulunamadı</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -6923,6 +7044,7 @@ function QuoteDetailModal({
                 <thead className="bg-zinc-800/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">Ürün</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Beden</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">Adet</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400">Birim</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-zinc-400">İskonto</th>
@@ -6934,9 +7056,12 @@ function QuoteDetailModal({
                     <tr key={item.id}>
                       <td className="px-4 py-3">
                         <p className="text-white text-sm">{item.productName}</p>
-                        {item.variantDetails && (
-                          <p className="text-xs text-zinc-500">{item.variantDetails}</p>
+                        {item.productSku && (
+                          <p className="text-xs text-zinc-500 font-mono">{item.productSku}</p>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm text-zinc-300">
+                        {item.variantDetails || '-'}
                       </td>
                       <td className="px-4 py-3 text-center text-white text-sm">{item.quantity}</td>
                       <td className="px-4 py-3 text-right text-white text-sm">
@@ -6953,7 +7078,7 @@ function QuoteDetailModal({
                 </tbody>
                 <tfoot className="bg-zinc-800/30">
                   <tr>
-                    <td colSpan={4} className="px-4 py-3 text-right text-white font-semibold">
+                    <td colSpan={5} className="px-4 py-3 text-right text-white font-semibold">
                       Genel Toplam:
                     </td>
                     <td className="px-4 py-3 text-right text-white font-bold text-lg">
