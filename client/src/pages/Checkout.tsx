@@ -71,6 +71,7 @@ export default function Checkout() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const initiateCheckoutTracked = useRef(false);
   
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -134,6 +135,24 @@ export default function Checkout() {
       }));
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!initiateCheckoutTracked.current && items.length > 0 && products.length > 0) {
+      initiateCheckoutTracked.current = true;
+      const trackContentIds = cartItemsWithProducts.map(item => item.productId);
+      const trackContents = cartItemsWithProducts.map(item => ({
+        id: item.productId,
+        quantity: item.quantity,
+        price: parseFloat(item.product?.basePrice || '0'),
+      }));
+      trackInitiateCheckout({
+        contentIds: trackContentIds,
+        value: cartItemsWithProducts.reduce((sum, item) => sum + parseFloat(item.product?.basePrice || '0') * item.quantity, 0),
+        numItems: items.reduce((sum, item) => sum + item.quantity, 0),
+        contents: trackContents,
+      });
+    }
+  }, [items, products]);
 
   // Auto-select default address when addresses are loaded (only once on initial load)
   useEffect(() => {
@@ -350,15 +369,10 @@ export default function Checkout() {
         quantity: item.quantity,
         price: parseFloat(item.product?.basePrice || '0'),
       }));
-      trackInitiateCheckout({
-        contentIds: trackContentIds,
-        value: total,
-        numItems: totalItems,
-        contents: trackContents,
-      });
       trackAddPaymentInfo({
         contentIds: trackContentIds,
         value: total,
+        numItems: items.reduce((sum, item) => sum + item.quantity, 0),
         contents: trackContents,
       });
     } catch (error: any) {

@@ -121,6 +121,7 @@ export function trackAddPaymentInfo(params: {
   contentIds: string[];
   value: number;
   currency?: string;
+  numItems?: number;
   contents?: Array<{ id: string; quantity: number; price: number }>;
 }) {
   const eventId = generateEventId();
@@ -131,6 +132,20 @@ export function trackAddPaymentInfo(params: {
     currency: params.currency || 'TRY',
     contents: params.contents,
   }, { eventID: eventId });
+
+  fetch('/api/track/add-payment-info', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      eventId,
+      contentIds: params.contentIds,
+      value: params.value,
+      numItems: params.numItems,
+      contents: params.contents,
+      sourceUrl: window.location.href,
+    }),
+  }).catch(() => {});
 }
 
 export function trackPurchase(params: {
@@ -151,4 +166,19 @@ export function trackPurchase(params: {
     contents: params.contents,
     order_id: params.orderId,
   }, { eventID: eventId });
+
+  fetch('/api/track/purchase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      eventId,
+      contentIds: params.contentIds,
+      value: params.value,
+      numItems: params.numItems,
+      orderId: params.orderId,
+      contents: params.contents,
+      sourceUrl: window.location.href,
+    }),
+  }).catch(() => {});
 }

@@ -5253,6 +5253,62 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
 
+  app.post("/api/track/purchase", async (req: Request, res) => {
+    try {
+      const { eventId, contentIds, value, numItems, orderId, contents, sourceUrl } = req.body;
+      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'] || '';
+
+      sendCapiEvent({
+        eventName: 'Purchase',
+        eventId,
+        eventSourceUrl: sourceUrl || 'https://hank.com.tr/odeme-basarili',
+        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        customData: {
+          value,
+          currency: 'TRY',
+          contentIds,
+          contentType: 'product',
+          numItems,
+          contents,
+        },
+      }).catch(err => console.error('[Meta CAPI] Purchase (client) error:', err));
+
+      res.json({ success: true });
+    } catch (error) {
+      res.json({ success: false });
+    }
+  });
+
+  app.post("/api/track/add-payment-info", async (req: Request, res) => {
+    try {
+      const { eventId, contentIds, value, numItems, contents, sourceUrl } = req.body;
+      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'] || '';
+
+      sendCapiEvent({
+        eventName: 'AddPaymentInfo',
+        eventId,
+        eventSourceUrl: sourceUrl || 'https://hank.com.tr',
+        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        customData: {
+          value,
+          currency: 'TRY',
+          contentIds,
+          contentType: 'product',
+          numItems,
+          contents,
+        },
+      }).catch(err => console.error('[Meta CAPI] AddPaymentInfo error:', err));
+
+      res.json({ success: true });
+    } catch (error) {
+      res.json({ success: false });
+    }
+  });
+
   app.get("/feeds/google-merchant.xml", async (_req: Request, res: Response) => {
     try {
       const allProducts = await storage.getAllProducts();
