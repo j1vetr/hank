@@ -273,6 +273,7 @@ export default function AdminQuoteDetail() {
                   <thead className="bg-zinc-800/70 print:bg-zinc-100">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider print:text-zinc-600">Ürün</th>
+                      <th className="px-4 py-4 text-center text-xs font-semibold text-zinc-400 uppercase tracking-wider print:text-zinc-600">Beden</th>
                       <th className="px-4 py-4 text-center text-xs font-semibold text-zinc-400 uppercase tracking-wider print:text-zinc-600">Adet</th>
                       <th className="px-4 py-4 text-right text-xs font-semibold text-zinc-400 uppercase tracking-wider print:text-zinc-600">Birim Fiyat</th>
                       <th className="px-4 py-4 text-center text-xs font-semibold text-zinc-400 uppercase tracking-wider print:text-zinc-600">İskonto</th>
@@ -297,12 +298,10 @@ export default function AdminQuoteDetail() {
                             )}
                             <div>
                               <p className="text-white font-medium print:text-black">{item.productName}</p>
-                              {item.variantDetails && (
-                                <p className="text-sm text-zinc-500 print:text-zinc-600">{item.variantDetails}</p>
-                              )}
                             </div>
                           </div>
                         </td>
+                        <td className="px-4 py-4 text-center text-white font-medium print:text-black">{item.variantDetails || '-'}</td>
                         <td className="px-4 py-4 text-center text-white font-medium print:text-black">{item.quantity}</td>
                         <td className="px-4 py-4 text-right text-white print:text-black">
                           {parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺

@@ -209,17 +209,17 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       // Table header
       const headerY = tableTop + 25;
       doc.rect(50, headerY, 495, 22).fillAndStroke('#333333', '#333333');
-      doc.fontSize(8).font(fontBold).fillColor('#ffffff');
-      doc.text('Ürün', 55, headerY + 7, { width: 175 });
-      doc.text('Beden', 230, headerY + 7, { width: 45, align: 'center' });
-      doc.text('Adet', 275, headerY + 7, { width: 35, align: 'center' });
-      doc.text('Birim Fiyat', 310, headerY + 7, { width: 65, align: 'right' });
-      doc.text('İskonto', 375, headerY + 7, { width: 40, align: 'center' });
-      doc.text('Toplam', 415, headerY + 7, { width: 130, align: 'right' });
+      doc.fontSize(7).font(fontBold).fillColor('#ffffff');
+      doc.text('Ürün', 55, headerY + 7, { width: 220 });
+      doc.text('Beden', 275, headerY + 7, { width: 40, align: 'center' });
+      doc.text('Adet', 315, headerY + 7, { width: 30, align: 'center' });
+      doc.text('Birim Fiyat', 345, headerY + 7, { width: 55, align: 'right' });
+      doc.text('İsk.', 400, headerY + 7, { width: 30, align: 'center' });
+      doc.text('Toplam', 430, headerY + 7, { width: 110, align: 'right' });
       
       // Table rows - compact layout
       let currentY = headerY + 22;
-      const rowHeight = 28;
+      const rowHeight = 22;
       
       for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
         const item = items[itemIdx];
@@ -231,29 +231,25 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
         const bgColor = itemIdx % 2 === 0 ? '#ffffff' : '#f8f8f8';
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
         
-        doc.fontSize(8).font(fontRegular).fillColor('#000000');
-        const nameText = item.productName.length > 35 ? item.productName.substring(0, 35) + '...' : item.productName;
-        doc.text(nameText, 55, currentY + 4, { width: 175 });
+        doc.fontSize(7).font(fontRegular).fillColor('#000000');
+        const skuPrefix = item.productSku ? `[${item.productSku}] ` : '';
+        doc.text(`${skuPrefix}${item.productName}`, 55, currentY + 7, { width: 220, lineBreak: false, ellipsis: true });
         
-        if (item.productSku) {
-          doc.fontSize(6).fillColor('#888888').text(item.productSku, 55, currentY + 17, { width: 175 });
-        }
-        
-        doc.fontSize(8).fillColor('#333333');
-        doc.text(item.variantDetails || '-', 230, currentY + 10, { width: 45, align: 'center' });
+        doc.fontSize(7).fillColor('#333333');
+        doc.text(item.variantDetails || '-', 275, currentY + 7, { width: 40, align: 'center' });
         
         doc.fillColor('#000000');
-        doc.text(item.quantity.toString(), 275, currentY + 10, { width: 35, align: 'center' });
-        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 310, currentY + 10, { width: 65, align: 'right' });
+        doc.text(item.quantity.toString(), 315, currentY + 7, { width: 30, align: 'center' });
+        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 345, currentY + 7, { width: 55, align: 'right' });
         
         if (parseFloat(item.discountPercent) > 0) {
-          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 375, currentY + 10, { width: 40, align: 'center' });
+          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 7, { width: 30, align: 'center' });
         } else {
-          doc.fillColor('#999999').text('-', 375, currentY + 10, { width: 40, align: 'center' });
+          doc.fillColor('#999999').text('-', 400, currentY + 7, { width: 30, align: 'center' });
         }
         
         doc.font(fontBold).fillColor('#000000');
-        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 415, currentY + 10, { width: 130, align: 'right' });
+        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 430, currentY + 7, { width: 110, align: 'right' });
         
         currentY += rowHeight;
       }
@@ -4407,82 +4403,70 @@ Sitemap: ${baseUrl}/sitemap.xml
       
       // Table header
       const headerY = tableTop + 25;
-      doc.rect(50, headerY, 495, 25).fillAndStroke('#333333', '#333333');
-      doc.fontSize(9).font(fontBold).fillColor('#ffffff');
-      doc.text('Ürün', 60, headerY + 8);
-      doc.text('Adet', 280, headerY + 8, { width: 50, align: 'center' });
-      doc.text('Birim Fiyat', 330, headerY + 8, { width: 70, align: 'right' });
-      doc.text('İskonto', 400, headerY + 8, { width: 50, align: 'center' });
-      doc.text('Toplam', 450, headerY + 8, { width: 85, align: 'right' });
+      doc.rect(50, headerY, 495, 22).fillAndStroke('#333333', '#333333');
+      doc.fontSize(7).font(fontBold).fillColor('#ffffff');
+      doc.text('Ürün', 60, headerY + 7);
+      doc.text('Beden', 290, headerY + 7, { width: 40, align: 'center' });
+      doc.text('Adet', 330, headerY + 7, { width: 30, align: 'center' });
+      doc.text('Birim Fiyat', 360, headerY + 7, { width: 55, align: 'right' });
+      doc.text('İsk.', 415, headerY + 7, { width: 30, align: 'center' });
+      doc.text('Toplam', 445, headerY + 7, { width: 95, align: 'right' });
       
       // Table rows
-      let currentY = headerY + 25;
-      const rowHeight = 55;
+      let currentY = headerY + 22;
+      const rowHeight = 50;
       
-      for (const item of items) {
-        if (currentY > 700) {
+      for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
+        const item = items[itemIdx];
+        if (currentY > 710) {
           doc.addPage();
           currentY = 50;
         }
         
-        const bgColor = items.indexOf(item) % 2 === 0 ? '#ffffff' : '#fafafa';
+        const bgColor = itemIdx % 2 === 0 ? '#ffffff' : '#fafafa';
         doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
         
-        // Product image - fetch from production URL
-        console.log('[PDF-Route] Item productImage:', item.productImage);
         if (item.productImage) {
           try {
             let imageUrl = item.productImage;
-            // Convert local path to full URL
             if (imageUrl.startsWith('/uploads/')) {
               imageUrl = `https://hank.com.tr${imageUrl}`;
             }
-            console.log('[PDF-Route] Fetching image from:', imageUrl);
             
             if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
               const imageResponse = await fetch(imageUrl);
-              console.log('[PDF-Route] Image response status:', imageResponse.status);
               if (imageResponse.ok) {
                 const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-                console.log('[PDF-Route] Image buffer size:', imageBuffer.length);
-                doc.image(imageBuffer, 55, currentY + 7, { width: 40, height: 40 });
-              } else {
-                console.log('[PDF-Route] Image fetch failed:', imageUrl, imageResponse.status);
+                doc.image(imageBuffer, 55, currentY + 5, { width: 38, height: 38 });
               }
             }
           } catch (e) {
-            console.log('[PDF-Route] Image load failed:', item.productImage, e);
+            // skip image
           }
-        } else {
-          console.log('[PDF-Route] No productImage for item:', item.productName);
         }
         
-        // Product details with SKU
-        doc.fontSize(10).font(fontRegular).fillColor('#000000');
-        doc.text(item.productName.substring(0, 30), 100, currentY + 8, { width: 170 });
+        doc.fontSize(7).font(fontRegular).fillColor('#000000');
+        doc.text(item.productName, 98, currentY + 6, { width: 190, lineBreak: true, height: 20 });
         
-        // Show SKU if available
         if (item.productSku) {
-          doc.fontSize(8).fillColor('#888888').text(`SKU: ${item.productSku}`, 100, currentY + 22);
+          doc.fontSize(6).fillColor('#888888').text(`SKU: ${item.productSku}`, 98, currentY + 30, { width: 190 });
         }
         
-        // Show variant details
-        if (item.variantDetails) {
-          doc.fontSize(8).fillColor('#666666').text(item.variantDetails, 100, currentY + 34);
-        }
+        doc.fontSize(7).fillColor('#333333');
+        doc.text(item.variantDetails || '-', 290, currentY + 18, { width: 40, align: 'center' });
         
-        doc.fontSize(10).fillColor('#000000');
-        doc.text(item.quantity.toString(), 280, currentY + 20, { width: 50, align: 'center' });
-        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 330, currentY + 20, { width: 70, align: 'right' });
+        doc.fillColor('#000000');
+        doc.text(item.quantity.toString(), 330, currentY + 18, { width: 30, align: 'center' });
+        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 360, currentY + 18, { width: 55, align: 'right' });
         
         if (parseFloat(item.discountPercent) > 0) {
-          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 20, { width: 50, align: 'center' });
+          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 415, currentY + 18, { width: 30, align: 'center' });
         } else {
-          doc.fillColor('#999999').text('-', 400, currentY + 20, { width: 50, align: 'center' });
+          doc.fillColor('#999999').text('-', 415, currentY + 18, { width: 30, align: 'center' });
         }
         
         doc.font(fontBold).fillColor('#000000');
-        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 450, currentY + 20, { width: 85, align: 'right' });
+        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 445, currentY + 18, { width: 95, align: 'right' });
         
         currentY += rowHeight;
       }
