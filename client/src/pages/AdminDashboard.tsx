@@ -6494,7 +6494,7 @@ function CreateQuoteModal({
   const fetchVariants = async (productId: string) => {
     if (productVariantsMap[productId]) return productVariantsMap[productId];
     try {
-      const res = await fetch(`/api/admin/products/${productId}/variants`, { credentials: 'include' });
+      const res = await fetch(`/api/products/${productId}/variants`, { credentials: 'include' });
       if (res.ok) {
         const variants = await res.json();
         setProductVariantsMap(prev => ({ ...prev, [productId]: variants }));
