@@ -6312,6 +6312,25 @@ function QuotesPanel() {
     }
   });
 
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await fetch(`/api/admin/quotes/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error('Status update failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
+    },
+    onError: () => {
+      alert('Durum güncellenirken hata oluştu');
+    }
+  });
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'draft': return { label: 'Taslak', color: 'bg-zinc-500/20 text-zinc-400' };
@@ -6403,7 +6422,37 @@ function QuotesPanel() {
                       <p className="text-xs text-zinc-500">{quote.itemCount || 0} ürün</p>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {quote.status !== 'accepted' && quote.status !== 'rejected' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                if (confirm('Bu teklifi kabul etmek istediğinize emin misiniz? Stoktan düşülecektir.')) {
+                                  statusMutation.mutate({ id: quote.id, status: 'accepted' });
+                                }
+                              }}
+                              disabled={statusMutation.isPending}
+                              className="p-2 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                              title="Kabul Et"
+                              data-testid={`button-accept-quote-${quote.id}`}
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm('Bu teklifi reddetmek istediğinize emin misiniz?')) {
+                                  statusMutation.mutate({ id: quote.id, status: 'rejected' });
+                                }
+                              }}
+                              disabled={statusMutation.isPending}
+                              className="p-2 text-zinc-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                              title="Reddet"
+                              data-testid={`button-reject-quote-${quote.id}`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                         <button
                           onClick={() => setLocation(`/toov-admin/quotes/${quote.id}`)}
                           className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"

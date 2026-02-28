@@ -362,23 +362,24 @@ export default function AdminQuoteDetail() {
                 Son güncelleme: {new Date(quote.updatedAt).toLocaleString('tr-TR')}
               </div>
               
-              {quote.status === 'draft' && (
+              {quote.status !== 'accepted' && quote.status !== 'rejected' && (
                 <div className="flex items-center gap-3">
+                  {quote.status === 'draft' && (
+                    <button
+                      onClick={() => updateStatusMutation.mutate('sent')}
+                      disabled={updateStatusMutation.isPending}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors font-medium disabled:opacity-50"
+                    >
+                      <Send className="w-4 h-4" />
+                      Teklifi Gönder
+                    </button>
+                  )}
                   <button
-                    onClick={() => updateStatusMutation.mutate('sent')}
-                    disabled={updateStatusMutation.isPending}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors font-medium disabled:opacity-50"
-                  >
-                    <Send className="w-4 h-4" />
-                    Teklifi Gönder
-                  </button>
-                </div>
-              )}
-
-              {quote.status === 'sent' && (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => updateStatusMutation.mutate('rejected')}
+                    onClick={() => {
+                      if (confirm('Bu teklifi reddetmek istediğinize emin misiniz?')) {
+                        updateStatusMutation.mutate('rejected');
+                      }
+                    }}
                     disabled={updateStatusMutation.isPending}
                     className="flex items-center gap-2 px-4 py-2.5 bg-red-600/20 text-red-400 border border-red-600/30 rounded-lg hover:bg-red-600/30 transition-colors font-medium disabled:opacity-50"
                   >
@@ -386,12 +387,32 @@ export default function AdminQuoteDetail() {
                     Reddet
                   </button>
                   <button
-                    onClick={() => updateStatusMutation.mutate('accepted')}
+                    onClick={() => {
+                      if (confirm('Bu teklifi kabul etmek istediğinize emin misiniz? Stoktan düşülecektir.')) {
+                        updateStatusMutation.mutate('accepted');
+                      }
+                    }}
                     disabled={updateStatusMutation.isPending}
                     className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors font-medium disabled:opacity-50"
                   >
                     <Check className="w-4 h-4" />
                     Kabul Et
+                  </button>
+                </div>
+              )}
+
+              {(quote.status === 'accepted' || quote.status === 'rejected') && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      if (confirm('Teklifi tekrar taslak durumuna almak istediğinize emin misiniz?')) {
+                        updateStatusMutation.mutate('draft');
+                      }
+                    }}
+                    disabled={updateStatusMutation.isPending}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-zinc-700 text-zinc-300 rounded-lg hover:bg-zinc-600 transition-colors font-medium disabled:opacity-50"
+                  >
+                    Taslağa Çevir
                   </button>
                 </div>
               )}
