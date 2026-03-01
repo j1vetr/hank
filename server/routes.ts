@@ -2983,7 +2983,12 @@ export async function registerRoutes(
 
   app.post("/api/admin/coupons", requireAdmin, async (req, res) => {
     try {
-      const coupon = await storage.createCoupon(req.body);
+      const data = { ...req.body };
+      if (data.startsAt) data.startsAt = new Date(data.startsAt);
+      else data.startsAt = null;
+      if (data.expiresAt) data.expiresAt = new Date(data.expiresAt);
+      else data.expiresAt = null;
+      const coupon = await storage.createCoupon(data);
       res.status(201).json(coupon);
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to create coupon" });
@@ -2992,7 +2997,12 @@ export async function registerRoutes(
 
   app.put("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
     try {
-      const coupon = await storage.updateCoupon(req.params.id, req.body);
+      const data = { ...req.body };
+      if (data.startsAt) data.startsAt = new Date(data.startsAt);
+      else if (data.startsAt === '' || data.startsAt === null) data.startsAt = null;
+      if (data.expiresAt) data.expiresAt = new Date(data.expiresAt);
+      else if (data.expiresAt === '' || data.expiresAt === null) data.expiresAt = null;
+      const coupon = await storage.updateCoupon(req.params.id, data);
       if (!coupon) return res.status(404).json({ error: "Coupon not found" });
       res.json(coupon);
     } catch (error) {
