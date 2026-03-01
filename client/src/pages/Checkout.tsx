@@ -81,6 +81,9 @@ export default function Checkout() {
     code: string;
     discountType: string;
     discountValue: string;
+    freeShipping?: boolean;
+    appliesToShipping?: boolean;
+    maxDiscountAmount?: string;
     isInfluencerCode?: boolean;
     influencerInstagram?: string;
   } | null>(null);
@@ -194,19 +197,27 @@ export default function Checkout() {
   // Calculate shipping based on country
   const isDomestic = formData.country === 'Türkiye';
   const isIraq = formData.country === 'Irak';
-  const shippingCost = isDomestic 
+  const baseShippingCost = isDomestic 
     ? (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
     : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
-  const remainingForFreeShipping = isDomestic ? (FREE_SHIPPING_THRESHOLD - subtotal) : 0;
+  const shippingCost = appliedCoupon?.freeShipping ? 0 : baseShippingCost;
+  const remainingForFreeShipping = isDomestic && !appliedCoupon?.freeShipping ? (FREE_SHIPPING_THRESHOLD - subtotal) : 0;
   const shippingProgress = isDomestic ? Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100) : 100;
   
   // Calculate discount based on coupon
   const calculateDiscount = () => {
     if (!appliedCoupon) return 0;
+    const discountBase = appliedCoupon.appliesToShipping ? subtotal + shippingCost : subtotal;
+    let disc = 0;
     if (appliedCoupon.discountType === 'percentage') {
-      return (subtotal * parseFloat(appliedCoupon.discountValue)) / 100;
+      disc = (discountBase * parseFloat(appliedCoupon.discountValue)) / 100;
+    } else {
+      disc = parseFloat(appliedCoupon.discountValue);
     }
-    return parseFloat(appliedCoupon.discountValue);
+    if (appliedCoupon.maxDiscountAmount) {
+      disc = Math.min(disc, parseFloat(appliedCoupon.maxDiscountAmount));
+    }
+    return Math.min(disc, discountBase);
   };
   
   const discount = calculateDiscount();
@@ -238,6 +249,9 @@ export default function Checkout() {
           code: data.coupon.code,
           discountType: data.coupon.discountType,
           discountValue: data.coupon.discountValue,
+          freeShipping: data.coupon.freeShipping,
+          appliesToShipping: data.coupon.appliesToShipping,
+          maxDiscountAmount: data.coupon.maxDiscountAmount,
           isInfluencerCode: data.coupon.isInfluencerCode,
           influencerInstagram: data.coupon.influencerInstagram,
         });
@@ -1126,6 +1140,12 @@ export default function Checkout() {
                           <X className="w-4 h-4" />
                         </button>
                       </div>
+                      {appliedCoupon.freeShipping && (
+                        <div className="flex items-center gap-2 text-xs text-green-400">
+                          <Truck className="w-4 h-4" />
+                          <span>Ücretsiz kargo kuponu uygulandı</span>
+                        </div>
+                      )}
                       {appliedCoupon.isInfluencerCode && appliedCoupon.influencerInstagram && (
                         <div className="flex items-center gap-2 text-xs text-pink-400">
                           <Instagram className="w-4 h-4" />

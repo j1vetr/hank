@@ -116,6 +116,15 @@ RESTful API endpoints under `/api/`:
 - **Stock**: `in_stock` / `out_of_stock` based on variant stock count
 - **Usage**: Add `https://hank.com.tr/feeds/google-merchant.xml` as feed URL in Google Merchant Center
 
+### Coupon System
+- **Discount Types**: `percentage` (% off) and `fixed` (flat amount off)
+- **Shipping Options**: `freeShipping` flag makes shipping free, `appliesToShipping` includes shipping in discount base
+- **Limits**: `usageLimit`, `perUserLimit`, `minOrderAmount`, `maxDiscountAmount`
+- **Validity**: `startsAt` / `expiresAt` date range
+- **Description**: Optional `description` field for admin notes
+- **Validation Endpoint**: `POST /api/coupons/validate`
+- **Redemption Tracking**: `coupon_redemptions` table logs each use
+
 ### Marketing & Influencer System
 - **Influencer Tracking**: Influencers are managed via coupons with `isInfluencerCode=true`
 - **Commission Types**: 

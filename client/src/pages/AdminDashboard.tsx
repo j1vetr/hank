@@ -5244,12 +5244,15 @@ function CouponModal({
 }) {
   const [formData, setFormData] = useState({
     code: coupon?.code || '',
+    description: coupon?.description || '',
     discountType: coupon?.discountType || 'percentage',
     discountValue: coupon?.discountValue || '',
     minOrderAmount: coupon?.minOrderAmount || '',
     maxDiscount: coupon?.maxDiscount || '',
     usageLimit: coupon?.usageLimit || '',
     perUserLimit: coupon?.perUserLimit || '',
+    freeShipping: coupon?.freeShipping ?? false,
+    appliesToShipping: coupon?.appliesToShipping ?? false,
     startsAt: coupon?.startsAt ? new Date(coupon.startsAt).toISOString().split('T')[0] : '',
     expiresAt: coupon?.expiresAt ? new Date(coupon.expiresAt).toISOString().split('T')[0] : '',
     isActive: coupon?.isActive ?? true,
@@ -5282,15 +5285,27 @@ function CouponModal({
         </div>
 
         <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Kupon Kodu *</label>
-            <input
-              type="text"
-              value={formData.code}
-              onChange={(e) => setFormData(p => ({ ...p, code: e.target.value.toUpperCase() }))}
-              placeholder="SUMMER20"
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-mono uppercase"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Kupon Kodu *</label>
+              <input
+                type="text"
+                value={formData.code}
+                onChange={(e) => setFormData(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+                placeholder="SUMMER20"
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-mono uppercase"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Açıklama</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
+                placeholder="Yaz indirimi"
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -5338,6 +5353,37 @@ function CouponModal({
                 className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
               />
             </div>
+          </div>
+
+          <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-4 space-y-3">
+            <p className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+              <Truck className="w-4 h-4" />
+              Kargo Seçenekleri
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.freeShipping}
+                onChange={(e) => setFormData(p => ({ ...p, freeShipping: e.target.checked }))}
+                className="w-4 h-4 rounded bg-zinc-800 border-zinc-600"
+              />
+              <div>
+                <span className="text-sm text-white">Ücretsiz Kargo</span>
+                <p className="text-xs text-zinc-500">Bu kupon kullanıldığında kargo ücretsiz olur</p>
+              </div>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.appliesToShipping}
+                onChange={(e) => setFormData(p => ({ ...p, appliesToShipping: e.target.checked }))}
+                className="w-4 h-4 rounded bg-zinc-800 border-zinc-600"
+              />
+              <div>
+                <span className="text-sm text-white">Kargo Dahil İndirim</span>
+                <p className="text-xs text-zinc-500">İndirim kargo tutarını da kapsasın</p>
+              </div>
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

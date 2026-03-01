@@ -1849,15 +1849,20 @@ export async function registerRoutes(
       // Handle coupon validation
       let validatedCoupon = null;
       let discountAmount = 0;
+      let couponFreeShipping = false;
       
       if (couponCode) {
         const couponResult = await storage.validateCoupon(couponCode, serverSubtotal, userId || undefined);
         if (couponResult.valid && couponResult.coupon) {
           validatedCoupon = couponResult.coupon;
+          couponFreeShipping = validatedCoupon.freeShipping || false;
           if (validatedCoupon.discountType === 'percentage') {
             discountAmount = (serverSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
           } else {
             discountAmount = parseFloat(validatedCoupon.discountValue);
+          }
+          if (validatedCoupon.maxDiscountAmount) {
+            discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
           }
           discountAmount = Math.min(discountAmount, serverSubtotal);
         }
@@ -1871,9 +1876,27 @@ export async function registerRoutes(
       
       const isDomestic = selectedCountry === 'Türkiye';
       const isIraq = selectedCountry === 'Irak';
-      const shippingCost = isDomestic 
+      let shippingCost = isDomestic 
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
         : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
+      
+      if (couponFreeShipping) {
+        shippingCost = 0;
+      }
+
+      if (validatedCoupon?.appliesToShipping && shippingCost > 0) {
+        const totalWithShipping = serverSubtotal + shippingCost;
+        if (validatedCoupon.discountType === 'percentage') {
+          discountAmount = (totalWithShipping * parseFloat(validatedCoupon.discountValue)) / 100;
+        } else {
+          discountAmount = parseFloat(validatedCoupon.discountValue);
+        }
+        if (validatedCoupon.maxDiscountAmount) {
+          discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
+        }
+        discountAmount = Math.min(discountAmount, totalWithShipping);
+      }
+
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
 
       // Generate unique merchant order ID

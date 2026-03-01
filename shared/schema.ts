@@ -326,6 +326,8 @@ export const coupons = pgTable("coupons", {
   usageLimit: integer("usage_limit"),
   usageCount: integer("usage_count").default(0).notNull(),
   perUserLimit: integer("per_user_limit").default(1),
+  freeShipping: boolean("free_shipping").default(false).notNull(),
+  appliesToShipping: boolean("applies_to_shipping").default(false).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   startsAt: timestamp("starts_at"),
   expiresAt: timestamp("expires_at"),
