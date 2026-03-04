@@ -16,7 +16,7 @@ import {
   CheckCircle2, UserPlus, Tag, X, Instagram
 } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
-import { trackInitiateCheckout, trackAddPaymentInfo } from '@/lib/metaPixel';
+import { trackInitiateCheckout, trackAddPaymentInfo, trackPurchase } from '@/lib/metaPixel';
 
 interface Product {
   id: string;
@@ -401,6 +401,8 @@ export default function Checkout() {
     }
   };
 
+  const purchaseTracked = useRef(false);
+
   // Check payment status when redirected back
   const checkPaymentStatus = useCallback(async () => {
     if (!merchantOid) return;
@@ -416,6 +418,25 @@ export default function Checkout() {
           setOrderNumber(data.orderNumber);
           setOrderComplete(true);
           clearCart();
+
+          if (!purchaseTracked.current) {
+            purchaseTracked.current = true;
+            const orderItems = data.items || [];
+            const totalValue = parseFloat(data.total || '0');
+            const orderNum = data.orderNumber || merchantOid;
+            trackPurchase({
+              contentIds: orderItems.map((i: any) => i.productId),
+              value: totalValue,
+              numItems: orderItems.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0) || 1,
+              orderId: orderNum,
+              contents: orderItems.map((i: any) => ({
+                id: i.productId,
+                quantity: i.quantity || 1,
+                price: parseFloat(i.price || '0'),
+              })),
+            });
+            console.log('[Meta Pixel] Purchase event fired from Checkout page:', orderNum);
+          }
         } else if (data.status === 'failed') {
           setPaymentError('Ödeme başarısız oldu. Lütfen tekrar deneyin.');
           setPaytrToken(null);
