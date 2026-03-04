@@ -18,7 +18,10 @@ interface UserDataParams {
   firstName?: string;
   lastName?: string;
   city?: string;
+  state?: string;
+  zip?: string;
   country?: string;
+  externalId?: string;
   clientIpAddress?: string;
   clientUserAgent?: string;
   fbp?: string;
@@ -50,6 +53,34 @@ interface EventParams {
   };
 }
 
+function normalizeCountryCode(country?: string): string | undefined {
+  if (!country) return undefined;
+  const countryMap: Record<string, string> = {
+    'Türkiye': 'tr', 'Turkey': 'tr', 'Irak': 'iq', 'Iraq': 'iq',
+    'Almanya': 'de', 'Germany': 'de', 'Fransa': 'fr', 'France': 'fr',
+    'İngiltere': 'gb', 'United Kingdom': 'gb', 'ABD': 'us', 'United States': 'us',
+    'Hollanda': 'nl', 'Netherlands': 'nl', 'Belçika': 'be', 'Belgium': 'be',
+    'Avusturya': 'at', 'Austria': 'at', 'İsviçre': 'ch', 'Switzerland': 'ch',
+    'İsveç': 'se', 'Sweden': 'se', 'Norveç': 'no', 'Norway': 'no',
+    'Danimarka': 'dk', 'Denmark': 'dk', 'İtalya': 'it', 'Italy': 'it',
+    'İspanya': 'es', 'Spain': 'es', 'Portekiz': 'pt', 'Portugal': 'pt',
+    'Yunanistan': 'gr', 'Greece': 'gr', 'Bulgaristan': 'bg', 'Bulgaria': 'bg',
+    'Romanya': 'ro', 'Romania': 'ro', 'Polonya': 'pl', 'Poland': 'pl',
+    'Çekya': 'cz', 'Czech Republic': 'cz', 'Macaristan': 'hu', 'Hungary': 'hu',
+    'Rusya': 'ru', 'Russia': 'ru', 'Ukrayna': 'ua', 'Ukraine': 'ua',
+    'Gürcistan': 'ge', 'Georgia': 'ge', 'Azerbaycan': 'az', 'Azerbaijan': 'az',
+    'Suudi Arabistan': 'sa', 'Saudi Arabia': 'sa', 'BAE': 'ae',
+    'Katar': 'qa', 'Qatar': 'qa', 'Kuveyt': 'kw', 'Kuwait': 'kw',
+    'Japonya': 'jp', 'Japan': 'jp', 'Çin': 'cn', 'China': 'cn',
+    'Güney Kore': 'kr', 'South Korea': 'kr', 'Hindistan': 'in', 'India': 'in',
+    'Avustralya': 'au', 'Australia': 'au', 'Kanada': 'ca', 'Canada': 'ca',
+    'Brezilya': 'br', 'Brazil': 'br', 'Meksika': 'mx', 'Mexico': 'mx',
+  };
+  if (countryMap[country]) return countryMap[country];
+  if (country.length === 2) return country.toLowerCase();
+  return country.substring(0, 2).toLowerCase();
+}
+
 export async function sendCapiEvent(params: EventParams): Promise<boolean> {
   if (!ACCESS_TOKEN || !PIXEL_ID) {
     console.log('[Meta CAPI] Missing credentials, skipping event:', params.eventName);
@@ -67,7 +98,11 @@ export async function sendCapiEvent(params: EventParams): Promise<boolean> {
     if (params.userData.firstName) userData.setFirstName(params.userData.firstName.toLowerCase().trim());
     if (params.userData.lastName) userData.setLastName(params.userData.lastName.toLowerCase().trim());
     if (params.userData.city) userData.setCity(params.userData.city.toLowerCase().trim());
-    if (params.userData.country) userData.setCountryCode(params.userData.country === 'Türkiye' ? 'tr' : params.userData.country.substring(0, 2).toLowerCase());
+    if (params.userData.state) userData.setState(params.userData.state.toLowerCase().trim());
+    if (params.userData.zip) userData.setZip(params.userData.zip.trim());
+    const countryCode = normalizeCountryCode(params.userData.country);
+    if (countryCode) userData.setCountry(countryCode);
+    if (params.userData.externalId) userData.setExternalId(params.userData.externalId);
     if (params.userData.clientIpAddress) userData.setClientIpAddress(params.userData.clientIpAddress);
     if (params.userData.clientUserAgent) userData.setClientUserAgent(params.userData.clientUserAgent);
     if (params.userData.fbp) userData.setFbp(params.userData.fbp);

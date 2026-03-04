@@ -148,6 +148,14 @@ export default function ProductDetail() {
         contentName: product.name,
         contentCategory: category?.name,
         value: parseFloat(product.basePrice || '0'),
+        userData: user ? {
+          email: user.email,
+          phone: user.phone || undefined,
+          firstName: user.firstName || undefined,
+          lastName: user.lastName || undefined,
+          city: user.city || undefined,
+          externalId: user.id,
+        } : undefined,
       });
     }
   }, [product?.id]);
@@ -203,6 +211,14 @@ export default function ProductDetail() {
         contentCategory: category?.name,
         value: parseFloat(product.basePrice || '0') * quantity,
         quantity,
+        userData: user ? {
+          email: user.email,
+          phone: user.phone || undefined,
+          firstName: user.firstName || undefined,
+          lastName: user.lastName || undefined,
+          city: user.city || undefined,
+          externalId: user.id,
+        } : undefined,
       });
       const mainImage = product.images?.length > 0 
         ? product.images[0] 

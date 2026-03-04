@@ -139,6 +139,21 @@ export default function Checkout() {
     }
   }, [user]);
 
+  const getTrackUserData = () => {
+    const ud: any = {};
+    if (formData.customerEmail) ud.email = formData.customerEmail;
+    if (formData.customerPhone) ud.phone = formData.customerPhone;
+    const nameParts = formData.customerName.trim().split(' ');
+    if (nameParts[0]) ud.firstName = nameParts[0];
+    if (nameParts.length > 1) ud.lastName = nameParts.slice(1).join(' ');
+    if (formData.city) ud.city = formData.city;
+    if (formData.district) ud.state = formData.district;
+    if (formData.postalCode) ud.zip = formData.postalCode;
+    if (formData.country) ud.country = formData.country;
+    if (user?.id) ud.externalId = user.id;
+    return Object.keys(ud).length > 0 ? ud : undefined;
+  };
+
   useEffect(() => {
     if (!initiateCheckoutTracked.current && items.length > 0 && products.length > 0) {
       initiateCheckoutTracked.current = true;
@@ -153,6 +168,7 @@ export default function Checkout() {
         value: cartItemsWithProducts.reduce((sum, item) => sum + parseFloat(item.product?.basePrice || '0') * item.quantity, 0),
         numItems: items.reduce((sum, item) => sum + item.quantity, 0),
         contents: trackContents,
+        userData: getTrackUserData(),
       });
     }
   }, [items, products]);
@@ -388,6 +404,7 @@ export default function Checkout() {
         value: total,
         numItems: items.reduce((sum, item) => sum + item.quantity, 0),
         contents: trackContents,
+        userData: getTrackUserData(),
       });
     } catch (error: any) {
       setPaymentError(error.message || 'Ödeme başlatılamadı');
@@ -434,6 +451,7 @@ export default function Checkout() {
                 quantity: i.quantity || 1,
                 price: parseFloat(i.price || '0'),
               })),
+              userData: getTrackUserData(),
             });
             console.log('[Meta Pixel] Purchase event fired from Checkout page:', orderNum);
           }

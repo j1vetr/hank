@@ -1,251 +1,49 @@
 # HANK E-Commerce Platform
 
 ## Overview
-
-HANK is a Turkish fitness and bodybuilding e-commerce platform built as a full-stack web application. The platform enables customers to browse products, manage shopping carts, and complete purchases, while providing administrators with a dashboard to manage products, categories, and orders.
+HANK is a full-stack e-commerce platform specializing in fitness and bodybuilding products for the Turkish market. It allows customers to browse products, manage carts, and make purchases, while providing administrators with tools for product, category, and order management. The platform aims to capture market share in the fitness e-commerce sector through a robust feature set and a strong brand identity.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript
-- **Routing**: Wouter for lightweight client-side routing
-- **State Management**: TanStack React Query for server state, React Context for auth and cart state
-- **Styling**: Tailwind CSS with shadcn/ui component library (New York style)
-- **Animations**: Framer Motion for UI animations
-- **Build Tool**: Vite with hot module replacement
+### Core Technologies
+- **Frontend**: React 18 with TypeScript, Wouter for routing, TanStack React Query for server state, React Context for local state, Tailwind CSS with shadcn/ui (New York style), Framer Motion for animations, Vite for building.
+- **Backend**: Node.js with Express, TypeScript, JWT for authentication (stateless with HttpOnly cookies and refresh token rotation), bcrypt for password hashing, esbuild for bundling.
+- **Database**: PostgreSQL with Drizzle ORM for schema management and queries, Drizzle Kit for migrations.
+- **UI/UX**: Component-based architecture with reusable UI elements, consistent styling, and animations. Admin panel accessible at `/toov-admin`.
 
-The frontend follows a component-based architecture with:
-- Reusable UI components in `client/src/components/ui/`
-- Feature components in `client/src/components/`
-- Custom hooks for auth (`useAuth`), cart (`useCart`), and products (`useProducts`)
-- Pages organized in `client/src/pages/`
-
-### Backend Architecture
-- **Runtime**: Node.js with Express
-- **Language**: TypeScript with ESM modules
-- **Authentication**: JWT with HttpOnly cookies and refresh tokens
-- **Password Hashing**: bcrypt for secure password storage
-- **Build**: esbuild for production bundling
-
-The server uses a layered architecture:
-- `server/routes.ts` - API endpoint definitions and middleware
-- `server/storage.ts` - Data access layer abstracting database operations
-- `server/db.ts` - Database connection setup
-- `server/static.ts` - Static file serving for production
-
-### Data Layer
-- **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema**: Defined in `shared/schema.ts` using Drizzle's schema builder
-- **Validation**: Zod schemas generated from Drizzle schemas via drizzle-zod
-- **Migrations**: Drizzle Kit for schema migrations (`drizzle-kit push`)
-
-Database tables include:
-- `admin_users` - Admin authentication
-- `users` - Customer accounts
-- `categories` - Product categories
-- `products` - Product catalog
-- `product_categories` - Many-to-many relationship for multi-category products
-- `product_variants` - Size/color variants with stock
-- `cart_items` - Shopping cart persistence
-- `orders` and `order_items` - Order management
-
-### Multi-Category Product Support
-- **Many-to-Many Relationship**: Products can belong to multiple categories via `product_categories` junction table
-- **Primary Category**: `products.categoryId` remains as the primary category for backward compatibility
-- **Additional Categories**: `categoryIds` array returned with products for all assigned categories
-- **Admin UI**: Category selection uses toggle buttons (like sizes) for multi-select
-- **Frontend Filtering**: Products appear in all their categories, not just the primary one
-- **Storage Functions**:
-  - `getProductCategoryIds(productId)` - Get all category IDs for a product
-  - `setProductCategories(productId, categoryIds)` - Set all categories for a product
-  - `getProductsByCategoryIds(categoryIds)` - Get products in any of the specified categories
-
-### Authentication (JWT-based, Fully Stateless)
-- **Architecture**: Stateless JWT + HttpOnly Cookie + Refresh Token Rotation (no express-session)
-- **Access Tokens**: Short-lived (15 minutes), stored in HttpOnly cookie
-- **Refresh Tokens**: Long-lived (7 days), stored in HttpOnly cookie with database tracking
-- **Token Refresh**: Automatic refresh when access token expires via `getAuthPayload` helper
-- **Token Rotation**: Refresh tokens are rotated on every use - old tokens are revoked immediately
-- **Token Revocation**: Individual token or all tokens per user via database
-- **Security**: IP address and user agent tracking for refresh tokens
-- **Cart Tokens**: Anonymous shopping carts use `cart_token` HttpOnly cookie (30-day expiry)
-- **Admin Auth**: JWT-based authentication via `/api/admin/login`
-- **Customer Auth**: JWT-based authentication via `/api/auth/*` endpoints
-- **Production**: Secure cookies with SameSite=Strict in production mode
-- **JWT Module**: `server/jwt.ts` contains all JWT utilities including cart token helpers
-- Admin panel accessible at `/toov-admin`
-
-### API Structure
-RESTful API endpoints under `/api/`:
-- `/api/admin/*` - Admin authentication and management
-- `/api/auth/*` - Customer authentication
-- `/api/products` - Product listing with filters
-- `/api/categories` - Category management
-- `/api/cart` - Shopping cart operations
-- `/api/orders` - Order creation and management
-- `/api/admin/influencer-coupons` - Influencer tracking and commission management
-- `/api/admin/settings` - Database-stored SMTP and site settings
-
-### Meta Pixel + Conversion API (CAPI)
-- **Pixel ID**: 2039736916872906 (stored in META_PIXEL_ID secret)
-- **CAPI Access Token**: Stored in META_CAPI_ACCESS_TOKEN secret
-- **SDK**: facebook-nodejs-business-sdk for server-side CAPI events
-- **Client Helper**: `client/src/lib/metaPixel.ts` - fbq wrapper with event ID generation
-- **Server Service**: `server/metaCapi.ts` - CAPI event sender with user data extraction
-- **Event Deduplication**: Matching event_id sent to both Pixel and CAPI
-- **Events Tracked**:
-  - PageView: Pixel base code in index.html (automatic on page load)
-  - ViewContent: Product detail page (Pixel + CAPI via /api/track/view-content)
-  - AddToCart: Sepete ekleme (Pixel + CAPI via /api/track/add-to-cart)
-  - InitiateCheckout: Ödeme adımına geçiş (Pixel + CAPI via /api/track/initiate-checkout)
-  - AddPaymentInfo: Payment step (Pixel only, client-side)
-  - Purchase: PayTR callback (CAPI server-side) + PaymentSuccess page (Pixel client-side)
-- **User Data**: fbp/fbc cookies, client IP, user agent extracted for match quality
-- **Dynamic Data**: Product ID, price, name, category sent with all events
-
-### Google Merchant Center Feed
-- **Endpoint**: `/feeds/google-merchant.xml`
-- **Format**: RSS 2.0 with Google namespace (`xmlns:g`)
-- **Data**: All active products with variants (each size/color = separate item)
-- **Fields**: id, title, description (HTML stripped), link, image_link, additional_image_link, price, availability, brand, condition, google_product_category, product_type, size, color, gender, age_group, shipping
-- **Variant Grouping**: `item_group_id` groups variants of same product
-- **Stock**: `in_stock` / `out_of_stock` based on variant stock count
-- **Usage**: Add `https://hank.com.tr/feeds/google-merchant.xml` as feed URL in Google Merchant Center
-
-### Coupon System
-- **Discount Types**: `percentage` (% off) and `fixed` (flat amount off)
-- **Shipping Options**: `freeShipping` flag makes shipping free, `appliesToShipping` includes shipping in discount base
-- **Limits**: `usageLimit`, `perUserLimit`, `minOrderAmount`, `maxDiscountAmount`
-- **Validity**: `startsAt` / `expiresAt` date range
-- **Description**: Optional `description` field for admin notes
-- **Validation Endpoint**: `POST /api/coupons/validate`
-- **Redemption Tracking**: `coupon_redemptions` table logs each use
-
-### Marketing & Influencer System
-- **Influencer Tracking**: Influencers are managed via coupons with `isInfluencerCode=true`
-- **Commission Types**: 
-  - `percentage` - Percentage of order total per use
-  - `per_use` - Fixed amount per code usage
-  - `fixed_total` - One-time fixed payment
-- **Commission Tracking**: `totalCommissionEarned` tracks accumulated earnings
-- **Payment Status**: `commissionPaid` flag marks when influencer has been paid
-- **Instagram Integration**: `influencerInstagram` links to influencer's profile
-
-### Stock Management
-- **Automatic Stock Reduction**: Orders automatically reduce variant stock on creation
-- **Stock Adjustments**: Logged with types: 'sale', 'return', 'manual', 'restock', 'correction'
-- **Order Cancellation**: Automatically restores stock when orders are cancelled
-- **Low Stock Alerts**: Admin dashboard highlights low stock variants
-
-### Product/Variant Consistency (Critical Fix)
-- When processing cart items with variants, always use variant's `productId` to fetch product details
-- This prevents product name mismatch in invoices (e.g., pants showing as t-shirt)
-- Applied to: payment creation, order creation, and abandoned cart emails
-
-### Shipping & International Orders
-- **Domestic (Turkey) Shipping**: Free for orders >= 2500 TL, otherwise 200 TL
-- **International Shipping**: Fixed 2500 TL for all orders outside Turkey
-- **Country Selection**: World countries dropdown in checkout (default: Türkiye)
-- **Country Field**: Added to `users`, `user_addresses`, and order `shippingAddress` JSON
-- **Backend Calculation**: Server-side verification of shipping costs based on country
-
-### AI Product Description Generation
-- **OpenAI Integration**: Uses GPT-4o with Vision for image analysis
-- **API Key**: Requires `OPENAI_API_KEY` environment variable
-- **Styles Available**: Profesyonel, Enerjik, Minimal, Lüks, Sportif
-- **Output Format**: HTML formatted descriptions with proper tags (<p>, <ul>, <li>, <strong>)
-- **Admin UI**: "AI ile Oluştur" button in product edit modal
-- **Flow**: Select style → Generate → Preview → Apply or Regenerate
-- **Service File**: `server/aiService.ts`
-- **API Endpoint**: `POST /api/admin/products/:id/generate-description`
-
-### Email Notifications
-- **SMTP Configuration**: Stored in database via `settings` table (not .env)
-- **Configured SMTP**: host=mail.toov.com.tr, user=no-reply@toov.com.tr
-- **Email Templates**: Dark athletic luxury theme matching brand identity
-
-### Payment System (PayTR)
-- **Production Domain**: hank.com.tr
-- **Callback URL**: https://hank.com.tr/api/payment/callback
-- **Success URL**: https://hank.com.tr/odeme-basarili
-- **Fail URL**: https://hank.com.tr/odeme-basarisiz
-- **Payment Mode**: Credit card only (taksit disabled)
-
-### BizimHesap Invoice Integration
-- **API Endpoint**: https://bizimhesap.com/api/b2b/addinvoice
-- **Invoice Type**: 3 (Satış Faturası)
-- **KDV Rate**: %20 (prices are KDV inclusive)
-- **Auto-trigger**: Invoices are automatically sent after successful PayTR payment
-- **No discounts shown**: Total amount sent directly without discount breakdown
-- **Currency**: TL
-
-### B2B Dealer Management System
-- **Dealer Management**: Full CRUD for dealer companies (name, contact person, email, phone, address)
-- **Dealer Status**: Active/Inactive status tracking
-- **Quote System**: Professional quote creation with product and variant/size selection
-- **Quote Numbering**: Format `TKL-{year}-{sequential}` (e.g., TKL-2026-001)
-- **Quote Status Workflow**: draft → sent → accepted/rejected/expired
-- **Stock Deduction**: Accepting a quote automatically reduces variant stock with stock adjustment logging
-- **Variant/Size Support**: Quote line items can specify product variant (size/color)
-- **Product Codes**: SKU codes shown in product selector and quote item tables
-- **Payment Terms**: cash, net15, net30, net45, net60
-- **Line Items**: Products with variant, quantity, unit price, discount percentage
-- **Quote Validity**: Optional expiration date for quotes
-- **PDF Export**: Compact layout with Beden column, fits more items per page
-- **Admin Tabs**: "Bayiler" for dealers, "Teklifler" for quotes in admin dashboard
-- **API Routes**: `/api/admin/dealers/*`, `/api/admin/quotes/*`
+### Key Features
+- **Authentication**: JWT-based for both customers and administrators, featuring refresh token rotation and HttpOnly cookies for enhanced security.
+- **Multi-Category Product Support**: Products can be assigned to multiple categories, enhancing discoverability.
+- **Stock Management**: Automatic stock reduction on orders, stock adjustments, and restoration on cancellation.
+- **AI Product Description Generation**: Integration with OpenAI GPT-4o for generating product descriptions in various styles, including HTML formatting.
+- **Payment System**: Integration with PayTR for credit card payments, handling callbacks and success/failure redirects.
+- **Invoice Integration**: Automatic invoice generation and submission to BizimHesap after successful payments.
+- **Coupon System**: Flexible coupon management with percentage/fixed discounts, usage limits, and validity periods.
+- **Shipping & International Orders**: Differentiated shipping costs for domestic and international orders with server-side validation.
+- **Email Notifications**: Database-configurable SMTP for sending emails using brand-aligned templates.
+- **B2B Dealer Management & Quote System**: Comprehensive system for managing dealer companies and generating professional quotes with stock deduction upon acceptance.
+- **Meta Pixel + CAPI Integration**: Server-side and client-side tracking of key e-commerce events (PageView, ViewContent, AddToCart, Purchase, etc.) with robust user data matching for Facebook advertising.
+- **Google Merchant Center Feed**: Automated XML product feed generation for Google Shopping.
+- **AI Chatbot (Ürün Asistanı)**: Conversational AI for product search, recommendations, and availability checks, utilizing product embeddings for semantic search.
 
 ## External Dependencies
 
 ### Database
-- **PostgreSQL**: Primary database, connection via `DATABASE_URL` environment variable
-- **Drizzle ORM**: Database queries and schema management
+- **PostgreSQL**: Main data store.
 
-### Third-Party Libraries
-- **shadcn/ui + Radix UI**: Accessible UI component primitives
-- **TanStack React Query**: Data fetching and caching
-- **Framer Motion**: Animation library
-- **Lucide React**: Icon library
-- **Sharp**: Image optimization and processing
+### Third-Party Services & APIs
+- **OpenAI**: For AI product description generation and chatbot functionality.
+- **PayTR**: Payment gateway for processing credit card transactions.
+- **BizimHesap**: Accounting software for invoice integration.
+- **Facebook (Meta Pixel/CAPI)**: For advertising and event tracking.
+- **Google Merchant Center**: For product feed submission.
 
-### Image Optimization
-- All product and category images are automatically optimized on upload
-- Converts images to WebP format for better compression
-- Resizes large images (max 1200x1200) while maintaining aspect ratio
-- Compresses with 85% quality for optimal file size vs quality balance
-- Works for both manual uploads and WooCommerce sync imports
-- Utility located at `server/imageOptimizer.ts`
-
-### Environment Variables
-- `DATABASE_URL` - PostgreSQL connection string (required)
-- `SESSION_SECRET` - Express session secret (defaults to development value)
-- `NODE_ENV` - Environment mode (development/production)
-
-### AI Chatbot (Ürün Asistanı)
-- **Component**: `client/src/components/Chatbot.tsx` - Floating chat button with conversation UI
-- **Service**: `server/chatbotService.ts` - Message processing, embedding generation, semantic search
-- **Model**: GPT-4o for conversations, text-embedding-ada-002 for product embeddings
-- **Features**:
-  - Natural language product search and recommendations
-  - Size and stock availability checks
-  - Conversation history persistence
-  - Rate limiting (30 messages per minute per session)
-  - Hidden on admin pages
-- **Database Tables**:
-  - `product_attributes` - Product metadata (type, fit, material, usage, season, features)
-  - `product_embeddings` - Vector embeddings for semantic search
-  - `chat_sessions` - Anonymous or user-linked chat sessions
-  - `chat_messages` - Conversation history
-- **Admin Endpoints**:
-  - `POST /api/admin/chatbot/generate-embeddings` - Generate embeddings for all products
-  - `POST /api/admin/chatbot/generate-embedding/:productId` - Generate embedding for single product
-  - `GET/PUT /api/admin/products/:id/attributes` - Manage product attributes
-
-### Replit-Specific Integrations
-- Vite plugins for Replit development environment
-- Meta images plugin for OpenGraph image handling
-- Runtime error overlay for development debugging
+### Libraries & Frameworks
+- **shadcn/ui + Radix UI**: UI component primitives.
+- **TanStack React Query**: Data fetching and caching.
+- **Framer Motion**: UI animations.
+- **Lucide React**: Icons.
+- **Sharp**: Image optimization.

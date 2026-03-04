@@ -14,6 +14,18 @@ function fbq(...args: any[]) {
   }
 }
 
+interface TrackUserData {
+  email?: string;
+  phone?: string;
+  firstName?: string;
+  lastName?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  country?: string;
+  externalId?: string;
+}
+
 export function trackPageView() {
   fbq('track', 'PageView');
 }
@@ -24,6 +36,7 @@ export function trackViewContent(params: {
   contentCategory?: string;
   value: number;
   currency?: string;
+  userData?: TrackUserData;
 }) {
   const eventId = generateEventId();
   fbq('track', 'ViewContent', {
@@ -46,6 +59,7 @@ export function trackViewContent(params: {
       contentCategory: params.contentCategory,
       value: params.value,
       sourceUrl: window.location.href,
+      userData: params.userData,
     }),
   }).catch(() => {});
 }
@@ -57,6 +71,7 @@ export function trackAddToCart(params: {
   value: number;
   currency?: string;
   quantity?: number;
+  userData?: TrackUserData;
 }) {
   const eventId = generateEventId();
   fbq('track', 'AddToCart', {
@@ -81,6 +96,7 @@ export function trackAddToCart(params: {
       value: params.value,
       quantity: params.quantity || 1,
       sourceUrl: window.location.href,
+      userData: params.userData,
     }),
   }).catch(() => {});
 }
@@ -91,6 +107,7 @@ export function trackInitiateCheckout(params: {
   currency?: string;
   numItems: number;
   contents?: Array<{ id: string; quantity: number; price: number }>;
+  userData?: TrackUserData;
 }) {
   const eventId = generateEventId();
   fbq('track', 'InitiateCheckout', {
@@ -113,6 +130,7 @@ export function trackInitiateCheckout(params: {
       numItems: params.numItems,
       contents: params.contents,
       sourceUrl: window.location.href,
+      userData: params.userData,
     }),
   }).catch(() => {});
 }
@@ -123,6 +141,7 @@ export function trackAddPaymentInfo(params: {
   currency?: string;
   numItems?: number;
   contents?: Array<{ id: string; quantity: number; price: number }>;
+  userData?: TrackUserData;
 }) {
   const eventId = generateEventId();
   fbq('track', 'AddPaymentInfo', {
@@ -144,6 +163,7 @@ export function trackAddPaymentInfo(params: {
       numItems: params.numItems,
       contents: params.contents,
       sourceUrl: window.location.href,
+      userData: params.userData,
     }),
   }).catch(() => {});
 }
@@ -155,6 +175,7 @@ export function trackPurchase(params: {
   numItems: number;
   orderId: string;
   contents?: Array<{ id: string; quantity: number; price: number }>;
+  userData?: TrackUserData;
 }) {
   const eventId = `purchase-${params.orderId}`;
   fbq('track', 'Purchase', {
@@ -179,6 +200,7 @@ export function trackPurchase(params: {
       orderId: params.orderId,
       contents: params.contents,
       sourceUrl: window.location.href,
+      userData: params.userData,
     }),
   }).catch(() => {});
 }

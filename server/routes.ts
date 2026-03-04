@@ -1916,6 +1916,8 @@ export async function registerRoutes(
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 1); // Expires in 1 hour
 
+      const { fbp: paymentFbp, fbc: paymentFbc } = extractFbCookies(req.headers.cookie);
+
       await storage.createPendingPayment({
         merchantOid,
         sessionId: cartToken,
@@ -1933,6 +1935,10 @@ export async function registerRoutes(
         paytrToken: null,
         createAccount: createAccount || false,
         accountPasswordHash: accountPasswordHash,
+        clientIp: userIp,
+        clientUserAgent: req.headers['user-agent'] || '',
+        fbp: paymentFbp || null,
+        fbc: paymentFbc || null,
         expiresAt,
       });
 
@@ -2119,7 +2125,13 @@ export async function registerRoutes(
               firstName: pendingPayment.customerName.split(' ')[0],
               lastName: pendingPayment.customerName.split(' ').slice(1).join(' '),
               city: shippingAddr?.city,
+              state: shippingAddr?.district,
+              zip: shippingAddr?.postalCode,
               country: shippingAddr?.country || 'Türkiye',
+              clientIpAddress: pendingPayment.clientIp || undefined,
+              clientUserAgent: pendingPayment.clientUserAgent || undefined,
+              fbp: pendingPayment.fbp || undefined,
+              fbc: pendingPayment.fbc || undefined,
             },
             customData: {
               value: parseFloat(pendingPayment.total),
@@ -5193,19 +5205,60 @@ Sitemap: ${baseUrl}/sitemap.xml
     }
   });
 
-  // Meta CAPI tracking endpoints
+  // Meta CAPI tracking endpoints - helper to build full user data
+  async function buildCapiUserData(req: Request, res: Response) {
+    const { fbp, fbc } = extractFbCookies(req.headers.cookie);
+    const clientIp = getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+    const clientUserData = req.body.userData || {};
+
+    const mergedData: any = {
+      clientIpAddress: clientIp,
+      clientUserAgent: userAgent,
+      fbp: fbp || clientUserData.fbp,
+      fbc: fbc || clientUserData.fbc,
+    };
+
+    if (clientUserData.email) mergedData.email = clientUserData.email;
+    if (clientUserData.phone) mergedData.phone = clientUserData.phone;
+    if (clientUserData.firstName) mergedData.firstName = clientUserData.firstName;
+    if (clientUserData.lastName) mergedData.lastName = clientUserData.lastName;
+    if (clientUserData.city) mergedData.city = clientUserData.city;
+    if (clientUserData.state) mergedData.state = clientUserData.state;
+    if (clientUserData.zip) mergedData.zip = clientUserData.zip;
+    if (clientUserData.country) mergedData.country = clientUserData.country;
+    if (clientUserData.externalId) mergedData.externalId = clientUserData.externalId;
+
+    if (!mergedData.email || !mergedData.externalId) {
+      try {
+        const payload = await getAuthPayload(req, res);
+        if (payload?.userId) {
+          const dbUser = await storage.getUser(payload.userId);
+          if (dbUser) {
+            if (!mergedData.externalId) mergedData.externalId = dbUser.id;
+            if (!mergedData.email) mergedData.email = dbUser.email;
+            if (!mergedData.phone && dbUser.phone) mergedData.phone = dbUser.phone;
+            if (!mergedData.firstName && dbUser.firstName) mergedData.firstName = dbUser.firstName;
+            if (!mergedData.lastName && dbUser.lastName) mergedData.lastName = dbUser.lastName;
+            if (!mergedData.city && dbUser.city) mergedData.city = dbUser.city;
+          }
+        }
+      } catch {}
+    }
+
+    return mergedData;
+  }
+
   app.post("/api/track/view-content", async (req: Request, res) => {
     try {
       const { eventId, contentId, contentName, contentCategory, value, sourceUrl } = req.body;
-      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
-      const clientIp = getClientIp(req);
-      const userAgent = req.headers['user-agent'] || '';
+      const userData = await buildCapiUserData(req, res);
 
       sendCapiEvent({
         eventName: 'ViewContent',
         eventId,
         eventSourceUrl: sourceUrl || 'https://hank.com.tr',
-        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        userData,
         customData: {
           value,
           currency: 'TRY',
@@ -5225,15 +5278,13 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/track/add-to-cart", async (req: Request, res) => {
     try {
       const { eventId, contentId, contentName, contentCategory, value, quantity, sourceUrl } = req.body;
-      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
-      const clientIp = getClientIp(req);
-      const userAgent = req.headers['user-agent'] || '';
+      const userData = await buildCapiUserData(req, res);
 
       sendCapiEvent({
         eventName: 'AddToCart',
         eventId,
         eventSourceUrl: sourceUrl || 'https://hank.com.tr',
-        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        userData,
         customData: {
           value,
           currency: 'TRY',
@@ -5254,15 +5305,13 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/track/initiate-checkout", async (req: Request, res) => {
     try {
       const { eventId, contentIds, value, numItems, contents, sourceUrl } = req.body;
-      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
-      const clientIp = getClientIp(req);
-      const userAgent = req.headers['user-agent'] || '';
+      const userData = await buildCapiUserData(req, res);
 
       sendCapiEvent({
         eventName: 'InitiateCheckout',
         eventId,
         eventSourceUrl: sourceUrl || 'https://hank.com.tr',
-        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        userData,
         customData: {
           value,
           currency: 'TRY',
@@ -5282,9 +5331,7 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/track/purchase", async (req: Request, res) => {
     try {
       const { eventId, contentIds, value, numItems, orderId, contents, sourceUrl } = req.body;
-      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
-      const clientIp = getClientIp(req);
-      const userAgent = req.headers['user-agent'] || '';
+      const userData = await buildCapiUserData(req, res);
 
       console.log('[Meta CAPI] Client Purchase tracking:', { eventId, value, orderId, contentIds });
 
@@ -5292,7 +5339,7 @@ Sitemap: ${baseUrl}/sitemap.xml
         eventName: 'Purchase',
         eventId,
         eventSourceUrl: sourceUrl || 'https://hank.com.tr/odeme-basarili',
-        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        userData,
         customData: {
           value,
           currency: 'TRY',
@@ -5313,15 +5360,13 @@ Sitemap: ${baseUrl}/sitemap.xml
   app.post("/api/track/add-payment-info", async (req: Request, res) => {
     try {
       const { eventId, contentIds, value, numItems, contents, sourceUrl } = req.body;
-      const { fbp, fbc } = extractFbCookies(req.headers.cookie);
-      const clientIp = getClientIp(req);
-      const userAgent = req.headers['user-agent'] || '';
+      const userData = await buildCapiUserData(req, res);
 
       sendCapiEvent({
         eventName: 'AddPaymentInfo',
         eventId,
         eventSourceUrl: sourceUrl || 'https://hank.com.tr',
-        userData: { clientIpAddress: clientIp, clientUserAgent: userAgent, fbp, fbc },
+        userData,
         customData: {
           value,
           currency: 'TRY',

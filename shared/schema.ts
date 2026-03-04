@@ -544,6 +544,10 @@ export const pendingPayments = pgTable("pending_payments", {
   paytrToken: text("paytr_token"),
   createAccount: boolean("create_account").default(false),
   accountPasswordHash: text("account_password_hash"),
+  clientIp: text("client_ip"),
+  clientUserAgent: text("client_user_agent"),
+  fbp: text("fbp"),
+  fbc: text("fbc"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
 });
