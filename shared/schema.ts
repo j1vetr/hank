@@ -226,8 +226,8 @@ export type Order = typeof orders.$inferSelect;
 export const orderItems = pgTable("order_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   orderId: varchar("order_id").references(() => orders.id, { onDelete: "cascade" }).notNull(),
-  productId: varchar("product_id").references(() => products.id).notNull(),
-  variantId: varchar("variant_id").references(() => productVariants.id),
+  productId: varchar("product_id").references(() => products.id, { onDelete: "set null" }),
+  variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
   productName: text("product_name").notNull(),
   variantDetails: text("variant_details"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
@@ -610,8 +610,8 @@ export type Quote = typeof quotes.$inferSelect;
 export const quoteItems = pgTable("quote_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   quoteId: varchar("quote_id").references(() => quotes.id, { onDelete: "cascade" }).notNull(),
-  productId: varchar("product_id").references(() => products.id).notNull(),
-  variantId: varchar("variant_id").references(() => productVariants.id),
+  productId: varchar("product_id").references(() => products.id, { onDelete: "set null" }),
+  variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
   productName: text("product_name").notNull(),
   productSku: text("product_sku"),
   productImage: text("product_image"),
