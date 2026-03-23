@@ -534,7 +534,7 @@ export default function AdminDashboard() {
                 {category.title}
               </p>
               {category.items.map((item) => {
-                const pendingBadge = item.id === 'orders' ? orders.filter(o => o.status === 'pending').length : 0;
+                const pendingBadge = item.id === 'orders' ? orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length : 0;
                 return (
                   <button
                     key={item.id}

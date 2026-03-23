@@ -4,7 +4,7 @@ import { Link } from 'wouter';
 import {
   ShoppingBag, Clock, TrendingUp, CheckCircle2, XCircle,
   Truck, Search, Eye, BarChart3, ArrowUpRight, ChevronDown,
-  Package, RefreshCw
+  Package, RefreshCw, Banknote
 } from 'lucide-react';
 
 interface Order {
@@ -26,6 +26,7 @@ interface Order {
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Tümü' },
+  { value: 'confirmed', label: 'Yeni Sipariş' },
   { value: 'pending', label: 'Beklemede' },
   { value: 'processing', label: 'İşleniyor' },
   { value: 'shipped', label: 'Kargoda' },
@@ -34,6 +35,7 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string; icon: React.ElementType }> = {
+  confirmed:  { label: 'Yeni Sipariş', color: 'text-orange-400', bg: 'bg-orange-500/15 border-orange-500/30', dot: 'bg-orange-400', icon: Banknote },
   pending:    { label: 'Beklemede',  color: 'text-amber-400',   bg: 'bg-amber-500/15 border-amber-500/30',   dot: 'bg-amber-400',   icon: Clock },
   processing: { label: 'İşleniyor', color: 'text-blue-400',    bg: 'bg-blue-500/15 border-blue-500/30',     dot: 'bg-blue-400',    icon: RefreshCw },
   shipped:    { label: 'Kargoda',   color: 'text-purple-400',  bg: 'bg-purple-500/15 border-purple-500/30', dot: 'bg-purple-400',  icon: Truck },
@@ -158,7 +160,9 @@ export default function OrdersPanel() {
     const thisMonthRevenue = thisMonthOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
     const lastMonthRevenue = lastMonthOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
 
+    const confirmed = orders.filter(o => o.status === 'confirmed').length;
     const pending = orders.filter(o => o.status === 'pending').length;
+    const awaitingAction = confirmed + pending;
     const processing = orders.filter(o => o.status === 'processing').length;
     const completed = orders.filter(o => o.status === 'completed').length;
     const totalRevenue = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
@@ -166,7 +170,7 @@ export default function OrdersPanel() {
 
     const revenueGrowth = lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : null;
 
-    return { pending, processing, completed, thisMonthRevenue, lastMonthRevenue, revenueGrowth, avgOrder, totalRevenue, thisMonthOrders: thisMonthOrders.length };
+    return { confirmed, pending, awaitingAction, processing, completed, thisMonthRevenue, lastMonthRevenue, revenueGrowth, avgOrder, totalRevenue, thisMonthOrders: thisMonthOrders.length };
   }, [orders]);
 
   const monthlyData = useMemo(() => {
@@ -229,18 +233,18 @@ export default function OrdersPanel() {
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-amber-400" />
+            <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
+              <Banknote className="w-4 h-4 text-orange-400" />
             </div>
-            {stats.pending > 0 && (
-              <span className="flex items-center gap-1 text-xs text-amber-400 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Dikkat
+            {stats.awaitingAction > 0 && (
+              <span className="flex items-center gap-1 text-xs text-orange-400 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                İşlem bekliyor
               </span>
             )}
           </div>
-          <p className="text-2xl font-bold text-white">{stats.pending}</p>
-          <p className="text-xs text-zinc-500 mt-1">Beklemede</p>
+          <p className="text-2xl font-bold text-white">{stats.awaitingAction}</p>
+          <p className="text-xs text-zinc-500 mt-1">Yeni / Beklemede</p>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
@@ -326,7 +330,7 @@ export default function OrdersPanel() {
               >
                 {opt.label}
                 {count > 0 && (
-                  <span className={`text-[10px] font-bold min-w-[16px] text-center ${active ? 'text-black/60' : opt.value === 'pending' && count > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                  <span className={`text-[10px] font-bold min-w-[16px] text-center ${active ? 'text-black/60' : (opt.value === 'confirmed' || opt.value === 'pending') && count > 0 ? 'text-orange-400' : 'text-zinc-500'}`}>
                     {count}
                   </span>
                 )}
