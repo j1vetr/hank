@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import OrdersPanel from './AdminOrdersPanel';
 import { 
   LayoutDashboard, 
   Package, 
@@ -953,75 +954,7 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'orders' && (
-            <div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-zinc-800/50">
-                    <tr>
-                      <th className="text-left px-6 py-4 text-sm font-medium text-zinc-400">Sipariş No</th>
-                      <th className="text-left px-6 py-4 text-sm font-medium text-zinc-400">Müşteri</th>
-                      <th className="text-left px-6 py-4 text-sm font-medium text-zinc-400">Toplam</th>
-                      <th className="text-left px-6 py-4 text-sm font-medium text-zinc-400">Durum</th>
-                      <th className="text-left px-6 py-4 text-sm font-medium text-zinc-400">Tarih</th>
-                      <th className="text-right px-6 py-4 text-sm font-medium text-zinc-400">İşlemler</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order) => (
-                      <tr key={order.id} className="border-t border-zinc-800 hover:bg-zinc-800/30" data-testid={`row-order-${order.id}`}>
-                        <td className="px-6 py-4 font-mono text-white">{order.orderNumber}</td>
-                        <td className="px-6 py-4">
-                          <Link href={`/toov-admin/orders/${order.id}`} className="block hover:opacity-80 transition-opacity cursor-pointer">
-                            <p className="font-medium text-white">{order.customerName}</p>
-                            <p className="text-sm text-zinc-500">{order.customerEmail}</p>
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Link href={`/toov-admin/orders/${order.id}`} className="font-semibold text-white hover:opacity-80 transition-opacity cursor-pointer">
-                            {order.total}₺
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4">
-                          <select
-                            value={order.status}
-                            onChange={(e) => updateOrderStatusMutation.mutate({ id: order.id, status: e.target.value })}
-                            className={`px-3 py-1 rounded text-sm bg-transparent border border-zinc-700 focus:outline-none cursor-pointer ${getStatusColor(order.status)}`}
-                            data-testid={`select-status-${order.id}`}
-                          >
-                            <option value="pending" className="bg-zinc-900 text-white">Beklemede</option>
-                            <option value="processing" className="bg-zinc-900 text-white">İşleniyor</option>
-                            <option value="shipped" className="bg-zinc-900 text-white">Kargoda</option>
-                            <option value="completed" className="bg-zinc-900 text-white">Tamamlandı</option>
-                            <option value="cancelled" className="bg-zinc-900 text-white">İptal</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-zinc-400">
-                          {new Date(order.createdAt).toLocaleDateString('tr-TR')}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex justify-end">
-                            <Link
-                              href={`/toov-admin/orders/${order.id}`}
-                              className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white inline-block"
-                              data-testid={`button-view-order-${order.id}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {orders.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
-                          Henüz sipariş yok
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <OrdersPanel />
           )}
 
           {activeTab === 'users' && (
