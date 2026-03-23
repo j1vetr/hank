@@ -531,21 +531,33 @@ export default function AdminDashboard() {
               <p className="px-3 py-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                 {category.title}
               </p>
-              {category.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabChange(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 transition-colors ${
-                    activeTab === item.id
-                      ? 'bg-white text-black'
-                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
-                  }`}
-                  data-testid={`tab-${item.id}`}
-                >
-                  <item.icon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </button>
-              ))}
+              {category.items.map((item) => {
+                const pendingBadge = item.id === 'orders' && stats?.pendingOrders ? stats.pendingOrders : 0;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabChange(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 transition-colors ${
+                      activeTab === item.id
+                        ? 'bg-white text-black'
+                        : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                    }`}
+                    data-testid={`tab-${item.id}`}
+                  >
+                    <item.icon className="w-4 h-4 shrink-0" />
+                    <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                    {pendingBadge > 0 && (
+                      <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold leading-none ${
+                        activeTab === item.id
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-orange-500 text-white animate-pulse'
+                      }`}>
+                        {pendingBadge > 99 ? '99+' : pendingBadge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ))}
         </nav>
