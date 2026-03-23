@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import {
   ShoppingBag, Clock, TrendingUp, CheckCircle2, XCircle,
   Truck, Search, Eye, BarChart3, ArrowUpRight, ChevronDown,
@@ -121,6 +121,7 @@ function StatusSelect({ orderId, currentStatus, onChange }: { orderId: string; c
 
 export default function OrdersPanel() {
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -383,7 +384,12 @@ export default function OrdersPanel() {
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60">
                   {filtered.map(order => (
-                    <tr key={order.id} className="hover:bg-zinc-800/20 transition-colors group" data-testid={`row-order-${order.id}`}>
+                    <tr
+                      key={order.id}
+                      className="hover:bg-zinc-800/40 transition-colors group cursor-pointer"
+                      data-testid={`row-order-${order.id}`}
+                      onClick={() => navigate(`/toov-admin/orders/${order.id}`)}
+                    >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${avatarGradient(order.customerName)} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
@@ -401,7 +407,7 @@ export default function OrdersPanel() {
                       <td className="px-5 py-3.5">
                         <span className="text-sm text-zinc-400">{order.shippingAddress?.city || '—'}</span>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>
                         <StatusSelect
                           orderId={order.id}
                           currentStatus={order.status}
@@ -419,14 +425,13 @@ export default function OrdersPanel() {
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex justify-end">
-                          <Link
-                            href={`/toov-admin/orders/${order.id}`}
+                          <div
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
                             data-testid={`button-view-order-${order.id}`}
                           >
                             <Eye className="w-3.5 h-3.5" />
                             Detay
-                          </Link>
+                          </div>
                         </div>
                       </td>
                     </tr>
