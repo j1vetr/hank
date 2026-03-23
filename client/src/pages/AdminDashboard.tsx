@@ -245,7 +245,8 @@ export default function AdminDashboard() {
   const { data: stats } = useQuery<Stats>({
     queryKey: ['admin', 'stats'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/stats');
+      const response = await fetch('/api/admin/stats', { credentials: 'include' });
+      if (!response.ok) return null;
       return response.json();
     },
     enabled: !!adminUser,
@@ -533,7 +534,7 @@ export default function AdminDashboard() {
                 {category.title}
               </p>
               {category.items.map((item) => {
-                const pendingBadge = item.id === 'orders' && stats?.pendingOrders ? stats.pendingOrders : 0;
+                const pendingBadge = item.id === 'orders' ? orders.filter(o => o.status === 'pending').length : 0;
                 return (
                   <button
                     key={item.id}
