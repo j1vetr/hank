@@ -10,7 +10,7 @@ import fs from "fs";
 import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons, products, productEmbeddings, productAttributes, stockAdjustments } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 import { 
@@ -2971,6 +2971,98 @@ export async function registerRoutes(
       res.json(data);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch comparison data" });
+    }
+  });
+
+  app.get("/api/admin/analytics/kpi", requireAdmin, async (req, res) => {
+    try {
+      const now = new Date();
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+      const [thisMonth, lastMonth] = await Promise.all([
+        storage.getRevenueByPeriod(thisMonthStart, now),
+        storage.getRevenueByPeriod(lastMonthStart, lastMonthEnd),
+      ]);
+
+      const cancelledThisMonth = await db.execute(sql`
+        SELECT COUNT(*) as count, COALESCE(SUM(CAST(total AS DECIMAL)), 0) as total
+        FROM orders WHERE created_at >= ${thisMonthStart} AND status = 'cancelled'
+      `);
+      const cancelledRow = (cancelledThisMonth.rows || [])[0] as any;
+      const cancelledCount = Number(cancelledRow?.count || 0);
+      const cancelRate = thisMonth.orderCount > 0 ? (cancelledCount / thisMonth.orderCount) * 100 : 0;
+
+      const newCustomersResult = await db.execute(sql`
+        SELECT COUNT(DISTINCT customer_email) as count FROM orders
+        WHERE created_at >= ${thisMonthStart}
+        AND customer_email NOT IN (
+          SELECT customer_email FROM orders WHERE created_at < ${thisMonthStart}
+        )
+      `);
+      const newCustomers = Number(((newCustomersResult.rows || [])[0] as any)?.count || 0);
+
+      const revenueChange = lastMonth.total > 0 ? ((thisMonth.total - lastMonth.total) / lastMonth.total) * 100 : 0;
+      const ordersChange = lastMonth.orderCount > 0 ? ((thisMonth.orderCount - lastMonth.orderCount) / lastMonth.orderCount) * 100 : 0;
+      const avgChange = lastMonth.averageOrderValue > 0 ? ((thisMonth.averageOrderValue - lastMonth.averageOrderValue) / lastMonth.averageOrderValue) * 100 : 0;
+
+      res.json({
+        thisMonth: {
+          revenue: thisMonth.total,
+          orders: thisMonth.orderCount,
+          avgOrder: thisMonth.averageOrderValue,
+          cancelRate,
+          newCustomers,
+        },
+        lastMonth: {
+          revenue: lastMonth.total,
+          orders: lastMonth.orderCount,
+          avgOrder: lastMonth.averageOrderValue,
+        },
+        changes: { revenue: revenueChange, orders: ordersChange, avgOrder: avgChange },
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch KPI data" });
+    }
+  });
+
+  app.get("/api/admin/analytics/status-breakdown", requireAdmin, async (req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT status, COUNT(*) as count, COALESCE(SUM(CAST(total AS DECIMAL)), 0) as revenue
+        FROM orders GROUP BY status ORDER BY count DESC
+      `);
+      res.json((result.rows || []).map((r: any) => ({
+        status: r.status,
+        count: Number(r.count),
+        revenue: Number(r.revenue),
+      })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch status breakdown" });
+    }
+  });
+
+  app.get("/api/admin/analytics/country-breakdown", requireAdmin, async (req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT 
+          shipping_address->>'country' as country,
+          COUNT(*) as count,
+          COALESCE(SUM(CAST(total AS DECIMAL)), 0) as revenue
+        FROM orders
+        WHERE status != 'cancelled'
+        GROUP BY shipping_address->>'country'
+        ORDER BY revenue DESC
+        LIMIT 10
+      `);
+      res.json((result.rows || []).map((r: any) => ({
+        country: r.country || 'Bilinmiyor',
+        count: Number(r.count),
+        revenue: Number(r.revenue),
+      })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch country breakdown" });
     }
   });
 
