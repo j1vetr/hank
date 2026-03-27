@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import OrdersPanel from './AdminOrdersPanel';
@@ -1133,6 +1133,7 @@ export default function AdminDashboard() {
       {showBulkPriceModal && (
         <BulkPriceModal
           categories={categories}
+          products={products}
           onClose={() => setShowBulkPriceModal(false)}
           onSuccess={() => {
             setShowBulkPriceModal(false);
@@ -1325,22 +1326,55 @@ export default function AdminDashboard() {
 }
 
 function BulkPriceModal({ 
-  categories, 
+  categories,
+  products,
   onClose, 
   onSuccess 
 }: { 
   categories: Category[];
+  products: any[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [priceAction, setPriceAction] = useState<'set' | 'increase' | 'decrease' | 'percent_increase' | 'percent_decrease'>('set');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [priceAction, setPriceAction] = useState<'set' | 'increase' | 'decrease' | 'percent_increase' | 'percent_decrease'>('percent_decrease');
   const [priceValue, setPriceValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; updated?: number } | null>(null);
 
+  const numericValue = parseFloat(priceValue) || 0;
+
+  const affectedProducts = useMemo(() => {
+    if (selectedCategory === 'all') return products;
+    return products.filter(p => p.categoryId === selectedCategory);
+  }, [selectedCategory, products]);
+
+  const calcNewPrice = (currentPriceStr: string): number => {
+    const current = parseFloat(currentPriceStr);
+    if (isNaN(current)) return 0;
+    let newPrice: number;
+    switch (priceAction) {
+      case 'set': newPrice = numericValue; break;
+      case 'increase': newPrice = current + numericValue; break;
+      case 'decrease': newPrice = Math.max(0, current - numericValue); break;
+      case 'percent_increase': newPrice = current * (1 + numericValue / 100); break;
+      case 'percent_decrease': newPrice = current * (1 - numericValue / 100); break;
+      default: newPrice = current;
+    }
+    return Math.round(newPrice * 100) / 100;
+  };
+
+  const previewSamples = useMemo(() => {
+    if (!priceValue || numericValue <= 0 || affectedProducts.length === 0) return [];
+    return affectedProducts.slice(0, 3).map(p => ({
+      name: p.name,
+      before: parseFloat(p.basePrice),
+      after: calcNewPrice(p.basePrice),
+    }));
+  }, [affectedProducts, priceAction, priceValue]);
+
   const handleSubmit = async () => {
-    if (!selectedCategory || !priceValue) return;
+    if (!priceValue || numericValue <= 0) return;
     
     setIsLoading(true);
     setResult(null);
@@ -1351,9 +1385,9 @@ function BulkPriceModal({
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          categoryId: selectedCategory,
+          categoryId: selectedCategory === 'all' ? null : selectedCategory,
           action: priceAction,
-          value: parseFloat(priceValue),
+          value: numericValue,
         }),
       });
       
@@ -1374,91 +1408,158 @@ function BulkPriceModal({
     }
   };
 
+  const isPercent = priceAction.includes('percent');
+  const isDecrease = priceAction.includes('decrease');
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md">
-        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Toplu Fiyat Düzenleme</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg shadow-2xl">
+        <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-white">Toplu Fiyat Düzenleme</h3>
+            <p className="text-xs text-zinc-500 mt-0.5">Seçilen ürünlere fiyat işlemi uygula</p>
+          </div>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <div className="p-6 space-y-4">
+        <div className="p-5 space-y-4">
+          {/* Scope */}
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Kategori Seçin</label>
+            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Kapsam</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500"
             >
-              <option value="">Kategori seçin...</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
+              <option value="all">Tüm Ürünler ({products.length} ürün)</option>
+              {categories.map((cat) => {
+                const count = products.filter(p => p.categoryId === cat.id).length;
+                return (
+                  <option key={cat.id} value={cat.id}>{cat.name} ({count} ürün)</option>
+                );
+              })}
             </select>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">İşlem</label>
-            <select
-              value={priceAction}
-              onChange={(e) => setPriceAction(e.target.value as any)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
-            >
-              <option value="set">Sabit fiyat belirle</option>
-              <option value="increase">Fiyatı artır (TL)</option>
-              <option value="decrease">Fiyatı azalt (TL)</option>
-              <option value="percent_increase">Yüzde artır (%)</option>
-              <option value="percent_decrease">Yüzde azalt (%)</option>
-            </select>
+
+          {/* Action + Value side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">İşlem</label>
+              <select
+                value={priceAction}
+                onChange={(e) => { setPriceAction(e.target.value as any); setPriceValue(''); }}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500"
+              >
+                <option value="percent_decrease">% İndirim uygula</option>
+                <option value="percent_increase">% Zam uygula</option>
+                <option value="set">Sabit fiyat belirle</option>
+                <option value="increase">TL artır</option>
+                <option value="decrease">TL azalt</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                {isPercent ? 'Yüzde (%)' : priceAction === 'set' ? 'Yeni Fiyat (₺)' : 'Miktar (₺)'}
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={priceValue}
+                  onChange={(e) => setPriceValue(e.target.value)}
+                  placeholder={isPercent ? '20' : priceAction === 'set' ? '999' : '50'}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-3 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500"
+                  min="0"
+                  max={isPercent ? '100' : undefined}
+                  step={isPercent ? '1' : '0.01'}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs pointer-events-none">
+                  {isPercent ? '%' : '₺'}
+                </span>
+              </div>
+            </div>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
-              {priceAction === 'set' ? 'Yeni Fiyat (TL)' : 
-               priceAction.includes('percent') ? 'Yüzde (%)' : 'Miktar (TL)'}
-            </label>
-            <input
-              type="number"
-              value={priceValue}
-              onChange={(e) => setPriceValue(e.target.value)}
-              placeholder={priceAction === 'set' ? '999.99' : priceAction.includes('percent') ? '10' : '50'}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white"
-              min="0"
-              step="0.01"
-            />
-          </div>
+
+          {/* Preview */}
+          {previewSamples.length > 0 && (
+            <div className="bg-zinc-800/60 rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-zinc-700/50">
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Önizleme — {affectedProducts.length} ürün etkilenecek
+                </p>
+              </div>
+              <div className="divide-y divide-zinc-700/40">
+                {previewSamples.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-2.5">
+                    <p className="text-xs text-zinc-400 truncate flex-1 mr-3">{s.name}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-zinc-500 line-through">₺{s.before.toFixed(2)}</span>
+                      <span className="text-[10px] text-zinc-600">→</span>
+                      <span className={`text-xs font-semibold ${isDecrease ? 'text-emerald-400' : priceAction === 'percent_increase' || priceAction === 'increase' ? 'text-blue-400' : 'text-white'}`}>
+                        ₺{s.after.toFixed(2)}
+                      </span>
+                      {s.before > 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isDecrease ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-400'}`}>
+                          {isDecrease ? '-' : '+'}{Math.abs(((s.after - s.before) / s.before) * 100).toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {affectedProducts.length > 3 && (
+                  <div className="px-3 py-2 text-center">
+                    <span className="text-xs text-zinc-600">+{affectedProducts.length - 3} ürün daha</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Warning for percent roundtrip */}
+          {isPercent && priceValue && numericValue > 0 && (
+            <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+              <span className="text-amber-500 text-xs mt-0.5">⚠</span>
+              <p className="text-xs text-amber-500/80">
+                %{numericValue} indirim sonrası tekrar %{numericValue} zam uygulamak orijinal fiyata dönmez. Orijinal fiyata dönmek için {isDecrease ? `%${(numericValue / (100 - numericValue) * 100).toFixed(2)}` : `%${(numericValue / (100 + numericValue) * 100).toFixed(2)}`} ters işlem gerekir.
+              </p>
+            </div>
+          )}
           
           {result && (
             <div className={`p-3 rounded-lg text-sm ${
               result.success 
-                ? 'bg-green-500/20 border border-green-500/50 text-green-400' 
-                : 'bg-red-500/20 border border-red-500/50 text-red-400'
+                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' 
+                : 'bg-red-500/10 border border-red-500/30 text-red-400'
             }`}>
               {result.message}
             </div>
           )}
         </div>
         
-        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
-          >
-            İptal
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading || !selectedCategory || !priceValue}
-            className="px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              'Uygula'
-            )}
-          </button>
+        <div className="p-5 border-t border-zinc-800 flex items-center justify-between">
+          <p className="text-xs text-zinc-600">
+            {affectedProducts.length > 0 ? `${affectedProducts.length} ürün etkilenecek` : ''}
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
+            >
+              İptal
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading || !priceValue || numericValue <= 0}
+              className="px-4 py-2 text-sm bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-40 flex items-center gap-2"
+            >
+              {isLoading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Uygulanıyor...</>
+              ) : (
+                `${affectedProducts.length} Ürüne Uygula`
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

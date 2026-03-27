@@ -1400,39 +1400,48 @@ export async function registerRoutes(
     try {
       const { categoryId, action, value } = req.body;
       
-      if (!categoryId || !action || value === undefined) {
-        return res.status(400).json({ error: "categoryId, action and value are required" });
+      if (!action || value === undefined || value === null) {
+        return res.status(400).json({ error: "action and value are required" });
       }
-      
-      // Get all products in the category
+
+      const numericValue = parseFloat(String(value));
+      if (isNaN(numericValue) || numericValue < 0) {
+        return res.status(400).json({ error: "Geçersiz değer" });
+      }
+
       const allProducts = await storage.getProducts();
-      const categoryProducts = allProducts.filter(p => p.categoryId === categoryId);
+      // If categoryId is null/empty → apply to all products
+      const targetProducts = categoryId
+        ? allProducts.filter(p => p.categoryId === categoryId)
+        : allProducts;
       
-      if (categoryProducts.length === 0) {
-        return res.status(400).json({ error: "Bu kategoride ürün bulunamadı" });
+      if (targetProducts.length === 0) {
+        return res.status(400).json({ error: "Ürün bulunamadı" });
       }
       
       let updated = 0;
       
-      for (const product of categoryProducts) {
-        let newPrice: number;
+      for (const product of targetProducts) {
         const currentPrice = parseFloat(product.basePrice);
+        if (isNaN(currentPrice)) continue;
+
+        let newPrice: number;
         
         switch (action) {
           case 'set':
-            newPrice = value;
+            newPrice = numericValue;
             break;
           case 'increase':
-            newPrice = currentPrice + value;
+            newPrice = currentPrice + numericValue;
             break;
           case 'decrease':
-            newPrice = Math.max(0, currentPrice - value);
+            newPrice = Math.max(0, currentPrice - numericValue);
             break;
           case 'percent_increase':
-            newPrice = currentPrice * (1 + value / 100);
+            newPrice = currentPrice * (1 + numericValue / 100);
             break;
           case 'percent_decrease':
-            newPrice = currentPrice * (1 - value / 100);
+            newPrice = currentPrice * (1 - numericValue / 100);
             break;
           default:
             continue;
