@@ -81,7 +81,9 @@ import {
   type SizeChart,
   type InsertSizeChart,
   type MenuItem,
-  type InsertMenuItem
+  type InsertMenuItem,
+  influencerPayments,
+  type InfluencerPayment,
 } from "@shared/schema";
 import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
 
@@ -1219,13 +1221,28 @@ export class DbStorage implements IStorage {
   }
 
   async markInfluencerPaid(couponId: string): Promise<Coupon | undefined> {
+    const [coupon] = await db.select().from(coupons).where(eq(coupons.id, couponId));
+    const commissionAmount = coupon?.totalCommissionEarned || '0';
+    // Record payment history before resetting
+    if (parseFloat(commissionAmount) > 0) {
+      await db.insert(influencerPayments).values({
+        couponId,
+        amount: commissionAmount,
+      });
+    }
     const [updated] = await db.update(coupons).set({ 
       isPaid: true, 
       paidAt: new Date(),
-      totalCommissionEarned: '0', // Reset after payment
+      totalCommissionEarned: '0',
       updatedAt: new Date()
     }).where(eq(coupons.id, couponId)).returning();
     return updated;
+  }
+
+  async getInfluencerPayments(couponId: string): Promise<InfluencerPayment[]> {
+    return db.select().from(influencerPayments)
+      .where(eq(influencerPayments.couponId, couponId))
+      .orderBy(desc(influencerPayments.paidAt));
   }
 
   // Campaign methods

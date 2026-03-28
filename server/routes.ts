@@ -3709,6 +3709,90 @@ export async function registerRoutes(
     }
   });
 
+  // Influencer detail endpoint
+  app.get("/api/admin/influencer/:couponId/detail", requireAdmin, async (req, res) => {
+    try {
+      const { couponId } = req.params;
+
+      // Get the influencer coupon
+      const [coupon] = await db.select().from(coupons).where(eq(coupons.id, couponId));
+      if (!coupon || !coupon.isInfluencerCode) {
+        return res.status(404).json({ error: "Influencer not found" });
+      }
+
+      // Get all redemptions for this influencer
+      const redemptionsData = await db.select({
+        redemption: couponRedemptions,
+        order: orders,
+      })
+      .from(couponRedemptions)
+      .leftJoin(orders, eq(couponRedemptions.orderId, orders.id))
+      .where(eq(couponRedemptions.couponId, couponId))
+      .orderBy(desc(couponRedemptions.createdAt));
+
+      // Group by month
+      const monthlyMap: Record<string, { month: string; label: string; count: number; revenue: number; commission: number }> = {};
+      let totalRevenue = 0;
+      let totalCommissionAllTime = 0;
+
+      for (const r of redemptionsData) {
+        const date = new Date(r.redemption.createdAt);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const label = date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
+
+        if (!monthlyMap[monthKey]) {
+          monthlyMap[monthKey] = { month: monthKey, label, count: 0, revenue: 0, commission: 0 };
+        }
+
+        const orderTotal = parseFloat(r.order?.total || '0');
+        monthlyMap[monthKey].count += 1;
+        monthlyMap[monthKey].revenue += orderTotal;
+        totalRevenue += orderTotal;
+
+        let commission = 0;
+        if (coupon.commissionType === 'percentage') {
+          commission = orderTotal * (parseFloat(coupon.commissionValue || '0') / 100);
+        } else if (coupon.commissionType === 'per_use') {
+          commission = parseFloat(coupon.commissionValue || '0');
+        }
+        monthlyMap[monthKey].commission += commission;
+        totalCommissionAllTime += commission;
+      }
+
+      const monthlyData = Object.values(monthlyMap).sort((a, b) => b.month.localeCompare(a.month));
+
+      // Get payment history
+      const paymentHistory = await storage.getInfluencerPayments(couponId);
+
+      // Format redemptions
+      const redemptions = redemptionsData.map(r => ({
+        id: r.redemption.id,
+        orderId: r.order?.id,
+        orderNumber: r.order?.orderNumber,
+        orderTotal: r.order?.total,
+        discountAmount: r.redemption.discountAmount,
+        createdAt: r.redemption.createdAt,
+        orderStatus: r.order?.status,
+      }));
+
+      res.json({
+        influencer: coupon,
+        monthlyData,
+        redemptions,
+        paymentHistory,
+        totals: {
+          totalOrders: redemptionsData.length,
+          totalRevenue,
+          totalCommissionAllTime,
+          pendingCommission: parseFloat(coupon.totalCommissionEarned || '0'),
+        },
+      });
+    } catch (error) {
+      console.error('Influencer detail error:', error);
+      res.status(500).json({ error: "Failed to fetch influencer detail" });
+    }
+  });
+
   // Admin credentials update route
   app.post("/api/admin/update-credentials", requireAdmin, async (req, res) => {
     try {

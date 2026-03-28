@@ -366,6 +366,19 @@ export const couponRedemptions = pgTable("coupon_redemptions", {
 
 export type CouponRedemption = typeof couponRedemptions.$inferSelect;
 
+// Influencer Payment History
+export const influencerPayments = pgTable("influencer_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  couponId: varchar("coupon_id").references(() => coupons.id, { onDelete: "cascade" }).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  note: text("note"),
+  paidAt: timestamp("paid_at").defaultNow().notNull(),
+});
+
+export const insertInfluencerPaymentSchema = createInsertSchema(influencerPayments).omit({ id: true, paidAt: true });
+export type InsertInfluencerPayment = z.infer<typeof insertInfluencerPaymentSchema>;
+export type InfluencerPayment = typeof influencerPayments.$inferSelect;
+
 // Order Notes / History
 export const orderNotes = pgTable("order_notes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
