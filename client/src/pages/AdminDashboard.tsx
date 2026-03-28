@@ -3988,6 +3988,17 @@ function AnalyticsPanel() {
 }
 
 
+function influencerAvatarColor(name: string) {
+  const palette = ['bg-purple-600','bg-pink-600','bg-violet-600','bg-indigo-600','bg-blue-600','bg-fuchsia-600'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return palette[Math.abs(hash) % palette.length];
+}
+
+function influencerInitials(name: string) {
+  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+}
+
 function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; onBack: () => void; onPay: (id: string) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ['influencer-detail', couponId],
@@ -3998,163 +4009,186 @@ function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; o
     },
   });
 
-  const formatPrice = (val: string | number) =>
-    new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(val) || 0);
+  const fp = (val: string | number) =>
+    new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(Number(val) || 0);
 
-  const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-    pending: { label: 'Bekliyor', className: 'bg-amber-500/20 text-amber-400' },
-    confirmed: { label: 'Onaylandı', className: 'bg-orange-500/20 text-orange-400' },
-    processing: { label: 'Hazırlanıyor', className: 'bg-blue-500/20 text-blue-400' },
-    shipped: { label: 'Kargoda', className: 'bg-purple-500/20 text-purple-400' },
-    completed: { label: 'Tamamlandı', className: 'bg-emerald-500/20 text-emerald-400' },
-    cancelled: { label: 'İptal', className: 'bg-red-500/20 text-red-400' },
+  const STATUS_CFG: Record<string, { label: string; cls: string }> = {
+    pending:    { label: 'Bekliyor',    cls: 'bg-amber-500/20 text-amber-400' },
+    confirmed:  { label: 'Onaylandı',  cls: 'bg-orange-500/20 text-orange-400' },
+    processing: { label: 'Hazırlanıyor', cls: 'bg-blue-500/20 text-blue-400' },
+    shipped:    { label: 'Kargoda',    cls: 'bg-purple-500/20 text-purple-400' },
+    completed:  { label: 'Tamamlandı', cls: 'bg-emerald-500/20 text-emerald-400' },
+    cancelled:  { label: 'İptal',      cls: 'bg-red-500/20 text-red-400' },
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
-      </div>
-    );
-  }
-
+  if (isLoading) return (
+    <div className="flex justify-center items-center py-32">
+      <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+    </div>
+  );
   if (!data) return null;
 
   const { influencer, monthlyData, redemptions, paymentHistory, totals } = data;
-  const maxRevenue = Math.max(...(monthlyData.map((m: any) => m.revenue)), 1);
+  const displayName = influencer.influencerName || influencer.code;
+  const avatarBg = influencerAvatarColor(displayName);
+  const initials = influencerInitials(displayName);
+  const pendingAmt = parseFloat(influencer.totalCommissionEarned || '0');
+  const totalPaid = paymentHistory.reduce((s: number, p: any) => s + parseFloat(p.amount || '0'), 0);
+
+  const commissionLabel =
+    influencer.commissionType === 'percentage' ? `%${influencer.commissionValue} komisyon`
+    : influencer.commissionType === 'per_use'  ? `${fp(influencer.commissionValue)}/kullanım`
+    : fp(influencer.commissionValue);
+
+  const discountLabel = influencer.discountType === 'percentage'
+    ? `%${influencer.discountValue} müşteri indirimi`
+    : `${fp(influencer.discountValue)} indirim`;
+
+  const chartMonths = [...monthlyData].sort((a: any, b: any) => a.month.localeCompare(b.month)).slice(-12);
+  const maxRev = Math.max(...chartMonths.map((m: any) => m.revenue), 1);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-lg transition-colors text-sm"
-        >
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors">
           <ChevronLeft className="w-4 h-4" />
-          Geri
+          Influencer Listesi
         </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-xl font-bold text-white">{influencer.influencerName || influencer.code}</h2>
-            <span className="font-mono text-sm bg-zinc-800 px-2 py-1 rounded text-white">{influencer.code}</span>
+        <span className="text-zinc-700">/</span>
+        <span className="text-white font-medium">{displayName}</span>
+      </div>
+
+      {/* Profile card */}
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="h-1.5 bg-gradient-to-r from-purple-600 via-pink-500 to-violet-600" />
+        <div className="p-6 flex flex-col sm:flex-row items-start gap-5">
+          {/* Avatar */}
+          <div className={`w-16 h-16 rounded-2xl ${avatarBg} flex items-center justify-center text-white font-bold text-xl shrink-0`}>
+            {initials}
+          </div>
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h2 className="text-xl font-bold text-white">{displayName}</h2>
+              <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${influencer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-zinc-700 text-zinc-500'}`}>
+                {influencer.isActive ? 'Aktif' : 'Pasif'}
+              </span>
+            </div>
             {influencer.influencerInstagram && (
               <a
-                href={`https://instagram.com/${influencer.influencerInstagram.replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                href={`https://instagram.com/${influencer.influencerInstagram.replace('@','')}`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-sm text-purple-400 hover:text-purple-300 transition-colors inline-flex items-center gap-1 mb-3"
               >
-                <span className="text-xs">@</span>{influencer.influencerInstagram.replace('@', '')}
+                <span className="text-xs opacity-70">@</span>{influencer.influencerInstagram.replace('@','')}
               </a>
             )}
-            <span className={`px-2 py-0.5 text-xs rounded ${influencer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-zinc-700 text-zinc-400'}`}>
-              {influencer.isActive ? 'Aktif' : 'Pasif'}
-            </span>
-          </div>
-          <div className="flex items-center gap-4 mt-1 text-sm text-zinc-400">
-            <span>
-              Müşteri indirimi: <span className="text-white">
-                {influencer.discountType === 'percentage' ? `%${influencer.discountValue}` : formatPrice(influencer.discountValue)}
-              </span>
-            </span>
-            <span>
-              Komisyon: <span className="text-yellow-400">
-                {influencer.commissionType === 'percentage'
-                  ? `%${influencer.commissionValue}`
-                  : influencer.commissionType === 'per_use'
-                  ? `${formatPrice(influencer.commissionValue)}/kullanım`
-                  : formatPrice(influencer.commissionValue)}
-              </span>
-            </span>
-          </div>
-        </div>
-        {parseFloat(influencer.totalCommissionEarned || '0') > 0 && (
-          <button
-            onClick={() => onPay(influencer.id)}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30 rounded-lg transition-colors text-sm font-medium"
-          >
-            <DollarSign className="w-4 h-4" />
-            Ödeme Yap ({formatPrice(influencer.totalCommissionEarned)})
-          </button>
-        )}
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-          <p className="text-xs text-zinc-400 mb-1">Toplam Sipariş</p>
-          <p className="text-2xl font-bold text-white">{totals.totalOrders}</p>
-        </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-          <p className="text-xs text-zinc-400 mb-1">Toplam Ciro</p>
-          <p className="text-2xl font-bold text-green-400">{formatPrice(totals.totalRevenue)}</p>
-        </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-          <p className="text-xs text-zinc-400 mb-1">Tüm Zamanlar Komisyon</p>
-          <p className="text-2xl font-bold text-yellow-400">{formatPrice(totals.totalCommissionAllTime)}</p>
-        </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
-          <p className="text-xs text-zinc-400 mb-1">Bekleyen Komisyon</p>
-          <p className="text-2xl font-bold text-orange-400">{formatPrice(totals.pendingCommission)}</p>
-        </div>
-      </div>
-
-      {/* Monthly Breakdown */}
-      {monthlyData.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-zinc-800">
-            <h3 className="text-base font-semibold text-white">Aylık Performans</h3>
-          </div>
-          {/* Mini bar chart */}
-          <div className="p-6 pb-2">
-            <div className="flex items-end gap-1 h-24 mb-1">
-              {[...monthlyData].reverse().slice(-12).map((m: any) => {
-                const heightPct = maxRevenue > 0 ? (m.revenue / maxRevenue) * 100 : 0;
-                const [yr, mo] = m.month.split('-');
-                const label = new Date(parseInt(yr), parseInt(mo) - 1).toLocaleDateString('tr-TR', { month: 'short' });
-                return (
-                  <div key={m.month} className="flex-1 flex flex-col items-center gap-1 group relative">
-                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                      {m.label}<br />
-                      <span className="text-green-400">{formatPrice(m.revenue)}</span> · {m.count} sipariş
-                    </div>
-                    <div
-                      className="w-full bg-purple-500/70 hover:bg-purple-400 transition-colors rounded-t"
-                      style={{ height: `${Math.max(heightPct, 4)}%` }}
-                    />
-                    <span className="text-[9px] text-zinc-500">{label}</span>
-                  </div>
-                );
-              })}
+            <div className="flex flex-wrap gap-2 mt-1">
+              <span className="font-mono text-xs bg-zinc-800 border border-zinc-700 px-3 py-1 rounded-lg text-white">{influencer.code}</span>
+              <span className="text-xs bg-blue-500/10 border border-blue-500/20 text-blue-400 px-3 py-1 rounded-lg">{discountLabel}</span>
+              <span className="text-xs bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-1 rounded-lg">{commissionLabel}</span>
             </div>
           </div>
+          {/* Pay button */}
+          {pendingAmt > 0 && (
+            <button
+              onClick={() => onPay(influencer.id)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-semibold text-sm rounded-xl transition-colors shrink-0"
+            >
+              <DollarSign className="w-4 h-4" />
+              Komisyon Öde · {fp(pendingAmt)}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Toplam Sipariş', value: totals.totalOrders, color: 'text-white', icon: <ShoppingBag className="w-5 h-5 text-purple-400" /> },
+          { label: 'Toplam Ciro', value: fp(totals.totalRevenue), color: 'text-green-400', icon: <TrendingUp className="w-5 h-5 text-green-400" /> },
+          { label: 'Toplam Komisyon', value: fp(totals.totalCommissionAllTime), color: 'text-yellow-400', icon: <DollarSign className="w-5 h-5 text-yellow-400" /> },
+          { label: 'Toplam Ödenen', value: fp(totalPaid), color: 'text-blue-400', icon: <CheckCircle2 className="w-5 h-5 text-blue-400" /> },
+        ].map(card => (
+          <div key={card.label} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">{card.icon}<span className="text-xs text-zinc-400">{card.label}</span></div>
+            <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Monthly performance */}
+      {chartMonths.length > 0 && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+            <h3 className="text-base font-semibold text-white">Aylık Performans</h3>
+            <div className="flex items-center gap-4 text-xs text-zinc-500">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-purple-600 inline-block" />Ciro</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-yellow-500 inline-block" />Komisyon</span>
+            </div>
+          </div>
+          {/* SVG chart */}
+          <div className="px-6 pt-6 pb-2">
+            <svg viewBox={`0 0 ${chartMonths.length * 60} 140`} className="w-full overflow-visible" style={{ height: 140 }}>
+              {/* Grid lines */}
+              {[0,25,50,75,100].map(pct => (
+                <line key={pct} x1="0" y1={120 - pct * 1.1} x2={chartMonths.length * 60} y2={120 - pct * 1.1}
+                  stroke="#27272a" strokeWidth="1" />
+              ))}
+              {chartMonths.map((m: any, i: number) => {
+                const revH = Math.max((m.revenue / maxRev) * 110, 3);
+                const comH = Math.max((m.commission / maxRev) * 110, 3);
+                const x = i * 60 + 4;
+                const [yr, mo] = m.month.split('-');
+                const lbl = new Date(parseInt(yr), parseInt(mo) - 1).toLocaleDateString('tr-TR', { month: 'short' });
+                return (
+                  <g key={m.month} className="group">
+                    {/* Revenue bar */}
+                    <rect x={x} y={120 - revH} width={24} height={revH} rx="3" className="fill-purple-600 opacity-80 hover:opacity-100 transition-opacity" />
+                    {/* Commission bar */}
+                    <rect x={x + 26} y={120 - comH} width={24} height={comH} rx="3" className="fill-yellow-500 opacity-80 hover:opacity-100 transition-opacity" />
+                    {/* Month label */}
+                    <text x={x + 26} y={135} textAnchor="middle" fontSize="9" className="fill-zinc-500">{lbl}</text>
+                    {/* Tooltip on hover */}
+                    <title>{m.label}: Ciro {fp(m.revenue)} · Komisyon {fp(m.commission)} · {m.count} sipariş</title>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+          {/* Monthly table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-zinc-800/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Ay</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">Sipariş</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">Ciro</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">Komisyon</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Ay</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-zinc-400 uppercase tracking-wider">Sipariş</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">Ciro</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">Komisyon</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {monthlyData.map((m: any) => (
-                  <tr key={m.month} className="hover:bg-zinc-800/30">
-                    <td className="px-6 py-3 text-sm font-medium text-white">{m.label}</td>
-                    <td className="px-6 py-3 text-sm text-white text-right">{m.count}</td>
-                    <td className="px-6 py-3 text-sm text-green-400 text-right">{formatPrice(m.revenue)}</td>
-                    <td className="px-6 py-3 text-sm text-yellow-400 text-right">{formatPrice(m.commission)}</td>
+              <tbody className="divide-y divide-zinc-800/60">
+                {[...chartMonths].reverse().map((m: any) => (
+                  <tr key={m.month} className="hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-6 py-3.5 text-sm font-medium text-white">{m.label}</td>
+                    <td className="px-6 py-3.5 text-center">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-zinc-800 text-xs font-bold text-white">{m.count}</span>
+                    </td>
+                    <td className="px-6 py-3.5 text-sm text-green-400 text-right font-medium">{fp(m.revenue)}</td>
+                    <td className="px-6 py-3.5 text-sm text-yellow-400 text-right font-medium">{fp(m.commission)}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-zinc-800/30">
-                <tr>
-                  <td className="px-6 py-3 text-sm font-bold text-white">Toplam</td>
-                  <td className="px-6 py-3 text-sm font-bold text-white text-right">{totals.totalOrders}</td>
-                  <td className="px-6 py-3 text-sm font-bold text-green-400 text-right">{formatPrice(totals.totalRevenue)}</td>
-                  <td className="px-6 py-3 text-sm font-bold text-yellow-400 text-right">{formatPrice(totals.totalCommissionAllTime)}</td>
+              <tfoot>
+                <tr className="bg-zinc-800/40 border-t border-zinc-700">
+                  <td className="px-6 py-4 text-sm font-bold text-white">Toplam</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-zinc-700 text-xs font-bold text-white">{totals.totalOrders}</span>
+                  </td>
+                  <td className="px-6 py-4 text-sm font-bold text-green-400 text-right">{fp(totals.totalRevenue)}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-yellow-400 text-right">{fp(totals.totalCommissionAllTime)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -4162,89 +4196,76 @@ function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; o
         </div>
       )}
 
-      {/* All Redemptions */}
-      {redemptions.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
-            <h3 className="text-base font-semibold text-white">Tüm Kullanımlar</h3>
-            <span className="text-sm text-zinc-400">{redemptions.length} sipariş</span>
+      {/* Redemptions */}
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-base font-semibold text-white">Sipariş Geçmişi</h3>
+          <span className="text-xs bg-zinc-800 text-zinc-400 px-3 py-1 rounded-full">{redemptions.length} sipariş</span>
+        </div>
+        {redemptions.length === 0 ? (
+          <div className="p-12 text-center">
+            <ShoppingBag className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+            <p className="text-zinc-500 text-sm">Henüz bu kod kullanılmamış</p>
           </div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-zinc-800/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Tarih</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Sipariş No</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Durum</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">Sipariş Tutarı</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">İndirim</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Tarih</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Sipariş No</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Durum</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">Tutar</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">İndirim</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-zinc-800/60">
                 {redemptions.map((r: any) => {
-                  const statusInfo = STATUS_LABELS[r.orderStatus] || { label: r.orderStatus, className: 'bg-zinc-700 text-zinc-400' };
+                  const sc = STATUS_CFG[r.orderStatus] || { label: r.orderStatus, cls: 'bg-zinc-700 text-zinc-400' };
                   return (
-                    <tr key={r.id} className="hover:bg-zinc-800/30">
-                      <td className="px-6 py-3 text-sm text-zinc-400">
-                        {new Date(r.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    <tr key={r.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="px-6 py-3.5 text-sm text-zinc-400">
+                        {new Date(r.createdAt).toLocaleDateString('tr-TR', { day:'numeric', month:'short', year:'numeric' })}
                       </td>
-                      <td className="px-6 py-3 text-sm text-blue-400">#{r.orderNumber}</td>
-                      <td className="px-6 py-3">
-                        <span className={`px-2 py-0.5 text-xs rounded ${statusInfo.className}`}>{statusInfo.label}</span>
+                      <td className="px-6 py-3.5 text-sm font-medium text-blue-400">#{r.orderNumber}</td>
+                      <td className="px-6 py-3.5">
+                        <span className={`px-2.5 py-0.5 text-xs rounded-full font-medium ${sc.cls}`}>{sc.label}</span>
                       </td>
-                      <td className="px-6 py-3 text-sm text-white text-right">{formatPrice(r.orderTotal || 0)}</td>
-                      <td className="px-6 py-3 text-sm text-green-400 text-right">{formatPrice(r.discountAmount || 0)}</td>
+                      <td className="px-6 py-3.5 text-sm text-white text-right font-medium">{fp(r.orderTotal || 0)}</td>
+                      <td className="px-6 py-3.5 text-sm text-green-400 text-right">{fp(r.discountAmount || 0)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {redemptions.length === 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 text-center text-zinc-500">
-          Bu influencer kodu henüz hiç kullanılmamış.
-        </div>
-      )}
-
-      {/* Payment History */}
+      {/* Payment history */}
       {paymentHistory.length > 0 && (
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-zinc-800">
+          <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
             <h3 className="text-base font-semibold text-white">Ödeme Geçmişi</h3>
+            <span className="text-sm font-semibold text-green-400">{fp(totalPaid)} toplam ödendi</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-zinc-800/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Tarih</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">Ödenen Tutar</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Not</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {paymentHistory.map((p: any) => (
-                  <tr key={p.id} className="hover:bg-zinc-800/30">
-                    <td className="px-6 py-3 text-sm text-zinc-400">
-                      {new Date(p.paidAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </td>
-                    <td className="px-6 py-3 text-sm font-semibold text-green-400 text-right">{formatPrice(p.amount)}</td>
-                    <td className="px-6 py-3 text-sm text-zinc-400">{p.note || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-zinc-800/30">
-                <tr>
-                  <td className="px-6 py-3 text-sm font-bold text-white">Toplam Ödenen</td>
-                  <td className="px-6 py-3 text-sm font-bold text-green-400 text-right">
-                    {formatPrice(paymentHistory.reduce((sum: number, p: any) => sum + parseFloat(p.amount || '0'), 0))}
-                  </td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
+          <div className="p-6 space-y-3">
+            {paymentHistory.map((p: any, idx: number) => (
+              <div key={p.id} className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                </div>
+                <div className="flex-1 bg-zinc-800/50 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-green-400">{fp(p.amount)}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {new Date(p.paidAt).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' })}
+                    </p>
+                  </div>
+                  {p.note && <p className="text-xs text-zinc-400 ml-4">{p.note}</p>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -4257,11 +4278,10 @@ function InfluencerPanel() {
   const [showInfluencerModal, setShowInfluencerModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingInfluencer, setEditingInfluencer] = useState<any>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
-  const [activeView, setActiveView] = useState<'list' | 'analytics'>('list');
   const [bulkText, setBulkText] = useState('');
   const [bulkError, setBulkError] = useState('');
   const [selectedInfluencer, setSelectedInfluencer] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: influencers = [], isLoading: influencersLoading } = useQuery({
     queryKey: ['admin-influencer-coupons'],
@@ -4272,17 +4292,10 @@ function InfluencerPanel() {
     },
   });
 
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['admin-influencer-analytics', selectedMonth],
+  const { data: analytics } = useQuery({
+    queryKey: ['admin-influencer-analytics'],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedMonth) {
-        const [year, month] = selectedMonth.split('-');
-        params.set('startDate', `${year}-${month}-01`);
-        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-        params.set('endDate', `${year}-${month}-${lastDay}`);
-      }
-      const res = await fetch(`/api/admin/influencer-analytics?${params.toString()}`, { credentials: 'include' });
+      const res = await fetch('/api/admin/influencer-analytics', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch analytics');
       return res.json();
     },
@@ -4394,18 +4407,21 @@ function InfluencerPanel() {
     bulkAddMutation.mutate(parsedInfluencers);
   };
 
-  const formatPrice = (price: string | number) => {
-    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Number(price) || 0);
-  };
+  const fp = (price: string | number) =>
+    new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(Number(price) || 0);
 
-  const months = [];
-  for (let i = 0; i < 12; i++) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const label = date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
-    months.push({ value, label });
-  }
+  const totalPendingCount = influencers.filter((i: any) => parseFloat(i.totalCommissionEarned || '0') > 0).length;
+  const totalPendingAmount = influencers.reduce((sum: number, i: any) => sum + parseFloat(i.totalCommissionEarned || '0'), 0);
+  const totalRevenueDriven = analytics?.totals?.totalRevenue || 0;
+  const totalUses = analytics?.totals?.totalRedemptions || influencers.reduce((s: number, i: any) => s + (i.usageCount || 0), 0);
+
+  const filteredInfluencers = [...influencers]
+    .filter((i: any) => !searchQuery ||
+      (i.influencerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (i.code || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (i.influencerInstagram || '').toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a: any, b: any) => (b.usageCount || 0) - (a.usageCount || 0));
 
   if (selectedInfluencer) {
     return (
@@ -4423,294 +4439,254 @@ function InfluencerPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setActiveView('list')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            activeView === 'list' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
-          }`}
-        >
-          Influencer Listesi
-        </button>
-        <button
-          onClick={() => setActiveView('analytics')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            activeView === 'analytics' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
-          }`}
-        >
-          Aylık Analiz
-        </button>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Users className="w-5 h-5 text-purple-400" />
-            <span className="text-sm text-zinc-400">Toplam Influencer</span>
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-4 h-4 text-purple-400" />
+            <span className="text-xs text-zinc-400">Influencer</span>
           </div>
           <p className="text-2xl font-bold text-white">{influencers.length}</p>
+          <p className="text-xs text-zinc-500 mt-1">{influencers.filter((i: any) => i.isActive).length} aktif</p>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-5 h-5 text-green-400" />
-            <span className="text-sm text-zinc-400">Toplam Kullanım</span>
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-green-400" />
+            <span className="text-xs text-zinc-400">Toplam Kullanım</span>
           </div>
-          <p className="text-2xl font-bold text-white">
-            {analytics?.totals?.totalRedemptions || influencers.reduce((sum: number, i: any) => sum + (i.usageCount || 0), 0)}
-          </p>
+          <p className="text-2xl font-bold text-white">{totalUses}</p>
+          <p className="text-xs text-zinc-500 mt-1">tüm zamanlar</p>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <DollarSign className="w-5 h-5 text-yellow-400" />
-            <span className="text-sm text-zinc-400">Toplam Komisyon</span>
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <DollarSign className="w-4 h-4 text-yellow-400" />
+            <span className="text-xs text-zinc-400">Bekleyen Ödeme</span>
           </div>
-          <p className="text-2xl font-bold text-white">
-            {formatPrice(analytics?.totals?.totalCommission || influencers.reduce((sum: number, i: any) => sum + parseFloat(i.totalCommissionEarned || '0'), 0))}
-          </p>
+          <p className="text-2xl font-bold text-yellow-400">{fp(totalPendingAmount)}</p>
+          {totalPendingCount > 0 && (
+            <p className="text-xs text-yellow-500/70 mt-1">{totalPendingCount} influencer bekliyor</p>
+          )}
+        </div>
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <ShoppingBag className="w-4 h-4 text-blue-400" />
+            <span className="text-xs text-zinc-400">Toplam Ciro</span>
+          </div>
+          <p className="text-2xl font-bold text-blue-400">{fp(totalRevenueDriven)}</p>
+          <p className="text-xs text-zinc-500 mt-1">influencer kanalıyla</p>
         </div>
       </div>
 
+      {/* Influencer list */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Influencer Yönetimi</h3>
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white"
-            >
-              <option value="">Tüm Zamanlar</option>
-              {months.map(m => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
+        <div className="p-5 border-b border-zinc-800 flex flex-col sm:flex-row sm:items-center gap-3">
+          <h3 className="text-base font-semibold text-white flex-1">Influencer Listesi</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="İsim, kod, instagram..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-8 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600 w-48"
+              />
+            </div>
             <button
               onClick={() => setShowBulkModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors border border-zinc-700"
+              className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition-colors border border-zinc-700 text-sm"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-3.5 h-3.5" />
               Toplu Ekle
             </button>
             <button
               onClick={() => { setEditingInfluencer(null); setShowInfluencerModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors text-sm font-medium"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               Yeni Influencer
             </button>
           </div>
         </div>
 
-        {activeView === 'list' && (influencersLoading ? (
-          <div className="p-8 flex justify-center">
+        {influencersLoading ? (
+          <div className="p-12 flex justify-center">
             <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
           </div>
-        ) : influencers.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-zinc-800/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Influencer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kod</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">İndirim</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Komisyon</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kullanım</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kazanç</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Ödeme</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {[...influencers].sort((a: any, b: any) => (b.usageCount || 0) - (a.usageCount || 0)).map((influencer: any) => (
-                  <tr key={influencer.id} className="hover:bg-zinc-800/30">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-medium text-white">{influencer.influencerName || '-'}</p>
-                        {influencer.influencerInstagram && (
-                          <a 
-                            href={`https://instagram.com/${influencer.influencerInstagram.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-purple-400 hover:text-purple-300"
-                          >
-                            {influencer.influencerInstagram}
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-sm bg-zinc-800 px-2 py-1 rounded text-white">{influencer.code}</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-white">
-                      {influencer.discountType === 'percentage' 
-                        ? `%${influencer.discountValue}` 
-                        : formatPrice(influencer.discountValue)
-                      }
-                    </td>
-                    <td className="px-6 py-4 text-sm text-zinc-400">
-                      {influencer.commissionType === 'percentage' 
-                        ? `%${influencer.commissionValue}` 
-                        : influencer.commissionType === 'per_use'
-                        ? `${formatPrice(influencer.commissionValue)}/kullanım`
-                        : formatPrice(influencer.commissionValue)
-                      }
-                    </td>
-                    <td className="px-6 py-4 text-sm text-white">
-                      {influencer.usageCount || 0}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-green-400">
-                      {formatPrice(influencer.totalCommissionEarned || 0)}
-                    </td>
-                    <td className="px-6 py-4">
-                      {influencer.isPaid ? (
-                        <span className="px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded">
-                          Ödendi
-                        </span>
-                      ) : parseFloat(influencer.totalCommissionEarned || '0') > 0 ? (
-                        <button
-                          onClick={() => markInfluencerPaidMutation.mutate({ id: influencer.id, isPaid: true })}
-                          className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/30"
-                        >
-                          Öde
-                        </button>
-                      ) : (
-                        <span className="px-2 py-1 text-xs bg-zinc-700 text-zinc-400 rounded">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setSelectedInfluencer(influencer)}
-                          className="p-2 hover:bg-purple-500/20 rounded-lg transition-colors text-zinc-400 hover:text-purple-400"
-                          title="Detay"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => { setEditingInfluencer(influencer); setShowInfluencerModal(true); }}
-                          className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm('Bu influencer kaydını silmek istediğinize emin misiniz?')) {
-                              deleteInfluencerMutation.mutate(influencer.id);
-                            }
-                          }}
-                          className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        ) : filteredInfluencers.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className="w-10 h-10 text-zinc-700 mx-auto mb-3" />
+            <p className="text-zinc-500 text-sm">
+              {searchQuery ? 'Arama sonucu bulunamadı' : 'Henüz influencer kaydı yok'}
+            </p>
           </div>
         ) : (
-          <div className="p-8 text-center text-zinc-500">
-            Henüz influencer kaydı yok. Yeni bir influencer ekleyerek başlayın.
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-zinc-800/50">
+                <tr>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Influencer</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Kod</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-zinc-400 uppercase tracking-wider">İndirim</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-zinc-400 uppercase tracking-wider">Komisyon</th>
+                  <th className="px-5 py-3 text-center text-xs font-medium text-zinc-400 uppercase tracking-wider">Kullanım</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">Bekleyen</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {filteredInfluencers.map((influencer: any) => {
+                  const dName = influencer.influencerName || influencer.code;
+                  const pending = parseFloat(influencer.totalCommissionEarned || '0');
+                  return (
+                    <tr key={influencer.id} className="hover:bg-zinc-800/30 transition-colors group">
+                      {/* Avatar + name */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl ${influencerAvatarColor(dName)} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
+                            {influencerInitials(dName)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white leading-tight">{dName}</p>
+                            {influencer.influencerInstagram && (
+                              <a
+                                href={`https://instagram.com/${influencer.influencerInstagram.replace('@','')}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                @{influencer.influencerInstagram.replace('@','')}
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      {/* Code */}
+                      <td className="px-5 py-4">
+                        <span className="font-mono text-xs bg-zinc-800 border border-zinc-700 px-2.5 py-1 rounded-lg text-white">{influencer.code}</span>
+                      </td>
+                      {/* Discount */}
+                      <td className="px-5 py-4 text-center">
+                        <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">
+                          {influencer.discountType === 'percentage' ? `%${influencer.discountValue}` : fp(influencer.discountValue)}
+                        </span>
+                      </td>
+                      {/* Commission */}
+                      <td className="px-5 py-4 text-center">
+                        <span className="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded-full">
+                          {influencer.commissionType === 'percentage'
+                            ? `%${influencer.commissionValue}`
+                            : influencer.commissionType === 'per_use'
+                            ? `${fp(influencer.commissionValue)}/kul.`
+                            : fp(influencer.commissionValue)}
+                        </span>
+                      </td>
+                      {/* Usage */}
+                      <td className="px-5 py-4 text-center">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 text-xs font-bold text-white">
+                          {influencer.usageCount || 0}
+                        </span>
+                      </td>
+                      {/* Pending commission */}
+                      <td className="px-5 py-4 text-right">
+                        {pending > 0 ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-sm font-semibold text-yellow-400">{fp(pending)}</span>
+                            <button
+                              onClick={() => markInfluencerPaidMutation.mutate({ id: influencer.id, isPaid: true })}
+                              className="text-xs bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-2.5 py-1 rounded-lg transition-colors"
+                            >
+                              Öde
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-zinc-600">—</span>
+                        )}
+                      </td>
+                      {/* Actions */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setSelectedInfluencer(influencer)}
+                            className="p-1.5 hover:bg-purple-500/20 rounded-lg transition-colors text-zinc-500 hover:text-purple-400"
+                            title="Detay"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => { setEditingInfluencer(influencer); setShowInfluencerModal(true); }}
+                            className="p-1.5 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-500 hover:text-white"
+                            title="Düzenle"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Bu influencer kaydını silmek istediğinize emin misiniz?')) {
+                                deleteInfluencerMutation.mutate(influencer.id);
+                              }
+                            }}
+                            className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-500 hover:text-red-400"
+                            title="Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        ))}
+        )}
       </div>
 
-      {activeView === 'list' && analytics?.redemptions && analytics.redemptions.length > 0 && (
+      {/* Recent activity */}
+      {analytics?.redemptions && analytics.redemptions.length > 0 && (
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-zinc-800">
-            <h3 className="text-lg font-semibold text-white">Son Kullanımlar</h3>
+          <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+            <h3 className="text-base font-semibold text-white">Son Kullanımlar</h3>
+            <span className="text-xs bg-zinc-800 text-zinc-400 px-2.5 py-1 rounded-full">Son 20</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-zinc-800/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Tarih</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Influencer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kod</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Sipariş</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Sipariş Tutarı</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">İndirim</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Tarih</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Influencer</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Kod</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Sipariş</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">Tutar</th>
+                  <th className="px-5 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">İndirim</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-zinc-800/60">
                 {analytics.redemptions.slice(0, 20).map((r: any) => (
-                  <tr key={r.id} className="hover:bg-zinc-800/30">
-                    <td className="px-6 py-4 text-sm text-zinc-400">
-                      {new Date(r.createdAt).toLocaleDateString('tr-TR', { 
-                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-                      })}
+                  <tr key={r.id} className="hover:bg-zinc-800/30 transition-colors">
+                    <td className="px-5 py-3.5 text-sm text-zinc-400">
+                      {new Date(r.createdAt).toLocaleDateString('tr-TR', { day:'numeric', month:'short', year:'numeric' })}
                     </td>
-                    <td className="px-6 py-4 text-sm text-white">{r.influencerName || '-'}</td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-xs bg-zinc-800 px-2 py-1 rounded text-white">{r.couponCode}</span>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-lg ${influencerAvatarColor(r.influencerName || '?')} flex items-center justify-center text-white text-[9px] font-bold shrink-0`}>
+                          {influencerInitials(r.influencerName || '?')}
+                        </div>
+                        <span className="text-sm text-white">{r.influencerName || '-'}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-blue-400">#{r.orderNumber}</td>
-                    <td className="px-6 py-4 text-sm text-white">{formatPrice(r.orderTotal || 0)}</td>
-                    <td className="px-6 py-4 text-sm text-green-400">{formatPrice(r.discountAmount || 0)}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="font-mono text-xs bg-zinc-800 px-2 py-0.5 rounded text-white">{r.couponCode}</span>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm font-medium text-blue-400">#{r.orderNumber}</td>
+                    <td className="px-5 py-3.5 text-sm text-white text-right font-medium">{fp(r.orderTotal || 0)}</td>
+                    <td className="px-5 py-3.5 text-sm text-green-400 text-right">{fp(r.discountAmount || 0)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {activeView === 'analytics' && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-zinc-800">
-            <h3 className="text-lg font-semibold text-white">Aylık Performans Analizi</h3>
-          </div>
-          {analyticsLoading ? (
-            <div className="p-8 flex justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
-            </div>
-          ) : analytics?.monthlyData && analytics.monthlyData.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-zinc-800/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Ay</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Kullanım Sayısı</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Toplam Gelir</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase">Toplam Komisyon</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800">
-                  {analytics.monthlyData.map((m: any) => {
-                    const [year, month] = m.month.split('-');
-                    const monthLabel = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
-                    return (
-                      <tr key={m.month} className="hover:bg-zinc-800/30">
-                        <td className="px-6 py-4 text-sm font-medium text-white">{monthLabel}</td>
-                        <td className="px-6 py-4 text-sm text-white">{m.count}</td>
-                        <td className="px-6 py-4 text-sm text-green-400">{formatPrice(m.revenue)}</td>
-                        <td className="px-6 py-4 text-sm text-yellow-400">{formatPrice(m.commission)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="bg-zinc-800/30">
-                  <tr>
-                    <td className="px-6 py-4 text-sm font-bold text-white">Toplam</td>
-                    <td className="px-6 py-4 text-sm font-bold text-white">
-                      {analytics.monthlyData.reduce((sum: number, m: any) => sum + m.count, 0)}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold text-green-400">
-                      {formatPrice(analytics.monthlyData.reduce((sum: number, m: any) => sum + m.revenue, 0))}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold text-yellow-400">
-                      {formatPrice(analytics.monthlyData.reduce((sum: number, m: any) => sum + m.commission, 0))}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          ) : (
-            <div className="p-8 text-center text-zinc-500">
-              Henüz analiz verisi yok
-            </div>
-          )}
         </div>
       )}
 
