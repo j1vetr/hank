@@ -56,7 +56,7 @@ function StarRating({ rating, size = 16, interactive = false, onChange }: { rati
           <Star
             style={{ width: size, height: size }}
             className={`${
-              star <= (hover || rating) ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-600'
+              star <= (hover || rating) ? 'fill-yellow-400 text-yellow-400' : 'text-black/20'
             } transition-colors`}
           />
         </button>
@@ -314,14 +314,14 @@ export default function ProductDetail() {
 
   if (productLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white">
         <Header />
         <main className="pt-36 pb-20 px-6">
           <div className="max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-              <Loader2 className="w-10 h-10 text-white/50" />
+              <Loader2 className="w-10 h-10 text-black/25" />
             </motion.div>
-            <p className="mt-4 text-sm text-muted-foreground">Ürün yükleniyor...</p>
+            <p className="mt-4 text-sm text-black/40">Ürün yükleniyor...</p>
           </div>
         </main>
       </div>
@@ -330,17 +330,17 @@ export default function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white">
         <Header />
         <main className="pt-36 pb-20 px-6">
           <div className="max-w-7xl mx-auto text-center min-h-[60vh] flex flex-col items-center justify-center">
-            <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6">
-              <Package className="w-12 h-12 text-white/30" />
+            <div className="w-24 h-24 border border-black/8 flex items-center justify-center mb-6">
+              <Package className="w-12 h-12 text-black/20" />
             </div>
-            <h1 className="font-display text-3xl mb-4">Ürün Bulunamadı</h1>
-            <p className="text-muted-foreground mb-8">Aradığınız ürün mevcut değil veya kaldırılmış olabilir.</p>
+            <h1 className="font-display text-3xl mb-4 text-black">Ürün Bulunamadı</h1>
+            <p className="text-black/40 mb-8">Aradığınız ürün mevcut değil veya kaldırılmış olabilir.</p>
             <Link href="/">
-              <motion.span whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-lg font-medium">
+              <motion.span whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-medium text-sm tracking-wider">
                 Ana Sayfaya Dön
               </motion.span>
             </Link>
@@ -367,7 +367,7 @@ export default function ProductDetail() {
   const categorySlug = categories.find(c => c.id === product.categoryId)?.slug || '';
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <SEO 
         title={product.name}
         description={product.description || `${product.name} - HANK premium fitness giyim`}
@@ -447,25 +447,25 @@ export default function ProductDetail() {
               animate={{ scale: 1, opacity: 1, y: 0 }} 
               exit={{ scale: 0.95, opacity: 0, y: 10 }} 
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-gradient-to-b from-zinc-900 to-zinc-950 rounded-2xl sm:rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-zinc-800 shadow-2xl" 
+              className="bg-white rounded-none w-full max-w-3xl max-h-[90vh] overflow-hidden border border-black/10 shadow-2xl" 
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="bg-gradient-to-r from-amber-600/10 via-amber-500/5 to-transparent border-b border-zinc-800 p-4 sm:p-6">
+              <div className="border-b border-black/8 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center border border-amber-500/20">
-                      <Ruler className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 border border-black/10 flex items-center justify-center">
+                      <Ruler className="w-5 h-5 sm:w-6 sm:h-6 text-black/50" />
                     </div>
                     <div>
-                      <h3 className="font-display text-lg sm:text-xl text-white">Beden Rehberi</h3>
-                      <p className="text-xs sm:text-sm text-zinc-400">Doğru bedeni seçmenize yardımcı olur</p>
+                      <h3 className="font-display text-lg sm:text-xl text-black">Beden Rehberi</h3>
+                      <p className="text-xs sm:text-sm text-black/40">Doğru bedeni seçmenize yardımcı olur</p>
                     </div>
                   </div>
                   <button 
                     onClick={() => setShowSizeGuide(false)} 
-                    className="p-2 sm:p-2.5 bg-zinc-800/80 hover:bg-zinc-700 rounded-xl transition-colors"
+                    className="p-2 sm:p-2.5 hover:bg-black/5 transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 text-black" />
                   </button>
                 </div>
               </div>
@@ -473,14 +473,14 @@ export default function ProductDetail() {
               <div className="p-4 sm:p-6 overflow-auto max-h-[calc(90vh-100px)]">
                 {sizeChart ? (
                   <div className="space-y-4">
-                    <div className="overflow-x-auto rounded-xl border border-zinc-800">
+                    <div className="overflow-x-auto border border-black/8">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="bg-zinc-800/50">
+                          <tr className="bg-stone-50">
                             {sizeChart.columns.map((col, i) => (
                               <th 
                                 key={i} 
-                                className={`${i === 0 ? 'text-left' : 'text-center'} py-3 sm:py-4 px-3 sm:px-5 font-semibold text-white text-xs sm:text-sm uppercase tracking-wide whitespace-nowrap`}
+                                className={`${i === 0 ? 'text-left' : 'text-center'} py-3 sm:py-4 px-3 sm:px-5 font-semibold text-black text-xs sm:text-sm uppercase tracking-wide whitespace-nowrap`}
                               >
                                 {col}
                               </th>
@@ -491,15 +491,15 @@ export default function ProductDetail() {
                           {sizeChart.rows.map((row, ri) => (
                             <tr 
                               key={ri} 
-                              className={`border-t border-zinc-800/50 ${ri % 2 === 0 ? 'bg-zinc-900/30' : 'bg-zinc-900/10'} hover:bg-amber-500/5 transition-colors`}
+                              className={`border-t border-black/6 ${ri % 2 === 0 ? 'bg-white' : 'bg-stone-50/50'} hover:bg-amber-50/60 transition-colors`}
                             >
                               {row.map((cell, ci) => (
                                 <td 
                                   key={ci} 
                                   className={`py-3 sm:py-4 px-3 sm:px-5 ${
                                     ci === 0 
-                                      ? 'font-bold text-amber-400 text-sm sm:text-base' 
-                                      : 'text-center text-zinc-300 text-xs sm:text-sm'
+                                      ? 'font-bold text-black text-sm sm:text-base' 
+                                      : 'text-center text-black/60 text-xs sm:text-sm'
                                   } whitespace-nowrap`}
                                 >
                                   {cell || '-'}
@@ -511,23 +511,23 @@ export default function ProductDetail() {
                       </table>
                     </div>
                     
-                    <div className="flex items-start gap-3 p-3 sm:p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                        <Package className="w-4 h-4 text-blue-400" />
+                    <div className="flex items-start gap-3 p-3 sm:p-4 bg-stone-50 border border-black/8">
+                      <div className="w-8 h-8 border border-black/8 flex items-center justify-center flex-shrink-0">
+                        <Package className="w-4 h-4 text-black/40" />
                       </div>
-                      <div className="text-xs sm:text-sm text-zinc-400">
-                        <p className="font-medium text-zinc-300 mb-1">Ölçü Alma İpucu</p>
+                      <div className="text-xs sm:text-sm text-black/50">
+                        <p className="font-medium text-black mb-1">Ölçü Alma İpucu</p>
                         <p>En doğru sonuç için, vücudunuzu mezura ile ölçün ve tablodaki değerlerle karşılaştırın. Eğer iki beden arasında kalırsanız, rahat bir kesim için büyük bedeni tercih edebilirsiniz.</p>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zinc-800/50 flex items-center justify-center">
-                      <Ruler className="w-8 h-8 text-zinc-600" />
+                    <div className="w-16 h-16 mx-auto mb-4 border border-black/8 flex items-center justify-center">
+                      <Ruler className="w-8 h-8 text-black/20" />
                     </div>
-                    <h4 className="text-lg font-medium text-white mb-2">Beden Tablosu Bulunamadı</h4>
-                    <p className="text-sm text-zinc-400 max-w-sm mx-auto">Bu kategori için henüz beden tablosu eklenmemiş. Lütfen ürün açıklamasındaki beden bilgilerini kontrol edin.</p>
+                    <h4 className="text-lg font-medium text-black mb-2">Beden Tablosu Bulunamadı</h4>
+                    <p className="text-sm text-black/40 max-w-sm mx-auto">Bu kategori için henüz beden tablosu eklenmemiş. Lütfen ürün açıklamasındaki beden bilgilerini kontrol edin.</p>
                   </div>
                 )}
               </div>
@@ -538,16 +538,16 @@ export default function ProductDetail() {
 
       <main className="pt-36 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <motion.nav initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
-            <Link href="/" className="hover:text-white transition-colors">Ana Sayfa</Link>
+          <motion.nav initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-xs text-black/40 mb-6">
+            <Link href="/" className="hover:text-black transition-colors">Ana Sayfa</Link>
             <ChevronRight className="w-3 h-3" />
             {category && (
               <>
-                <Link href={`/kategori/${category.slug}`} className="hover:text-white transition-colors">{category.name}</Link>
+                <Link href={`/kategori/${category.slug}`} className="hover:text-black transition-colors">{category.name}</Link>
                 <ChevronRight className="w-3 h-3" />
               </>
             )}
-            <span className="text-foreground truncate max-w-[300px] uppercase">{product.name}</span>
+            <span className="text-black truncate max-w-[300px] uppercase">{product.name}</span>
           </motion.nav>
 
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-16">
@@ -556,7 +556,7 @@ export default function ProductDetail() {
                 {images.length > 5 && selectedImage > 0 && (
                   <button
                     onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
-                    className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                    className="w-full h-8 flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors"
                     data-testid="button-thumbnail-prev"
                   >
                     <ChevronLeft className="w-4 h-4 rotate-90" />
@@ -570,8 +570,8 @@ export default function ProductDetail() {
                         onClick={() => setSelectedImage(index)}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
-                          index === selectedImage ? 'ring-2 ring-white' : 'opacity-50 hover:opacity-100'
+                        className={`relative aspect-[3/4] overflow-hidden transition-all flex-shrink-0 ${
+                          index === selectedImage ? 'ring-2 ring-black' : 'opacity-40 hover:opacity-100'
                         }`}
                         data-testid={`button-thumbnail-${index}`}
                       >
@@ -590,8 +590,8 @@ export default function ProductDetail() {
                           onClick={() => setSelectedImage(actualIndex)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className={`relative aspect-[3/4] rounded-lg overflow-hidden transition-all flex-shrink-0 ${
-                            actualIndex === selectedImage ? 'ring-2 ring-white' : 'opacity-50 hover:opacity-100'
+                          className={`relative aspect-[3/4] overflow-hidden transition-all flex-shrink-0 ${
+                            actualIndex === selectedImage ? 'ring-2 ring-black' : 'opacity-40 hover:opacity-100'
                           }`}
                           data-testid={`button-thumbnail-${actualIndex}`}
                         >
@@ -604,7 +604,7 @@ export default function ProductDetail() {
                 {images.length > 5 && selectedImage < images.length - 1 && (
                   <button
                     onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
-                    className="w-full h-8 flex items-center justify-center bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+                    className="w-full h-8 flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors"
                     data-testid="button-thumbnail-next"
                   >
                     <ChevronLeft className="w-4 h-4 -rotate-90" />
@@ -623,8 +623,9 @@ export default function ProductDetail() {
                         height="132"
                         rx="6"
                         fill="none"
-                        stroke="white"
-                        strokeWidth="1.5"
+                        stroke="black"
+                        strokeWidth="1"
+                        strokeOpacity="0.1"
                         className="animate-border-dash"
                       />
                     </svg>
@@ -632,7 +633,7 @@ export default function ProductDetail() {
                   <div className="hidden sm:block">
                     <motion.div 
                       ref={imageRef}
-                      className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden cursor-zoom-in group w-full"
+                      className="relative aspect-[3/4] bg-stone-100 overflow-hidden cursor-zoom-in group w-full"
                       onMouseEnter={() => setIsZooming(true)}
                       onMouseLeave={() => setIsZooming(false)}
                       onMouseMove={handleMouseMove}
@@ -656,18 +657,18 @@ export default function ProductDetail() {
                       </AnimatePresence>
                       {product.discountBadge && (
                         <div className="absolute top-4 left-4 z-20">
-                          <div className="bg-red-600 text-white text-sm font-black px-3 py-1.5 rounded-lg shadow-lg shadow-red-900/40 transform -rotate-2">
+                          <div className="bg-black text-white text-sm font-bold px-3 py-1.5">
                             {product.discountBadge}
                           </div>
                         </div>
                       )}
                       {product.isNew && !product.discountBadge && (
-                        <span className="absolute top-4 left-4 bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
+                        <span className="absolute top-4 left-4 bg-black text-white text-[10px] font-bold tracking-[0.15em] px-2.5 py-1 z-20 uppercase">Yeni</span>
                       )}
                     </motion.div>
                   </div>
                   <div className="sm:hidden">
-                    <div className="relative aspect-[3/4] bg-zinc-900 rounded-xl overflow-hidden w-full" ref={emblaRef}>
+                    <div className="relative aspect-[3/4] bg-stone-100 overflow-hidden w-full" ref={emblaRef}>
                       <div className="flex h-full">
                         {images.map((image, index) => (
                           <div 
@@ -681,13 +682,13 @@ export default function ProductDetail() {
                       </div>
                       {product.discountBadge && (
                         <div className="absolute top-4 left-4 z-20">
-                          <div className="bg-red-600 text-white text-sm font-black px-3 py-1.5 rounded-lg shadow-lg shadow-red-900/40 transform -rotate-2">
+                          <div className="bg-black text-white text-sm font-bold px-3 py-1.5">
                             {product.discountBadge}
                           </div>
                         </div>
                       )}
                       {product.isNew && !product.discountBadge && (
-                        <span className="absolute top-4 left-4 bg-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded z-20">YENİ</span>
+                        <span className="absolute top-4 left-4 bg-black text-white text-[10px] font-bold tracking-[0.15em] px-2.5 py-1 z-20 uppercase">Yeni</span>
                       )}
                     </div>
                   </div>
@@ -700,8 +701,8 @@ export default function ProductDetail() {
                         <button 
                           key={index} 
                           onClick={() => setSelectedImage(index)} 
-                          className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
-                            index === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-50'
+                          className={`shrink-0 w-14 aspect-[3/4] overflow-hidden transition-all ${
+                            index === selectedImage ? 'ring-2 ring-black ring-offset-2 ring-offset-white' : 'opacity-40'
                           }`}
                         >
                           <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -720,8 +721,8 @@ export default function ProductDetail() {
                             <button 
                               key={actualIndex} 
                               onClick={() => setSelectedImage(actualIndex)} 
-                              className={`shrink-0 w-14 aspect-[3/4] rounded-lg overflow-hidden transition-all ${
-                                actualIndex === selectedImage ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-50'
+                              className={`shrink-0 w-14 aspect-[3/4] overflow-hidden transition-all ${
+                                actualIndex === selectedImage ? 'ring-2 ring-black ring-offset-2 ring-offset-white' : 'opacity-40'
                               }`}
                             >
                               <img src={image} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -735,7 +736,7 @@ export default function ProductDetail() {
                             key={idx}
                             onClick={() => setSelectedImage(idx)}
                             className={`w-1.5 h-1.5 rounded-full transition-all ${
-                              idx === selectedImage ? 'bg-white w-4' : 'bg-white/30'
+                              idx === selectedImage ? 'bg-black w-4' : 'bg-black/20'
                             }`}
                           />
                         ))}
@@ -748,27 +749,27 @@ export default function ProductDetail() {
 
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="lg:pt-4">
               {category && (
-                <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">{category.name}</p>
+                <p className="text-[10px] text-black/40 uppercase tracking-[0.25em] mb-3">{category.name}</p>
               )}
               
-              <h1 className="font-display text-xl sm:text-2xl tracking-wide uppercase mb-4" data-testid="text-product-name">
+              <h1 className="font-display text-2xl sm:text-3xl tracking-wide uppercase mb-4 text-black leading-tight" data-testid="text-product-name">
                 {product.name}
               </h1>
               
               <div className="flex items-baseline gap-3 mb-6">
                 {originalPrice && (
-                  <span className="text-base text-white/40 line-through" data-testid="text-original-price">
+                  <span className="text-base text-black/35 line-through" data-testid="text-original-price">
                     {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
                   </span>
                 )}
-                <span className="text-xl font-semibold" data-testid="text-price">
+                <span className="text-2xl font-bold text-black" data-testid="text-price">
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                 </span>
               </div>
 
               {product.description && (
                 <div 
-                  className="text-sm text-muted-foreground leading-relaxed mb-6 prose prose-sm prose-invert max-w-none [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1"
+                  className="text-sm text-black/55 leading-relaxed mb-6 prose prose-sm max-w-none [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1 [&_strong]:text-black [&_h3]:text-black [&_h4]:text-black"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
               )}
@@ -788,7 +789,7 @@ export default function ProductDetail() {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
                             className={`relative w-8 h-8 rounded-full transition-all ${
-                              isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'ring-1 ring-white/30'
+                              isSelected ? 'ring-2 ring-black ring-offset-2 ring-offset-white' : 'ring-1 ring-black/20'
                             }`}
                             style={{ backgroundColor: color.hex }}
                             title={color.name}
@@ -807,12 +808,12 @@ export default function ProductDetail() {
                 {sizes.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Beden: <span className="text-white">{selectedSize || ''}</span>
+                      <span className="text-[11px] font-medium text-black/40 uppercase tracking-[0.18em]">
+                        Beden: <span className="text-black font-semibold">{selectedSize || ''}</span>
                       </span>
                       <button 
                         onClick={() => setShowSizeGuide(true)} 
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600/20 to-amber-500/10 border border-amber-500/30 rounded-lg text-amber-400 hover:from-amber-600/30 hover:to-amber-500/20 hover:border-amber-500/50 transition-all group"
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-black/15 text-black/50 hover:border-black hover:text-black transition-all group"
                       >
                         <Ruler className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                         <span className="text-xs font-medium">Beden Rehberi</span>
@@ -829,18 +830,18 @@ export default function ProductDetail() {
                             whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
                             whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
                             disabled={isOutOfStock}
-                            className={`relative min-w-[56px] py-2.5 px-4 text-sm font-medium border transition-all ${
+                            className={`relative min-w-[52px] py-2.5 px-4 text-sm font-medium border transition-all ${
                               isOutOfStock
-                                ? 'bg-transparent border-zinc-800 text-zinc-600 cursor-not-allowed opacity-50'
+                                ? 'bg-transparent border-black/10 text-black/25 cursor-not-allowed'
                                 : selectedSize === size
-                                  ? 'bg-white text-black border-white'
-                                  : 'bg-transparent border-zinc-700 text-white hover:border-zinc-500'
+                                  ? 'bg-black text-white border-black'
+                                  : 'bg-transparent border-black/20 text-black hover:border-black'
                             }`}
                             data-testid={`button-size-${size}`}
                           >
                             <span className={isOutOfStock ? 'line-through' : ''}>{size}</span>
                             {isOutOfStock && (
-                              <span className="absolute -top-2 -right-2 text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">
+                              <span className="absolute -top-2 -right-2 text-[9px] bg-black/8 text-black/40 px-1.5 py-0.5">
                                 Tükendi
                               </span>
                             )}
@@ -852,12 +853,12 @@ export default function ProductDetail() {
                 )}
 
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center border border-zinc-700">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-white/5 transition-colors" data-testid="button-decrease-quantity">
+                  <div className="flex items-center border border-black/15">
+                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-black/5 transition-colors text-black" data-testid="button-decrease-quantity">
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-10 text-center font-medium text-sm" data-testid="text-quantity">{quantity}</span>
-                    <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-white/5 transition-colors" data-testid="button-increase-quantity">
+                    <span className="w-10 text-center font-medium text-sm text-black" data-testid="text-quantity">{quantity}</span>
+                    <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-black/5 transition-colors text-black" data-testid="button-increase-quantity">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
@@ -866,7 +867,7 @@ export default function ProductDetail() {
                     const selectedVariant = selectedSize ? product.variants?.find(v => v.size === selectedSize) : null;
                     const displaySku = selectedVariant?.sku || product.sku;
                     return displaySku ? (
-                      <span className="text-xs text-muted-foreground" data-testid="text-sku">
+                      <span className="text-xs text-black/35" data-testid="text-sku">
                         Stok Kodu: {displaySku}
                       </span>
                     ) : null;
@@ -879,10 +880,10 @@ export default function ProductDetail() {
                     whileTap={!isCompletelyOutOfStock ? { scale: 0.99 } : {}}
                     onClick={handleAddToCart}
                     disabled={isAdding || isCompletelyOutOfStock}
-                    className={`flex-1 py-3.5 font-medium text-sm uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+                    className={`flex-1 py-3.5 font-medium text-sm uppercase tracking-[0.15em] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
                       isCompletelyOutOfStock 
-                        ? 'bg-red-900/50 text-red-400 cursor-not-allowed' 
-                        : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+                        ? 'bg-black/8 text-black/35 cursor-not-allowed' 
+                        : 'bg-black hover:bg-zinc-900 text-white'
                     }`}
                     data-testid="button-add-to-cart"
                   >
@@ -896,7 +897,7 @@ export default function ProductDetail() {
                     onClick={() => product && !isFavoriteLoading && toggleFavorite(product.id, isLiked)}
                     disabled={isFavoriteLoading}
                     className={`w-12 h-12 border flex items-center justify-center transition-colors ${
-                      isLiked ? 'bg-red-600 border-red-600 text-white' : 'border-zinc-700 hover:border-zinc-500'
+                      isLiked ? 'bg-black border-black text-white' : 'border-black/20 hover:border-black text-black'
                     } ${isFavoriteLoading ? 'opacity-50' : ''}`}
                     data-testid="button-like"
                   >
@@ -912,7 +913,7 @@ export default function ProductDetail() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setShowShareMenu(!showShareMenu)}
-                      className="w-12 h-12 border border-zinc-700 hover:border-zinc-500 flex items-center justify-center transition-colors"
+                      className="w-12 h-12 border border-black/20 hover:border-black text-black flex items-center justify-center transition-colors"
                       data-testid="button-share"
                     >
                       <Share2 className="w-5 h-5" />
@@ -924,7 +925,7 @@ export default function ProductDetail() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
-                          className="absolute bottom-full right-0 mb-2 bg-zinc-900 border border-zinc-700 rounded-lg p-2 min-w-[160px] shadow-xl"
+                          className="absolute bottom-full right-0 mb-2 bg-white border border-black/10 p-2 min-w-[160px] shadow-xl"
                         >
                           {socialLinks.map((social) => (
                             <a key={social.name} href={social.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-3 px-3 py-2 rounded transition-colors ${social.color}`} onClick={() => setShowShareMenu(false)}>
@@ -932,7 +933,7 @@ export default function ProductDetail() {
                               <span className="text-sm">{social.name}</span>
                             </a>
                           ))}
-                          <button onClick={copyLink} className="flex items-center gap-3 px-3 py-2 rounded w-full hover:bg-white/10 transition-colors">
+                          <button onClick={copyLink} className="flex items-center gap-3 px-3 py-2 w-full hover:bg-black/5 transition-colors text-black">
                             <Copy className="w-5 h-5" />
                             <span className="text-sm">Kopyala</span>
                           </button>
@@ -943,32 +944,32 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Same Day Shipping Notice */}
-                <div className="mt-4 p-3 bg-zinc-800/50 border border-zinc-700 rounded-lg">
+                <div className="mt-4 p-3 bg-stone-50 border border-black/8">
                   <ShippingCountdown />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-zinc-800">
+              <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-black/8">
                 <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-zinc-800/50 flex items-center justify-center">
-                    <Truck className="w-5 h-5 text-zinc-400" />
+                  <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
+                    <Truck className="w-4 h-4 text-black/40" />
                   </div>
-                  <p className="text-xs font-medium">Ücretsiz Kargo</p>
-                  <p className="text-[10px] text-muted-foreground">2500₺ Üzeri</p>
+                  <p className="text-xs font-medium text-black">Ücretsiz Kargo</p>
+                  <p className="text-[10px] text-black/40">2500₺ Üzeri</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-zinc-800/50 flex items-center justify-center">
-                    <RotateCcw className="w-5 h-5 text-zinc-400" />
+                  <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
+                    <RotateCcw className="w-4 h-4 text-black/40" />
                   </div>
-                  <p className="text-xs font-medium">Kolay İade</p>
-                  <p className="text-[10px] text-muted-foreground">14 gün</p>
+                  <p className="text-xs font-medium text-black">Kolay İade</p>
+                  <p className="text-[10px] text-black/40">14 gün</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-zinc-800/50 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-zinc-400" />
+                  <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-black/40" />
                   </div>
-                  <p className="text-xs font-medium">Güvenli Ödeme</p>
-                  <p className="text-[10px] text-muted-foreground">SSL korumalı</p>
+                  <p className="text-xs font-medium text-black">Güvenli Ödeme</p>
+                  <p className="text-[10px] text-black/40">SSL korumalı</p>
                 </div>
               </div>
             </motion.div>
@@ -982,11 +983,11 @@ export default function ProductDetail() {
             className="mt-16"
           >
             <div className="flex items-center justify-between mb-8">
-              <h2 className="font-display text-xl tracking-wide uppercase">Değerlendirmeler</h2>
+              <h2 className="font-display text-3xl tracking-wide uppercase text-black">Değerlendirmeler</h2>
               {ratingData && ratingData.count > 0 && (
                 <div className="flex items-center gap-2">
                   <StarRating rating={Math.round(ratingData.average)} size={18} />
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-black/40">
                     {ratingData.average.toFixed(1)} ({ratingData.count} değerlendirme)
                   </span>
                 </div>
@@ -994,11 +995,11 @@ export default function ProductDetail() {
             </div>
 
             {user && !userReview && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-8">
-                <h3 className="font-semibold mb-4">Değerlendirme Yaz</h3>
+              <div className="bg-stone-50 border border-black/8 p-6 mb-8">
+                <h3 className="font-semibold mb-4 text-black">Değerlendirme Yaz</h3>
                 <form onSubmit={handleSubmitReview} className="space-y-4">
                   <div>
-                    <label className="block text-sm text-muted-foreground mb-2">Puanınız</label>
+                    <label className="block text-xs text-black/40 mb-2 uppercase tracking-wider">Puanınız</label>
                     <StarRating rating={reviewRating} size={28} interactive onChange={setReviewRating} />
                   </div>
                   <div>
@@ -1007,7 +1008,7 @@ export default function ProductDetail() {
                       placeholder="Başlık (isteğe bağlı)"
                       value={reviewTitle}
                       onChange={(e) => setReviewTitle(e.target.value)}
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-white transition-colors"
+                      className="w-full px-4 py-3 bg-white border border-black/12 text-black placeholder:text-black/30 focus:outline-none focus:border-black transition-colors"
                       data-testid="input-review-title"
                     />
                   </div>
@@ -1017,14 +1018,14 @@ export default function ProductDetail() {
                       value={reviewContent}
                       onChange={(e) => setReviewContent(e.target.value)}
                       rows={3}
-                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-white transition-colors resize-none"
+                      className="w-full px-4 py-3 bg-white border border-black/12 text-black placeholder:text-black/30 focus:outline-none focus:border-black transition-colors resize-none"
                       data-testid="input-review-content"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={createReviewMutation.isPending}
-                    className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-3 bg-black text-white font-medium hover:bg-zinc-900 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm tracking-wider"
                     data-testid="button-submit-review"
                   >
                     {createReviewMutation.isPending ? (
@@ -1039,10 +1040,10 @@ export default function ProductDetail() {
             )}
 
             {!user && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-8 text-center">
-                <p className="text-white font-medium mb-4">Değerlendirme Yazmak için Giriş Yapın !</p>
+              <div className="bg-stone-50 border border-black/8 p-6 mb-8 text-center">
+                <p className="text-black font-medium mb-4">Değerlendirme yazmak için giriş yapın</p>
                 <Link href="/giris">
-                  <button className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-zinc-200 transition-colors">
+                  <button className="px-6 py-3 bg-black text-white font-medium hover:bg-zinc-900 transition-colors text-sm tracking-wider">
                     Giriş Yap
                   </button>
                 </Link>
@@ -1050,13 +1051,13 @@ export default function ProductDetail() {
             )}
 
             {userReview && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 mb-8">
+              <div className="bg-stone-50 border border-black/8 p-6 mb-8">
                 <div className="flex items-center gap-2 mb-2">
                   <StarRating rating={userReview.rating} size={16} />
-                  <span className="text-sm text-green-400">Değerlendirmeniz</span>
+                  <span className="text-xs text-green-700 font-medium uppercase tracking-wider">Değerlendirmeniz</span>
                 </div>
-                {userReview.title && <h4 className="font-semibold">{userReview.title}</h4>}
-                {userReview.content && <p className="text-muted-foreground mt-1">{userReview.content}</p>}
+                {userReview.title && <h4 className="font-semibold text-black">{userReview.title}</h4>}
+                {userReview.content && <p className="text-black/50 mt-1 text-sm">{userReview.content}</p>}
               </div>
             )}
 
@@ -1068,27 +1069,27 @@ export default function ProductDetail() {
                     return name.slice(0, 2) + '***';
                   };
                   return (
-                    <div key={review.id} className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+                    <div key={review.id} className="bg-stone-50 border border-black/8 p-5">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 flex items-center justify-center text-sm font-bold text-white">
+                          <div className="w-9 h-9 bg-black/8 flex items-center justify-center text-sm font-bold text-black">
                             {review.user.firstName?.charAt(0)?.toUpperCase() || 'A'}
                           </div>
                           <div>
-                            <p className="font-medium text-sm text-white">
+                            <p className="font-medium text-sm text-black">
                               {maskName(review.user.firstName)} {maskName(review.user.lastName)}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <StarRating rating={review.rating} size={12} />
-                              <span className="text-xs text-zinc-500">
+                              <span className="text-xs text-black/35">
                                 {new Date(review.createdAt).toLocaleDateString('tr-TR')}
                               </span>
                             </div>
                           </div>
                         </div>
                       </div>
-                      {review.title && <h4 className="font-semibold text-sm text-white">{review.title}</h4>}
-                      {review.content && <p className="text-muted-foreground text-sm mt-2 leading-relaxed">{review.content}</p>}
+                      {review.title && <h4 className="font-semibold text-sm text-black">{review.title}</h4>}
+                      {review.content && <p className="text-black/50 text-sm mt-2 leading-relaxed">{review.content}</p>}
                     </div>
                   );
                 })}
@@ -1096,8 +1097,8 @@ export default function ProductDetail() {
             ) : (
               !userReview && (
                 <div className="text-center py-10 text-muted-foreground">
-                  <Star className="w-10 h-10 mx-auto mb-3 text-zinc-700" />
-                  <p>Henüz değerlendirme yok. İlk değerlendirmeyi siz yapın!</p>
+                  <Star className="w-10 h-10 mx-auto mb-3 text-black/12" />
+                  <p className="text-black/40">Henüz değerlendirme yok. İlk değerlendirmeyi siz yapın!</p>
                 </div>
               )
             )}
@@ -1105,7 +1106,7 @@ export default function ProductDetail() {
 
           {moreProducts.length > 0 && (
             <motion.section initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="mt-20">
-              <h2 className="font-display text-xl tracking-wide uppercase mb-8">Beğenebileceğiniz Ürünler</h2>
+              <h2 className="font-display text-3xl tracking-wide uppercase mb-8 text-black">Beğenebileceğiniz Ürünler</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-10 sm:gap-x-6">
                 {moreProducts.map((p) => (
                   <ProductCard key={p.id} product={p} />

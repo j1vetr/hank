@@ -2,10 +2,10 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
-import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
+import { ArrowRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import heroImage1 from '@assets/hero-1.webp';
 import heroImage2 from '@assets/hero-2.webp';
 import categoryTshirt from '@assets/category-tshirt.webp';
@@ -23,35 +23,7 @@ const defaultCategoryImages: Record<string, string> = {
   'tshirt': categoryTshirt,
 };
 
-const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
-
-function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
-  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
-  const duplicatedProducts = [...shuffledProducts, ...shuffledProducts, ...shuffledProducts, ...shuffledProducts];
-  
-  return (
-    <div className="overflow-hidden">
-      <div className="flex animate-hero-slider gap-3 lg:gap-4">
-        {duplicatedProducts.map((product, index) => (
-          <Link key={`${product.id}-${index}`} href={`/urun/${product.slug}`}>
-            <div className="relative w-24 h-32 sm:w-28 sm:h-36 lg:w-32 lg:h-44 rounded-lg overflow-hidden group cursor-pointer flex-shrink-0 border border-white/20 hover:border-white/40 transition-colors">
-              <img
-                src={product.images[0] || '/placeholder.jpg'}
-                alt={product.name}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-2">
-                <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-medium truncate">{product.name}</p>
-                <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-bold">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
+const marqueeText = 'HANK — GÜÇ — PERFORMANS — STİL — HANK — GÜÇ — PERFORMANS — STİL — ';
 
 const features = [
   { icon: Truck, title: 'Ücretsiz Kargo', desc: '2.500₺ üzeri siparişlerde' },
@@ -60,9 +32,37 @@ const features = [
   { icon: Zap, title: 'Hızlı Teslimat', desc: '1 İş Günü içinde' },
 ];
 
+function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
+  const shuffled = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
+  const duplicated = [...shuffled, ...shuffled, ...shuffled, ...shuffled];
+
+  return (
+    <div className="overflow-hidden border-t border-black/8">
+      <div className="flex animate-hero-slider gap-2 py-3">
+        {duplicated.map((product, index) => (
+          <Link key={`${product.id}-${index}`} href={`/urun/${product.slug}`}>
+            <div className="relative w-20 h-28 sm:w-24 sm:h-32 lg:w-28 lg:h-36 overflow-hidden group cursor-pointer flex-shrink-0 bg-stone-100">
+              <img
+                src={product.images[0] || '/placeholder.jpg'}
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300" />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const heroImages = [heroImage1, heroImage2];
+  const heroRef = useRef<HTMLElement>(null);
+
+  const { scrollY } = useScroll();
+  const imageY = useTransform(scrollY, [0, 600], [0, -60]);
 
   const { data: apiCategories = [] } = useCategories();
   const { data: allProducts = [] } = useProducts({});
@@ -74,8 +74,6 @@ export default function Home() {
 
   const featuredProducts = allProducts.slice(0, 8);
 
-  const categoriesRef = useRef(null);
-  const productsRef = useRef(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -83,17 +81,12 @@ export default function Home() {
   const lastTimeRef = useRef<number | null>(null);
   const isPausedRef = useRef(false);
   const isRunningRef = useRef(false);
-  
-  const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
-  const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
 
-  // Auto-scroll categories on mobile with delta-time based speed
   useEffect(() => {
     const scrollContainer = categoryScrollRef.current;
     if (!scrollContainer || categories.length === 0) return;
-
-    const SCROLL_SPEED = 30; // pixels per second (consistent across all devices)
-    const MAX_DELTA = 50; // clamp delta to prevent jumps (in ms)
+    const SCROLL_SPEED = 30;
+    const MAX_DELTA = 50;
 
     const stopAnimation = () => {
       if (animationFrameRef.current !== null) {
@@ -106,92 +99,46 @@ export default function Home() {
 
     const animate = (currentTime: number) => {
       if (!isRunningRef.current) return;
-      
       const scrollEl = categoryScrollRef.current;
-      if (!scrollEl) {
-        stopAnimation();
-        return;
-      }
-
-      if (lastTimeRef.current === null) {
-        lastTimeRef.current = currentTime;
-      }
-
-      const rawDelta = currentTime - lastTimeRef.current;
-      const delta = Math.min(rawDelta, MAX_DELTA); // Clamp delta to prevent speed spikes
+      if (!scrollEl) { stopAnimation(); return; }
+      if (lastTimeRef.current === null) lastTimeRef.current = currentTime;
+      const delta = Math.min(currentTime - lastTimeRef.current, MAX_DELTA);
       lastTimeRef.current = currentTime;
-
       if (!isPausedRef.current) {
-        const movement = (SCROLL_SPEED * delta) / 1000; // Convert to pixels
-        scrollPositionRef.current += movement;
-        
+        scrollPositionRef.current += (SCROLL_SPEED * delta) / 1000;
         const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-        if (scrollPositionRef.current >= maxScroll) {
-          scrollPositionRef.current = 0;
-        }
-        
+        if (scrollPositionRef.current >= maxScroll) scrollPositionRef.current = 0;
         scrollEl.scrollLeft = scrollPositionRef.current;
       }
-
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
     const startAnimation = () => {
-      // Guard: Stop any existing animation before starting
       stopAnimation();
       isRunningRef.current = true;
       lastTimeRef.current = null;
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    // Only auto-scroll on mobile
     const mediaQuery = window.matchMedia('(max-width: 640px)');
-    
     const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) {
-        startAnimation();
-      } else {
-        stopAnimation();
-      }
+      if (e.matches) startAnimation(); else stopAnimation();
     };
-
-    // Initial check
-    if (mediaQuery.matches) {
-      startAnimation();
-    }
-
-    // Listen for changes
+    if (mediaQuery.matches) startAnimation();
     mediaQuery.addEventListener('change', handleMediaChange);
-
-    return () => {
-      stopAnimation();
-      mediaQuery.removeEventListener('change', handleMediaChange);
-    };
+    return () => { stopAnimation(); mediaQuery.removeEventListener('change', handleMediaChange); };
   }, [categories.length]);
 
-  // Pointer event handlers to prevent double-trigger on iOS
   const handleCategoryPointerDown = (e: React.PointerEvent) => {
-    // Prevent handling the same interaction twice
     if (e.pointerType === 'mouse' && 'ontouchstart' in window) return;
-    
     isPausedRef.current = true;
-    if (pauseTimeoutRef.current) {
-      clearTimeout(pauseTimeoutRef.current);
-      pauseTimeoutRef.current = null;
-    }
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
   };
-
   const handleCategoryPointerUp = (e: React.PointerEvent) => {
-    // Prevent handling the same interaction twice
     if (e.pointerType === 'mouse' && 'ontouchstart' in window) return;
-    
-    if (pauseTimeoutRef.current) {
-      clearTimeout(pauseTimeoutRef.current);
-    }
-    // Resume after 3 seconds
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
     pauseTimeoutRef.current = setTimeout(() => {
       if (categoryScrollRef.current) {
-        // Sync scroll position before resuming
         scrollPositionRef.current = categoryScrollRef.current.scrollLeft;
         isPausedRef.current = false;
       }
@@ -200,197 +147,208 @@ export default function Home() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % heroImages.length);
-    }, 5000);
+      setActiveSlide(prev => (prev + 1) % heroImages.length);
+    }, 6000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEO 
+    <div className="min-h-screen bg-white">
+      <SEO
         title="Ana Sayfa"
         description="Premium fitness ve bodybuilding giyim markası. Güç, performans ve stil bir arada. HANK ile antrenmanlarınızda fark yaratın."
         url="/"
       />
       <Header />
 
-      <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
-        {heroImages.map((img, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              activeSlide === index ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <img
-              src={img}
-              alt={`HANK Hero ${index + 1}`}
-              className="w-full h-full object-cover object-top scale-105"
-              data-testid={`img-hero-${index}`}
-            />
-            <div className="absolute inset-0 bg-black/50" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+      {/* ─── HERO ─── */}
+      <section
+        ref={heroRef}
+        className="relative lg:flex lg:h-screen lg:min-h-[640px] overflow-hidden"
+        data-testid="section-hero"
+      >
+        {/* Left — editorial text (desktop) */}
+        <div className="hidden lg:flex lg:w-[42%] flex-col justify-between px-10 xl:px-16 py-10 bg-white z-10 relative">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] tracking-[0.3em] uppercase text-black/35 font-medium">HANK®</span>
+            <span className="text-[10px] tracking-[0.3em] uppercase text-black/35 font-medium">2025</span>
           </div>
-        ))}
 
-        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 hidden sm:flex justify-between px-6 pointer-events-none">
-          <button
-            onClick={() => setActiveSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)}
-            className="w-12 h-12 border border-white/30 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all pointer-events-auto"
-            data-testid="button-hero-prev"
-          >
-            <ChevronRight className="w-6 h-6 rotate-180" />
-          </button>
-          <button
-            onClick={() => setActiveSlide((prev) => (prev + 1) % heroImages.length)}
-            className="w-12 h-12 border border-white/30 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all pointer-events-auto"
-            data-testid="button-hero-next"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
+          <div>
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h1 className="font-display leading-[0.88] tracking-wide text-black" style={{ fontSize: 'clamp(5rem, 9vw, 10rem)' }}>
+                GÜCÜNÜ<br />
+                <span className="text-stroke-black">GÖSTER</span>
+              </h1>
+            </motion.div>
 
-        <div className="absolute bottom-[180px] sm:bottom-[200px] lg:bottom-[240px] left-1/2 -translate-x-1/2 z-20 flex gap-3">
-          {heroImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveSlide(index)}
-              className={`h-1 transition-all duration-500 ${
-                activeSlide === index ? 'w-12 bg-white' : 'w-6 bg-white/40'
-              }`}
-              data-testid={`button-hero-dot-${index}`}
-            />
-          ))}
-        </div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="mt-6 text-sm text-black/45 leading-relaxed max-w-xs"
+            >
+              Premium fitness ve bodybuilding giyim koleksiyonu.
+              Her harekette güç, her anda stil.
+            </motion.p>
 
-        <div className="relative z-10 h-full flex flex-col justify-center items-center">
-          <div className="text-center px-6 w-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="mb-5 sm:mb-6"
+              transition={{ duration: 0.7, delay: 0.5 }}
+              className="mt-10 flex items-center gap-5"
             >
-              <Link href="/magaza">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-white text-black px-8 sm:px-10 py-3 sm:py-3.5 rounded-full text-sm sm:text-base font-bold tracking-wider uppercase hover:bg-white/90 transition-all"
-                  data-testid="button-hero-shop"
-                >
-                  ALIŞVERİŞE BAŞLA
-                </motion.button>
-              </Link>
-            </motion.div>
-            <motion.h1 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="font-display text-5xl sm:text-6xl lg:text-[100px] xl:text-[120px] text-white tracking-wider mb-6 sm:mb-8 leading-none text-center"
-            >
-              <motion.span 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="block mb-1 sm:mb-2"
-              >
-                GÜCÜNÜ
-              </motion.span>
-              <motion.span 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="block text-stroke-white"
-              >
-                GÖSTER
-              </motion.span>
-            </motion.h1>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0 mb-8 lg:mb-12"
-            >
-              <Link href="/magaza" className="w-full sm:w-auto">
-                <button
-                  data-testid="button-shop-men"
-                  className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4 text-sm"
+              <Link href="/magaza" data-testid="button-hero-shop">
+                <motion.span
+                  whileHover={{ x: 4 }}
+                  className="group inline-flex items-center gap-3 bg-black text-white text-[11px] tracking-[0.2em] uppercase font-semibold px-8 py-4 hover:bg-zinc-900 transition-colors"
                 >
                   Koleksiyonu Keşfet
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </button>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                </motion.span>
               </Link>
-              <Link href="/magaza" className="w-full sm:w-auto">
-                <button
-                  data-testid="button-shop-all"
-                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all text-sm"
-                >
+              <Link href="/magaza">
+                <span className="text-[11px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors underline underline-offset-4 decoration-black/20">
                   Tüm Ürünler
-                </button>
+                </span>
               </Link>
             </motion.div>
           </div>
 
+          <div className="flex items-center gap-4">
+            {heroImages.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setActiveSlide(index)}
+                className={`h-px transition-all duration-500 ${activeSlide === index ? 'w-12 bg-black' : 'w-6 bg-black/25'}`}
+                data-testid={`button-hero-dot-${index}`}
+              />
+            ))}
           </div>
+        </div>
 
-        <div className="absolute bottom-0 left-0 right-0 z-20">
+        {/* Right — image */}
+        <div className="relative lg:flex-1 h-[65vw] max-h-[480px] lg:h-auto lg:max-h-none overflow-hidden">
+          <motion.div className="absolute inset-0" style={{ y: imageY }}>
+            {heroImages.map((img, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-1000 ${activeSlide === index ? 'opacity-100' : 'opacity-0'}`}
+              >
+                <img
+                  src={img}
+                  alt={`HANK Hero ${index + 1}`}
+                  className="w-full h-full object-cover object-top scale-105"
+                  data-testid={`img-hero-${index}`}
+                />
+              </div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Mobile hero text overlay */}
+        <div className="lg:hidden absolute inset-0 flex flex-col justify-end p-6 pb-8">
+          <div className="bg-white/90 backdrop-blur-sm p-5">
+            <h1 className="font-display text-5xl leading-none tracking-wide text-black mb-4">
+              GÜCÜNÜ<br />GÖSTER
+            </h1>
+            <Link href="/magaza" data-testid="button-shop-men">
+              <span className="inline-flex items-center gap-2 bg-black text-white text-[10px] tracking-[0.2em] uppercase font-semibold px-6 py-3">
+                Koleksiyonu Keşfet
+                <ArrowRight className="w-3 h-3" />
+              </span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Product slider strip */}
+        <div className="absolute bottom-0 left-0 right-0 lg:relative lg:w-full bg-white">
           {allProducts.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-              className="pb-6 lg:pb-8"
-            >
+            <div className="lg:hidden">
               <HeroProductSlider products={allProducts} />
-            </motion.div>
+            </div>
           )}
         </div>
       </section>
 
-      <section ref={categoriesRef} className="py-6 lg:py-10 px-4 lg:px-6" data-testid="section-categories">
+      {/* Desktop product slider below hero */}
+      {allProducts.length > 0 && (
+        <div className="hidden lg:block bg-white">
+          <HeroProductSlider products={allProducts} />
+        </div>
+      )}
+
+      {/* ─── MARQUEE ─── */}
+      <div className="bg-black overflow-hidden py-3.5">
+        <div className="flex animate-marquee-slow whitespace-nowrap">
+          {[...Array(4)].map((_, i) => (
+            <span key={i} className="text-[11px] tracking-[0.35em] uppercase text-white/70 mx-16 font-medium">
+              {marqueeText}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── CATEGORIES ─── */}
+      <section className="py-16 lg:py-24 px-5 lg:px-8" data-testid="section-categories">
         <div className="max-w-[1400px] mx-auto">
-          <div 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex items-end justify-between mb-8 lg:mb-12"
+          >
+            <div>
+              <span className="text-[10px] tracking-[0.3em] uppercase text-black/35 font-medium">01</span>
+              <h2 className="font-display text-4xl lg:text-5xl tracking-wide text-black mt-1">KATEGORİLER</h2>
+            </div>
+            <Link href="/magaza" className="hidden lg:flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors">
+              Tümünü Gör <ArrowRight className="w-3 h-3" />
+            </Link>
+          </motion.div>
+
+          <div
             ref={categoryScrollRef}
             onPointerDown={handleCategoryPointerDown}
             onPointerUp={handleCategoryPointerUp}
             onPointerCancel={handleCategoryPointerUp}
             onPointerLeave={handleCategoryPointerUp}
-            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x"
+            className="flex gap-3 lg:gap-4 overflow-x-auto pb-2 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x"
           >
             {categories.map((category, index) => (
               <motion.div
                 key={category.id}
-                initial={{ opacity: 0, x: 30 }}
-                animate={categoriesInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ duration: 0.4, delay: index * 0.08 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.08 }}
                 className="snap-start shrink-0"
               >
-                <Link
-                  href={`/kategori/${category.slug}`}
-                  data-testid={`link-category-${category.id}`}
-                >
-                  <div className="group relative w-[200px] sm:w-[220px] lg:w-[260px] h-[280px] sm:h-[300px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
-                    <img
+                <Link href={`/kategori/${category.slug}`} data-testid={`link-category-${category.id}`}>
+                  <div className="group relative w-[190px] sm:w-[220px] lg:w-[260px] h-[270px] sm:h-[310px] lg:h-[360px] overflow-hidden cursor-pointer bg-stone-100">
+                    <motion.img
                       src={category.image}
                       alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="w-full h-full object-cover"
+                      whileHover={{ scale: 1.04 }}
+                      transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }}
                       data-testid={`img-category-${category.id}`}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 group-hover:from-black/95 transition-all" />
-                    
-                    <div className="absolute inset-0 flex flex-col justify-end p-4 lg:p-6">
-                      <h3 className="font-display text-lg sm:text-xl lg:text-2xl text-white tracking-wide leading-tight mb-2">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+                    <div className="absolute bottom-0 left-0 right-0 p-5">
+                      <h3 className="font-display text-xl lg:text-2xl text-white tracking-wide leading-tight">
                         {category.name.toUpperCase()}
                       </h3>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                        <span className="text-white/80 text-xs lg:text-sm">Keşfet</span>
-                        <ArrowRight className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+                      <div className="flex items-center gap-1.5 mt-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
+                        <span className="text-white/80 text-xs tracking-wider">Keşfet</span>
+                        <ArrowRight className="w-3 h-3 text-white/80" />
                       </div>
                     </div>
-                    
-                    <div className="absolute inset-0 rounded-xl ring-1 ring-white/10 group-hover:ring-white/30 transition-all" />
                   </div>
                 </Link>
               </motion.div>
@@ -399,104 +357,64 @@ export default function Home() {
         </div>
       </section>
 
-      <section ref={productsRef} className="py-24 lg:py-32 px-6 relative" data-testid="section-products">
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-background to-zinc-900/50" />
-        <div className="absolute inset-0 noise-overlay opacity-30" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        
-        <div className="max-w-[1400px] mx-auto relative z-10">
+      {/* ─── PRODUCTS ─── */}
+      <section className="py-16 lg:py-24 px-5 lg:px-8 bg-stone-50" data-testid="section-products">
+        <div className="max-w-[1400px] mx-auto">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 mb-12 lg:mb-16"
+            className="flex items-end justify-between mb-8 lg:mb-14"
           >
             <div>
-              <motion.span 
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="inline-block text-sm tracking-[0.3em] uppercase text-muted-foreground mb-4"
-              >
-                En Çok Tercih Edilenler
-              </motion.span>
-              <motion.h2 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wide"
-              >
-                POPÜLER ÜRÜNLER
-              </motion.h2>
+              <span className="text-[10px] tracking-[0.3em] uppercase text-black/35 font-medium">02</span>
+              <h2 className="font-display text-4xl lg:text-5xl tracking-wide text-black mt-1">ÖZEL SEÇKİLER</h2>
             </div>
-            <Link href="/kategori/tshirt" className="group flex items-center gap-3 px-6 py-3 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all">
-              <span className="text-sm font-medium tracking-wider uppercase">Tümünü Gör</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <Link href="/magaza" className="group flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase text-black/40 hover:text-black transition-colors">
+              Tümünü Gör
+              <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
             </Link>
           </motion.div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
             {featuredProducts.map((product, index) => (
               <motion.div
                 key={product.id}
-                initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ 
-                  duration: 0.6, 
-                  delay: (index % 4) * 0.1,
-                  ease: [0.25, 0.46, 0.45, 0.94]
-                }}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.55, delay: (index % 4) * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
               >
                 <ProductCard product={product} />
               </motion.div>
             ))}
           </div>
-          
+
           {featuredProducts.length === 0 && (
             <div className="text-center py-20">
-              <p className="text-muted-foreground">Henüz ürün eklenmemiş.</p>
+              <p className="text-black/35 text-sm">Henüz ürün eklenmemiş.</p>
             </div>
           )}
         </div>
       </section>
 
-      <section className="py-20 lg:py-24 px-6 relative overflow-hidden" data-testid="section-features">
-        <div className="absolute inset-0 bg-gradient-to-b from-background to-zinc-900/50" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        
-        <div className="max-w-[1400px] mx-auto relative z-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+      {/* ─── BRAND PROMISE ─── */}
+      <section className="border-t border-black/8" data-testid="section-features">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ 
-                  duration: 0.5, 
-                  delay: index * 0.1,
-                  ease: [0.25, 0.46, 0.45, 0.94]
-                }}
-                className="group text-center p-6 lg:p-8 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`px-7 py-10 lg:py-12 ${index > 0 ? 'border-l border-black/8' : ''} ${index === 2 ? 'border-t border-black/8 lg:border-t-0' : ''} ${index === 3 ? 'border-t border-black/8 lg:border-t-0' : ''}`}
                 data-testid={`feature-${index}`}
               >
-                <motion.div 
-                  className="w-14 h-14 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform"
-                  whileInView={{ rotate: [0, 10, -10, 0] }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
-                >
-                  <feature.icon className="w-6 h-6 text-white/80" />
-                </motion.div>
-                <h3 className="font-display text-lg lg:text-xl tracking-wide mb-2">
-                  {feature.title.toUpperCase()}
-                </h3>
-                <p className="text-muted-foreground text-sm">{feature.desc}</p>
+                <feature.icon className="w-5 h-5 text-black/40 mb-4" />
+                <h3 className="text-sm font-semibold text-black tracking-wide mb-1.5">{feature.title}</h3>
+                <p className="text-xs text-black/40">{feature.desc}</p>
               </motion.div>
             ))}
           </div>

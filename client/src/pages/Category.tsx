@@ -4,10 +4,9 @@ import { Footer } from '@/components/Footer';
 import { SEO } from '@/components/SEO';
 import { ProductCard } from '@/components/ProductCard';
 import { Link, useParams } from 'wouter';
-import { ChevronRight, X, SlidersHorizontal, Filter } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ChevronRight, X, SlidersHorizontal } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts, useCategories, type ProductFilters } from '@/hooks/useProducts';
-import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
   Select,
@@ -16,18 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 
 const sortOptions = [
   { value: 'newest', label: 'En Yeni' },
-  { value: 'price_asc', label: 'Fiyat: Düşükten Yükseğe' },
-  { value: 'price_desc', label: 'Fiyat: Yüksekten Düşüğe' },
+  { value: 'price_asc', label: 'Fiyat: Düşük → Yüksek' },
+  { value: 'price_desc', label: 'Fiyat: Yüksek → Düşük' },
   { value: 'popular', label: 'En Popüler' },
 ];
 
@@ -36,13 +28,11 @@ const sizeFilters = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 export default function Category() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug || '';
-  
+
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const category = categories.find(c => c.slug === slug);
-  
+
   const [sortBy, setSortBy] = useState<ProductFilters['sort']>('newest');
-  const [minPrice, setMinPrice] = useState<number | undefined>(undefined);
-  const [maxPrice, setMaxPrice] = useState<number | undefined>(undefined);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -55,22 +45,16 @@ export default function Category() {
   };
 
   const { data: products = [], isLoading: productsLoading } = useProducts(filters);
-  
   const isLoading = categoriesLoading || (category && productsLoading);
-  
-  // Client-side size filtering (since sizes are stored in product variants)
+
   const filteredProducts = useMemo(() => {
     if (selectedSizes.length === 0) return products;
-    return products.filter(p => 
-      p.availableSizes?.some(size => selectedSizes.includes(size))
-    );
+    return products.filter(p => p.availableSizes?.some(size => selectedSizes.includes(size)));
   }, [products, selectedSizes]);
 
   const toggleSize = (size: string) => {
-    setSelectedSizes(prev => 
-      prev.includes(size) 
-        ? prev.filter(s => s !== size)
-        : [...prev, size]
+    setSelectedSizes(prev =>
+      prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
     );
   };
 
@@ -81,16 +65,17 @@ export default function Category() {
   };
 
   const hasActiveFilters = selectedSizes.length > 0 || priceRange[0] > 0 || priceRange[1] < 10000;
+  const activeFilterCount = selectedSizes.length + (priceRange[0] > 0 || priceRange[1] < 10000 ? 1 : 0);
 
   if (!category && !isLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-white">
         <Header />
-        <main className="pt-36 pb-20 px-6">
+        <main className="pt-32 pb-20 px-6">
           <div className="max-w-[1400px] mx-auto text-center">
-            <h1 className="font-display text-4xl mb-4">Kategori Bulunamadı</h1>
+            <h1 className="font-display text-5xl mb-4 text-black">Kategori Bulunamadı</h1>
             <Link href="/">
-              <span className="text-muted-foreground hover:text-foreground transition-colors">
+              <span className="text-sm text-black/40 hover:text-black transition-colors underline underline-offset-4">
                 Ana Sayfaya Dön
               </span>
             </Link>
@@ -101,232 +86,240 @@ export default function Category() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEO 
+    <div className="min-h-screen bg-white">
+      <SEO
         title={category?.name || 'Kategori'}
-        description={`${category?.name || 'Ürünler'} - HANK fitness ve bodybuilding giyim koleksiyonu`}
+        description={`${category?.name || 'Ürünler'} — HANK fitness ve bodybuilding giyim koleksiyonu`}
         url={`/kategori/${slug}`}
         breadcrumbs={[
           { name: 'Ana Sayfa', url: '/' },
-          { name: category?.name || 'Kategori', url: `/kategori/${slug}` }
+          { name: category?.name || 'Kategori', url: `/kategori/${slug}` },
         ]}
       />
       <Header />
 
-      <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
+      {/* ─── CATEGORY HERO ─── */}
+      <section className="relative overflow-hidden bg-black" style={{ height: '42vh', minHeight: 320 }}>
         <motion.div
-          initial={{ scale: 1.1 }}
+          initial={{ scale: 1.08 }}
           animate={{ scale: 1 }}
-          transition={{ duration: 1.2 }}
+          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
           className="absolute inset-0"
         >
-          <img
-            src={category?.image || 'https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=1200&h=600&fit=crop'}
-            alt={category?.name || 'Kategori'}
-            className="w-full h-full object-cover"
-            data-testid="img-category-hero"
-          />
+          {category?.image && (
+            <img
+              src={category.image}
+              alt={category.name || 'Kategori'}
+              className="w-full h-full object-cover opacity-50"
+              data-testid="img-category-hero"
+            />
+          )}
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/30" />
-        <div className="absolute inset-0 noise-overlay opacity-40" />
-        
-        <div className="absolute inset-0 flex items-end">
-          <div className="max-w-[1400px] mx-auto px-6 pb-12 w-full">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+
+        <div className="absolute inset-0 flex flex-col justify-end">
+          <div className="max-w-[1400px] mx-auto px-5 lg:px-8 pb-10 w-full">
             <motion.nav
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center gap-2 text-sm text-white/70 mb-4"
+              className="flex items-center gap-2 text-[11px] text-white/40 tracking-wider uppercase mb-4"
               data-testid="breadcrumb"
             >
-              <Link href="/">
-                <span className="hover:text-white transition-colors">Ana Sayfa</span>
-              </Link>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-white">{category?.name}</span>
+              <Link href="/"><span className="hover:text-white transition-colors">Ana Sayfa</span></Link>
+              <ChevronRight className="w-3 h-3" />
+              <span className="text-white/70">{category?.name}</span>
             </motion.nav>
-            
+
             <motion.h1
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="font-display text-5xl sm:text-6xl lg:text-7xl text-white tracking-wide"
+              transition={{ delay: 0.25 }}
+              className="font-display text-5xl sm:text-6xl lg:text-7xl text-white tracking-wide leading-none"
               data-testid="text-category-title"
             >
               {category?.name?.toUpperCase()}
             </motion.h1>
-            
+
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-white/70 mt-4 text-lg"
+              className="text-white/40 mt-3 text-xs tracking-wider uppercase"
             >
-              {filteredProducts.length} ürün bulundu
+              {filteredProducts.length} ürün
             </motion.p>
           </div>
         </div>
       </section>
 
-      <section className="py-12 px-6">
-        <div className="max-w-[1400px] mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-border/50"
-          >
-            <div className="flex items-center gap-3">
-              <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="gap-2 border-white/20 hover:bg-white/5"
-                    data-testid="button-open-filters"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    Filtrele
-                    {hasActiveFilters && (
-                      <span className="w-5 h-5 bg-white text-black text-xs font-bold rounded-full flex items-center justify-center">
-                        {selectedSizes.length + (priceRange[0] > 0 || priceRange[1] < 10000 ? 1 : 0)}
-                      </span>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80 bg-zinc-900 border-white/10">
-                  <SheetHeader>
-                    <SheetTitle className="font-display text-xl tracking-wide">FİLTRELER</SheetTitle>
-                  </SheetHeader>
-                  
-                  <div className="mt-8 space-y-8">
-                    <div>
-                      <h4 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">
-                        Fiyat Aralığı
-                      </h4>
-                      <div className="space-y-4">
-                        <Slider
-                          value={priceRange}
-                          onValueChange={(value) => setPriceRange(value as [number, number])}
-                          min={0}
-                          max={10000}
-                          step={100}
-                          className="w-full"
-                          data-testid="slider-price-range"
-                        />
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>{priceRange[0].toLocaleString('tr-TR')} TL</span>
-                          <span>{priceRange[1].toLocaleString('tr-TR')} TL</span>
-                        </div>
-                      </div>
-                    </div>
+      {/* ─── FILTER BAR ─── */}
+      <div className="border-b border-black/8 sticky top-16 lg:top-0 bg-white z-30">
+        <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
+          <div className="flex items-center justify-between h-14 gap-4">
 
-                    <div>
-                      <h4 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">
-                        Beden
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {sizeFilters.map(size => (
-                          <button
-                            key={size}
-                            onClick={() => toggleSize(size)}
-                            className={`w-12 h-12 border text-sm font-medium transition-all ${
-                              selectedSizes.includes(size)
-                                ? 'bg-white text-black border-white'
-                                : 'border-white/20 hover:border-white/50'
-                            }`}
-                            data-testid={`button-filter-size-${size}`}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+            {/* Left: filter trigger + active tags */}
+            <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                className="flex items-center gap-2 text-[11px] tracking-[0.15em] uppercase font-medium text-black shrink-0 hover:text-black/60 transition-colors"
+                data-testid="button-open-filters"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Filtrele
+                {hasActiveFilters && (
+                  <span className="w-4 h-4 bg-black text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
-                    {hasActiveFilters && (
-                      <Button
-                        variant="ghost"
-                        className="w-full text-muted-foreground hover:text-foreground"
-                        onClick={clearFilters}
-                        data-testid="button-clear-filters"
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Filtreleri Temizle
-                      </Button>
-                    )}
-                  </div>
-                </SheetContent>
-              </Sheet>
+              {/* Active size tags */}
+              {selectedSizes.map(size => (
+                <button
+                  key={size}
+                  onClick={() => toggleSize(size)}
+                  className="flex items-center gap-1 text-[10px] tracking-[0.1em] uppercase border border-black text-black px-2.5 py-1 shrink-0 hover:bg-black hover:text-white transition-colors"
+                  data-testid={`button-remove-filter-${size}`}
+                >
+                  {size}
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              ))}
 
               {hasActiveFilters && (
-                <div className="flex items-center gap-2">
-                  {selectedSizes.map(size => (
-                    <button
-                      key={size}
-                      onClick={() => toggleSize(size)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-white/10 rounded-full text-sm hover:bg-white/20 transition-colors"
-                      data-testid={`button-remove-filter-${size}`}
-                    >
-                      {size}
-                      <X className="w-3 h-3" />
-                    </button>
-                  ))}
-                </div>
+                <button
+                  onClick={clearFilters}
+                  className="text-[10px] tracking-[0.1em] uppercase text-black/35 hover:text-black transition-colors shrink-0 underline underline-offset-2"
+                  data-testid="button-clear-filters"
+                >
+                  Temizle
+                </button>
               )}
             </div>
 
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as ProductFilters['sort'])}>
-              <SelectTrigger className="w-[220px] border-white/20 bg-transparent" data-testid="select-sort">
-                <SelectValue placeholder="Sırala" />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </motion.div>
+            {/* Right: sort */}
+            <div className="shrink-0">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as ProductFilters['sort'])}>
+                <SelectTrigger
+                  className="h-8 border-0 bg-transparent text-[11px] tracking-[0.12em] uppercase font-medium text-black/50 hover:text-black focus:ring-0 focus:ring-offset-0 gap-1 pr-0 shadow-none"
+                  data-testid="select-sort"
+                >
+                  <SelectValue placeholder="Sırala" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-black/10 shadow-lg">
+                  {sortOptions.map(opt => (
+                    <SelectItem
+                      key={opt.value}
+                      value={opt.value}
+                      className="text-xs text-black focus:bg-black/5 cursor-pointer"
+                    >
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      {/* ─── FILTER PANEL (slide down) ─── */}
+      <AnimatePresence>
+        {filterOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
+            className="overflow-hidden border-b border-black/8 bg-white"
+          >
+            <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 max-w-xl">
+
+                {/* Price */}
+                <div>
+                  <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-black/40 mb-5">Fiyat Aralığı</h4>
+                  <Slider
+                    value={priceRange}
+                    onValueChange={(v) => setPriceRange(v as [number, number])}
+                    min={0}
+                    max={10000}
+                    step={100}
+                    className="mb-3"
+                    data-testid="slider-price-range"
+                  />
+                  <div className="flex justify-between text-xs text-black/50">
+                    <span>{priceRange[0].toLocaleString('tr-TR')} ₺</span>
+                    <span>{priceRange[1].toLocaleString('tr-TR')} ₺</span>
+                  </div>
+                </div>
+
+                {/* Sizes */}
+                <div>
+                  <h4 className="text-[10px] font-semibold tracking-[0.25em] uppercase text-black/40 mb-5">Beden</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {sizeFilters.map(size => (
+                      <button
+                        key={size}
+                        onClick={() => toggleSize(size)}
+                        className={`w-11 h-11 border text-xs font-medium tracking-wider transition-all ${selectedSizes.includes(size)
+                          ? 'bg-black text-white border-black'
+                          : 'border-black/20 text-black hover:border-black'
+                          }`}
+                        data-testid={`button-filter-size-${size}`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── PRODUCT GRID ─── */}
+      <main className="py-10 lg:py-14 px-5 lg:px-8">
+        <div className="max-w-[1400px] mx-auto">
           {isLoading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-[3/4] bg-zinc-800/50 animate-pulse rounded-lg" />
+                <div key={i} className="aspect-[3/4] bg-stone-100 animate-pulse" />
               ))}
             </div>
           ) : filteredProducts.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-20"
+              className="text-center py-24"
             >
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-zinc-800/50 flex items-center justify-center">
-                <Filter className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-display text-2xl mb-2">Ürün Bulunamadı</h3>
-              <p className="text-muted-foreground mb-6">
-                Bu kategoride henüz ürün bulunmuyor.
+              <p className="font-display text-3xl text-black mb-2">Ürün Bulunamadı</p>
+              <p className="text-sm text-black/40 mb-8">
+                {hasActiveFilters ? 'Filtreleri değiştirerek tekrar deneyin.' : 'Bu kategoride henüz ürün bulunmuyor.'}
               </p>
-              <Link href="/">
-                <Button variant="outline" className="border-white/20">
-                  Alışverişe Devam Et
-                </Button>
-              </Link>
+              {hasActiveFilters ? (
+                <button onClick={clearFilters} className="text-[11px] tracking-[0.15em] uppercase border border-black px-6 py-3 hover:bg-black hover:text-white transition-colors">
+                  Filtreleri Temizle
+                </button>
+              ) : (
+                <Link href="/">
+                  <span className="text-[11px] tracking-[0.15em] uppercase border border-black px-6 py-3 hover:bg-black hover:text-white transition-colors">
+                    Alışverişe Devam Et
+                  </span>
+                </Link>
+              )}
             </motion.div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
               {filteredProducts.map((product, index) => (
                 <motion.div
                   key={product.id}
-                  initial={{ opacity: 0, y: 40, scale: 0.95 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ 
-                    duration: 0.5, 
-                    delay: (index % 4) * 0.1,
-                    ease: [0.25, 0.46, 0.45, 0.94]
-                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ duration: 0.45, delay: (index % 4) * 0.06 }}
                 >
                   <ProductCard product={product} />
                 </motion.div>
@@ -334,46 +327,31 @@ export default function Category() {
             </div>
           )}
         </div>
-      </section>
+      </main>
 
+      {/* ─── OTHER CATEGORIES ─── */}
       {categories.length > 1 && (
-        <section className="py-16 px-6 border-t border-border/30">
+        <section className="py-12 px-5 lg:px-8 border-t border-black/8">
           <div className="max-w-[1400px] mx-auto">
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="font-display text-2xl tracking-wide mb-8"
-            >
-              DİĞER KATEGORİLER
-            </motion.h2>
-            <div className="flex flex-wrap gap-3">
-              {categories
-                .filter(c => c.slug !== slug)
-                .map((cat, index) => (
-                  <motion.div
-                    key={cat.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.05 }}
+            <h3 className="text-[10px] tracking-[0.3em] uppercase text-black/35 font-medium mb-6">Diğer Kategoriler</h3>
+            <div className="flex flex-wrap gap-2">
+              {categories.filter(c => c.slug !== slug).map(cat => (
+                <Link key={cat.id} href={`/kategori/${cat.slug}`}>
+                  <motion.span
+                    whileHover={{ backgroundColor: '#000', color: '#fff' }}
+                    transition={{ duration: 0.2 }}
+                    className="inline-block border border-black/20 text-black text-[11px] tracking-[0.12em] uppercase px-4 py-2.5 cursor-pointer transition-colors hover:border-black"
+                    data-testid={`button-other-category-${cat.slug}`}
                   >
-                    <Link href={`/kategori/${cat.slug}`}>
-                      <Button
-                        variant="outline"
-                        className="border-white/20 hover:bg-white hover:text-black transition-all"
-                        data-testid={`button-other-category-${cat.slug}`}
-                      >
-                        {cat.name}
-                      </Button>
-                    </Link>
-                  </motion.div>
-                ))}
+                    {cat.name}
+                  </motion.span>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
       )}
-      
+
       <Footer />
     </div>
   );
