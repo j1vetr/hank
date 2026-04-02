@@ -216,6 +216,50 @@
   text-stroke: 2px white;
 }
 
+.text-stroke-black {
+  color: transparent;
+  -webkit-text-stroke: 2px black;
+  text-stroke: 2px black;
+}
+
+@keyframes marquee-fast {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-fast {
+  animation: marquee-fast 18s linear infinite;
+  width: max-content;
+}
+
+.hero-clip {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.nav-link-hover::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link-hover:hover::after {
+  width: 100%;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
 @keyframes border-rotate {
   0% {
     background: linear-gradient(0deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%);

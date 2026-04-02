@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingBag, Search, Menu, X, User, LogOut, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingBag, Search, X, User, LogOut, ChevronDown, ArrowUpRight } from 'lucide-react';
+import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,13 +27,32 @@ interface MenuItemData {
   children?: MenuItemData[];
 }
 
+const stagger = {
+  container: { animate: { transition: { staggerChildren: 0.07 } } },
+  item: {
+    initial: { y: 60, opacity: 0 },
+    animate: { y: 0, opacity: 1, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
+    exit: { y: -40, opacity: 0, transition: { duration: 0.3, ease: [0.4, 0, 1, 1] } },
+  },
+};
+
 export function Header() {
   const [location, navigate] = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [expandedSubmenu, setExpandedSubmenu] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [expandedMobileItem, setExpandedMobileItem] = useState<string | null>(null);
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, 'change', (v) => setScrolled(v > 48));
+
+  useEffect(() => {
+    if (mobileOpen) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   const { data: menuItems = [] } = useQuery<MenuItemData[]>({
     queryKey: ['menu'],
@@ -45,68 +64,33 @@ export function Header() {
     staleTime: 60000,
   });
 
-  const getMenuItemHref = (item: MenuItemData): string => {
+  const getHref = (item: MenuItemData) => {
     if (item.type === 'category' && item.category) return `/kategori/${item.category.slug}`;
     if (item.type === 'link' && item.url) return item.url;
     return '#';
   };
 
-  const hasMenuItems = menuItems.length > 0;
-  const leftMenuItems = hasMenuItems ? menuItems.slice(0, Math.ceil(menuItems.length / 2)) : [];
-  const rightMenuItems = hasMenuItems ? menuItems.slice(Math.ceil(menuItems.length / 2)) : [];
+  const topItems = menuItems.slice(0, Math.ceil(menuItems.length / 2));
+  const bottomItems = menuItems.slice(Math.ceil(menuItems.length / 2));
 
-  const navLinkClass = (href: string) =>
-    `relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors group ${location === href ? 'text-black' : 'text-black/50 hover:text-black'
-    }`;
-
-  const NavLink = ({ href, children, external, openInNewTab }: {
-    href: string; children: React.ReactNode; external?: boolean; openInNewTab?: boolean;
-  }) => {
+  const DesktopNavLink = ({ item }: { item: MenuItemData }) => {
+    const href = getHref(item);
     const isActive = location === href;
-    const cls = navLinkClass(href);
-    const underline = (
-      <motion.span
-        className="absolute -bottom-1 left-0 right-0 h-px bg-black origin-left"
-        initial={{ scaleX: isActive ? 1 : 0 }}
-        animate={{ scaleX: isActive ? 1 : 0 }}
-        whileHover={{ scaleX: 1 }}
-        transition={{ duration: 0.25 }}
-      />
-    );
-    if (external || openInNewTab) {
-      return (
-        <a href={href} target={openInNewTab ? '_blank' : undefined} rel={openInNewTab ? 'noopener noreferrer' : undefined} className={cls}>
-          {children}{underline}
-        </a>
-      );
-    }
-    return (
-      <Link href={href} className={cls}>
-        {children}{underline}
-      </Link>
-    );
-  };
+    const hasChildren = item.type === 'submenu' && item.children?.length;
 
-  const renderDesktopItem = (item: MenuItemData) => {
-    const href = getMenuItemHref(item);
-    const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
     if (hasChildren) {
       return (
-        <DropdownMenu key={item.id}>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={navLinkClass('#') + ' flex items-center gap-1'}>
+            <button className={`relative inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors ${isActive ? 'text-black' : 'text-black/45 hover:text-black'} nav-link-hover`}>
               {item.title}
-              <ChevronDown className="w-3 h-3" />
+              <ChevronDown className="w-2.5 h-2.5" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48 bg-white border-black/10 shadow-lg">
+          <DropdownMenuContent align="center" className="bg-white border-black/8 shadow-lg rounded-none min-w-[180px]">
             {item.children!.map(child => (
-              <DropdownMenuItem
-                key={child.id}
-                onClick={() => navigate(getMenuItemHref(child))}
-                className="text-black hover:bg-black/5 cursor-pointer"
-                data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
-              >
+              <DropdownMenuItem key={child.id} onClick={() => navigate(getHref(child))}
+                className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5">
                 {child.title}
               </DropdownMenuItem>
             ))}
@@ -114,272 +98,334 @@ export function Header() {
         </DropdownMenu>
       );
     }
+
     const isExternal = item.type === 'link' && item.url?.startsWith('http');
-    return (
-      <NavLink
-        key={item.id}
-        href={href}
-        external={isExternal}
-        openInNewTab={item.openInNewTab}
-      >
-        <span data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>{item.title}</span>
-      </NavLink>
-    );
+    const cls = `relative inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors nav-link-hover ${isActive ? 'text-black' : 'text-black/45 hover:text-black'}`;
+
+    if (isExternal || item.openInNewTab) {
+      return <a href={href} target="_blank" rel="noopener noreferrer" className={cls} data-testid={`link-nav-${item.title}`}>{item.title}<ArrowUpRight className="w-2.5 h-2.5 opacity-50" /></a>;
+    }
+    return <Link href={href} className={cls} data-testid={`link-nav-${item.title}`}>{item.title}</Link>;
   };
+
+  const announcementText = Array(6).fill('Worldwide Shipping  ·  2.500₺ Üzeri Ücretsiz Kargo  ·  1 İş Günü Teslimat  ·  Güvenli Ödeme  ').join('');
 
   return (
     <>
-      {/* Announcement bar */}
-      <div className="hidden lg:block bg-black overflow-hidden">
-        <div className="relative h-8 flex items-center">
-          <div className="absolute inset-0 flex items-center animate-marquee-slow whitespace-nowrap">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-16 mx-12">
-                <span className="text-[10px] tracking-[0.22em] uppercase text-white font-medium">
-                  Worldwide Shipping
-                </span>
-                <span className="w-1 h-1 rounded-full bg-white/40" />
-                <span className="text-[10px] tracking-[0.22em] uppercase text-white font-medium">
-                  2.500₺ Üzeri Ücretsiz Kargo
-                </span>
-                <span className="w-1 h-1 rounded-full bg-white/40" />
-                <span className="text-[10px] tracking-[0.22em] uppercase text-white font-medium">
-                  1 İş Günü Teslimat
-                </span>
-              </div>
-            ))}
+      {/* ── Announcement bar ── */}
+      <div className="hidden lg:block bg-black h-8 overflow-hidden">
+        <div className="flex h-full items-center">
+          <div className="animate-marquee-slow whitespace-nowrap flex">
+            <span className="text-[10px] tracking-[0.22em] uppercase text-white/60 font-medium pr-8">
+              {announcementText}
+            </span>
+            <span className="text-[10px] tracking-[0.22em] uppercase text-white/60 font-medium pr-8">
+              {announcementText}
+            </span>
           </div>
         </div>
       </div>
 
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-black/8 lg:static lg:bg-white lg:border-b lg:border-black/8">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-20">
+      {/* ── Main header ── */}
+      <motion.header
+        initial={false}
+        animate={{ height: scrolled ? 56 : 68 }}
+        transition={{ duration: 0.35, ease: [0.33, 1, 0.68, 1] }}
+        className="fixed lg:static top-0 left-0 right-0 z-40 bg-white border-b border-black/8 flex items-center"
+        style={{ willChange: 'height' }}
+      >
+        <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8">
+          <div className="flex items-center justify-between gap-4">
 
-            {/* Mobile menu button */}
-            <div className="flex items-center gap-2 lg:hidden">
+            {/* Left: hamburger (mobile) + nav (desktop) */}
+            <div className="flex items-center gap-6 min-w-0 flex-1">
               <button
                 data-testid="button-mobile-menu"
-                className="p-2 -ml-2 text-black"
-                onClick={() => setMobileMenuOpen(true)}
+                onClick={() => setMobileOpen(true)}
+                className="lg:hidden flex flex-col gap-[5px] p-1 -ml-1 group"
+                aria-label="Menü"
               >
-                <Menu className="w-5 h-5" />
+                <span className="block h-px w-5 bg-black transition-all group-hover:w-6" />
+                <span className="block h-px w-4 bg-black transition-all group-hover:w-6" />
+                <span className="block h-px w-6 bg-black" />
               </button>
+
+              <nav className="hidden lg:flex items-center gap-7">
+                {topItems.length > 0
+                  ? topItems.map(item => <DesktopNavLink key={item.id} item={item} />)
+                  : (
+                    <>
+                      <Link href="/magaza" className={`relative text-[11px] font-medium tracking-[0.18em] uppercase nav-link-hover ${location === '/magaza' ? 'text-black' : 'text-black/45 hover:text-black'}`}>Mağaza</Link>
+                      <Link href="/kategori/tshirt" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/45 hover:text-black transition-colors nav-link-hover">T-Shirt</Link>
+                    </>
+                  )
+                }
+              </nav>
             </div>
 
-            {/* Desktop left nav */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {!hasMenuItems && (
-                <NavLink href="/magaza">
-                  <span data-testid="link-nav-magaza">Mağaza</span>
-                </NavLink>
-              )}
-              {hasMenuItems && leftMenuItems.map(renderDesktopItem)}
-            </nav>
-
-            {/* Logo — centred on mobile, in-flow on desktop */}
-            <Link href="/" data-testid="link-logo" className="absolute left-1/2 -translate-x-1/2 lg:relative lg:left-auto lg:translate-x-0">
-              <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.2 }}>
+            {/* Center: Logo */}
+            <Link href="/" data-testid="link-logo" className="shrink-0">
+              <motion.div whileHover={{ opacity: 0.75 }} transition={{ duration: 0.2 }}>
                 <img
                   src="/uploads/branding/hank-icon.png"
                   alt="HANK"
-                  className="h-9 w-9 lg:hidden"
+                  className="h-8 w-8 lg:hidden"
                   data-testid="img-logo-mobile"
                 />
                 <img
                   src="/uploads/branding/hank-logo.svg"
                   alt="HANK"
-                  className="hidden lg:block h-11"
+                  className="hidden lg:block h-10"
                   data-testid="img-logo"
                 />
               </motion.div>
             </Link>
 
-            {/* Desktop right nav */}
-            <nav className="hidden lg:flex items-center gap-8">
-              {hasMenuItems && rightMenuItems.map(renderDesktopItem)}
-            </nav>
+            {/* Right: nav (desktop) + icons */}
+            <div className="flex items-center gap-6 flex-1 justify-end">
+              <nav className="hidden lg:flex items-center gap-7">
+                {bottomItems.length > 0
+                  ? bottomItems.map(item => <DesktopNavLink key={item.id} item={item} />)
+                  : (
+                    <>
+                      <Link href="/kategori/esofman" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/45 hover:text-black transition-colors nav-link-hover">Eşofman</Link>
+                      <Link href="/kategori/sort" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/45 hover:text-black transition-colors nav-link-hover">Şort</Link>
+                    </>
+                  )
+                }
+              </nav>
 
-            {/* Actions */}
-            <div className="flex items-center gap-1">
-              <button
-                data-testid="button-search"
-                className="p-2 text-black/60 hover:text-black transition-colors"
-                onClick={() => setSearchOpen(true)}
-              >
-                <Search className="w-4.5 h-4.5" />
-              </button>
+              {/* Icons */}
+              <div className="flex items-center gap-0.5">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setSearchOpen(true)}
+                  className="p-2.5 text-black/45 hover:text-black transition-colors"
+                  data-testid="button-search"
+                >
+                  <Search className="w-4 h-4" />
+                </motion.button>
 
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button data-testid="button-account" className="p-2 text-black/60 hover:text-black transition-colors">
-                      <User className="w-4.5 h-4.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 bg-white border-black/10 shadow-lg">
-                    <DropdownMenuItem disabled className="text-black/40 text-xs">
-                      {user.firstName || user.email}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-black hover:bg-black/5 cursor-pointer">
-                      <User className="w-4 h-4 mr-2" />
-                      Hesabım
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-black hover:bg-black/5 cursor-pointer">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Çıkış Yap
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Link href="/giris">
-                  <button data-testid="button-account" className="p-2 text-black/60 hover:text-black transition-colors">
-                    <User className="w-4.5 h-4.5" />
-                  </button>
+                {user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <motion.button whileTap={{ scale: 0.9 }} className="p-2.5 text-black/45 hover:text-black transition-colors" data-testid="button-account">
+                        <User className="w-4 h-4" />
+                      </motion.button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-white border-black/8 shadow-lg rounded-none min-w-[160px]">
+                      <DropdownMenuItem disabled className="text-[10px] tracking-widest text-black/30 uppercase">{user.firstName || user.email}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/hesabim')} className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5">
+                        <User className="w-3.5 h-3.5 mr-2" />Hesabım
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { logout(); navigate('/'); }} className="text-[11px] tracking-wider uppercase text-black hover:bg-black/5 cursor-pointer py-2.5">
+                        <LogOut className="w-3.5 h-3.5 mr-2" />Çıkış Yap
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Link href="/giris">
+                    <motion.button whileTap={{ scale: 0.9 }} className="p-2.5 text-black/45 hover:text-black transition-colors" data-testid="button-account">
+                      <User className="w-4 h-4" />
+                    </motion.button>
+                  </Link>
+                )}
+
+                <Link href="/sepet">
+                  <motion.button whileTap={{ scale: 0.9 }} className="p-2.5 text-black/45 hover:text-black transition-colors relative" data-testid="button-cart">
+                    <ShoppingBag className="w-4 h-4" />
+                    <AnimatePresence>
+                      {totalItems > 0 && (
+                        <motion.span
+                          key="badge"
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0, opacity: 0 }}
+                          className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-black text-white text-[8px] font-bold flex items-center justify-center rounded-full"
+                        >
+                          {totalItems > 9 ? '9+' : totalItems}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
                 </Link>
-              )}
-
-              <Link href="/sepet">
-                <button data-testid="button-cart" className="p-2 text-black/60 hover:text-black transition-colors relative">
-                  <ShoppingBag className="w-4.5 h-4.5" />
-                  {totalItems > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-black text-white text-[9px] font-bold flex items-center justify-center rounded-full"
-                    >
-                      {totalItems}
-                    </motion.span>
-                  )}
-                </button>
-              </Link>
+              </div>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
-      {/* Mobile menu */}
+      {/* ── Mobile fullscreen menu ── */}
       <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 z-50 lg:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 lg:hidden overflow-y-auto"
-            >
-              <div className="flex items-center justify-between px-6 py-5 border-b border-black/8">
-                <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                  <img src="/uploads/branding/hank-logo.svg" alt="HANK" className="h-8" />
-                </Link>
-                <button
-                  data-testid="button-close-menu"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-1 text-black/50 hover:text-black"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden"
+          >
+            {/* Background HANK watermark */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+              <span className="font-display text-[280px] leading-none text-white/[0.025] tracking-tighter">
+                HANK
+              </span>
+            </div>
 
-              <nav className="p-6 space-y-1">
-                <Link href="/" data-testid="link-mobile-nav-home" onClick={() => setMobileMenuOpen(false)}>
-                  <motion.div whileHover={{ x: 4 }} className="py-3 font-display text-2xl tracking-wider text-black border-b border-black/6">
-                    Ana Sayfa
-                  </motion.div>
-                </Link>
-                <Link href="/magaza" data-testid="link-mobile-nav-magaza" onClick={() => setMobileMenuOpen(false)}>
-                  <motion.div whileHover={{ x: 4 }} className="py-3 font-display text-2xl tracking-wider text-black border-b border-black/6">
-                    Mağaza
-                  </motion.div>
-                </Link>
+            {/* Top bar */}
+            <div className="relative z-10 flex items-center justify-between px-6 pt-5 pb-6 border-b border-white/8">
+              <Link href="/" onClick={() => setMobileOpen(false)}>
+                <img src="/uploads/branding/hank-logo.svg" alt="HANK" className="h-8 invert" />
+              </Link>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setMobileOpen(false)}
+                className="p-2 text-white/40 hover:text-white transition-colors"
+                data-testid="button-close-menu"
+              >
+                <X className="w-5 h-5" />
+              </motion.button>
+            </div>
 
-                {hasMenuItems && menuItems.map((item, index) => {
-                  const href = getMenuItemHref(item);
-                  const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
+            {/* Nav links */}
+            <nav className="relative z-10 flex-1 overflow-y-auto px-6 py-8">
+              <motion.div
+                variants={stagger.container}
+                initial="initial"
+                animate="animate"
+                exit="initial"
+                className="flex flex-col"
+              >
+                {/* Default home link */}
+                <motion.div variants={stagger.item}>
+                  <Link
+                    href="/"
+                    onClick={() => setMobileOpen(false)}
+                    className="block py-5 border-b border-white/8 group"
+                    data-testid="link-mobile-home"
+                  >
+                    <span className="font-display text-[44px] leading-none text-white/70 group-hover:text-white transition-colors tracking-wide">
+                      ANA SAYFA
+                    </span>
+                  </Link>
+                </motion.div>
 
-                  if (hasChildren) {
-                    return (
-                      <div key={item.id}>
-                        <button
-                          onClick={() => setExpandedSubmenu(expandedSubmenu === item.id ? null : item.id)}
-                          className="w-full flex items-center justify-between py-3 border-b border-black/6"
-                          data-testid={`button-mobile-submenu-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                        >
-                          <span className="font-display text-2xl tracking-wider text-black">{item.title.toUpperCase()}</span>
-                          <ChevronDown className={`w-4 h-4 text-black/40 transition-transform ${expandedSubmenu === item.id ? 'rotate-180' : ''}`} />
-                        </button>
-                        <AnimatePresence>
-                          {expandedSubmenu === item.id && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden pl-4"
-                            >
-                              {item.children!.map(child => (
-                                <Link
-                                  key={child.id}
-                                  href={getMenuItemHref(child)}
-                                  onClick={() => setMobileMenuOpen(false)}
-                                  data-testid={`link-mobile-submenu-${child.title.toLowerCase().replace(/\s/g, '-')}`}
-                                >
-                                  <div className="py-2.5 text-sm text-black/60 hover:text-black transition-colors">
-                                    {child.title}
-                                  </div>
-                                </Link>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  }
+                <motion.div variants={stagger.item}>
+                  <Link
+                    href="/magaza"
+                    onClick={() => setMobileOpen(false)}
+                    className="block py-5 border-b border-white/8 group"
+                    data-testid="link-mobile-magaza"
+                  >
+                    <span className="font-display text-[44px] leading-none text-white/70 group-hover:text-white transition-colors tracking-wide">
+                      MAĞAZA
+                    </span>
+                  </Link>
+                </motion.div>
+
+                {menuItems.map((item, i) => {
+                  const href = getHref(item);
+                  const hasChildren = item.type === 'submenu' && item.children?.length;
 
                   return (
-                    <Link key={item.id} href={href} onClick={() => setMobileMenuOpen(false)} data-testid={`link-mobile-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>
-                      <motion.div whileHover={{ x: 4 }} className="py-3 font-display text-2xl tracking-wider text-black border-b border-black/6">
-                        {item.title.toUpperCase()}
-                      </motion.div>
-                    </Link>
+                    <motion.div key={item.id} variants={stagger.item}>
+                      {hasChildren ? (
+                        <div>
+                          <button
+                            onClick={() => setExpandedMobileItem(expandedMobileItem === item.id ? null : item.id)}
+                            className="w-full flex items-center justify-between py-5 border-b border-white/8 group"
+                            data-testid={`button-mobile-sub-${item.id}`}
+                          >
+                            <span className="font-display text-[44px] leading-none text-white/70 group-hover:text-white transition-colors tracking-wide">
+                              {item.title.toUpperCase()}
+                            </span>
+                            <motion.span
+                              animate={{ rotate: expandedMobileItem === item.id ? 45 : 0 }}
+                              className="text-white/30 text-3xl font-light leading-none"
+                            >
+                              +
+                            </motion.span>
+                          </button>
+                          <AnimatePresence>
+                            {expandedMobileItem === item.id && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden pl-4 bg-white/[0.02]"
+                              >
+                                {item.children!.map(child => (
+                                  <Link
+                                    key={child.id}
+                                    href={getHref(child)}
+                                    onClick={() => setMobileOpen(false)}
+                                    className="block py-3.5 text-sm text-white/40 hover:text-white tracking-[0.15em] uppercase transition-colors border-b border-white/5"
+                                  >
+                                    {child.title}
+                                  </Link>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ) : (
+                        <Link
+                          href={href}
+                          onClick={() => setMobileOpen(false)}
+                          className="block py-5 border-b border-white/8 group"
+                          data-testid={`link-mobile-${item.id}`}
+                        >
+                          <span className="font-display text-[44px] leading-none text-white/70 group-hover:text-white transition-colors tracking-wide">
+                            {item.title.toUpperCase()}
+                          </span>
+                        </Link>
+                      )}
+                    </motion.div>
                   );
                 })}
-              </nav>
+              </motion.div>
+            </nav>
 
-              <div className="px-6 pt-4 space-y-4">
+            {/* Bottom: account + cart */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="relative z-10 flex items-center justify-between px-6 py-6 border-t border-white/8"
+            >
+              <div className="flex items-center gap-5">
                 {user ? (
                   <>
-                    <Link href="/hesabim" onClick={() => setMobileMenuOpen(false)}>
-                      <div className="flex items-center gap-2 text-sm text-black/60 hover:text-black py-2 transition-colors">
-                        <User className="w-4 h-4" />
-                        Hesabım
-                      </div>
+                    <Link href="/hesabim" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-white/40 hover:text-white transition-colors">
+                      <User className="w-3.5 h-3.5" />
+                      Hesabım
                     </Link>
-                    <button
-                      onClick={() => { logout(); navigate('/'); setMobileMenuOpen(false); }}
-                      className="flex items-center gap-2 text-sm text-black/60 hover:text-black py-2 transition-colors w-full"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Çıkış Yap
+                    <button onClick={() => { logout(); navigate('/'); setMobileOpen(false); }} className="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-white/40 hover:text-white transition-colors">
+                      <LogOut className="w-3.5 h-3.5" />
+                      Çıkış
                     </button>
                   </>
                 ) : (
-                  <Link href="/giris" onClick={() => setMobileMenuOpen(false)}>
-                    <div className="text-sm text-black font-medium py-2">
-                      Giriş Yap / Kayıt Ol
-                    </div>
+                  <Link href="/giris" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-white/40 hover:text-white transition-colors">
+                    <User className="w-3.5 h-3.5" />
+                    Giriş Yap
                   </Link>
                 )}
               </div>
+
+              <Link href="/sepet" onClick={() => setMobileOpen(false)}>
+                <div className="relative flex items-center gap-2 text-[11px] tracking-[0.18em] uppercase text-white/40 hover:text-white transition-colors">
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  Sepet
+                  {totalItems > 0 && (
+                    <span className="w-4 h-4 bg-white text-black text-[9px] font-bold flex items-center justify-center rounded-full">
+                      {totalItems}
+                    </span>
+                  )}
+                </div>
+              </Link>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
 
