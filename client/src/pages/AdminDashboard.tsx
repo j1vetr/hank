@@ -1343,12 +1343,27 @@ function BulkPriceModal({
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [priceAction, setPriceAction] = useState<'set' | 'increase' | 'decrease' | 'percent_increase' | 'percent_decrease'>('percent_decrease');
   const [priceValue, setPriceValue] = useState('');
+  const [autoBadge, setAutoBadge] = useState(true);
+  const [customBadgeText, setCustomBadgeText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; updated?: number } | null>(null);
 
   const numericValue = parseFloat(priceValue) || 0;
   const isPercent = priceAction.includes('percent');
   const isDecrease = priceAction.includes('decrease');
+
+  // Auto-badge text: computed from action+value, overridable
+  const autoBadgeTextComputed = useMemo(() => {
+    if (priceAction === 'percent_decrease' && numericValue > 0) {
+      return `%${Number.isInteger(numericValue) ? numericValue : numericValue.toFixed(1)}`;
+    }
+    return '';
+  }, [priceAction, numericValue]);
+
+  const badgeTextToSend = customBadgeText.trim() || autoBadgeTextComputed;
+
+  // Show auto-badge toggle only for percent_decrease (makes semantic sense)
+  const canAutoBadge = priceAction === 'percent_decrease';
 
   // Products visible in the list (for 'select' mode)
   const listProducts = useMemo(() => {
@@ -1439,6 +1454,10 @@ function BulkPriceModal({
         body.categoryId = filterCategory;
       }
       // filterMode === 'all' → no filter, backend applies to all
+      if (canAutoBadge && autoBadge && badgeTextToSend) {
+        body.autoBadge = true;
+        body.badgeText = badgeTextToSend;
+      }
 
       const res = await fetch('/api/admin/products/bulk-price', {
         method: 'POST',
@@ -1450,7 +1469,8 @@ function BulkPriceModal({
       if (!res.ok) {
         setResult({ success: false, message: data.error || 'Hata oluştu' });
       } else {
-        setResult({ success: true, message: `${data.updated} ürün güncellendi`, updated: data.updated });
+        const badgeInfo = (canAutoBadge && autoBadge && badgeTextToSend) ? ` · "${badgeTextToSend}" etiketi eklendi` : '';
+        setResult({ success: true, message: `${data.updated} ürün güncellendi${badgeInfo}`, updated: data.updated });
         setTimeout(() => onSuccess(), 1500);
       }
     } catch {
@@ -1672,6 +1692,48 @@ function BulkPriceModal({
               </div>
             </div>
           </div>
+
+          {/* Auto-badge option — only for percent_decrease */}
+          {canAutoBadge && (
+            <div className={`rounded-lg border transition-colors ${autoBadge ? 'border-white/20 bg-white/4' : 'border-zinc-700 bg-zinc-800/40'}`}>
+              <label className="flex items-center gap-3 px-3 py-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoBadge}
+                  onChange={e => { setAutoBadge(e.target.checked); setCustomBadgeText(''); }}
+                  className="w-4 h-4 accent-white shrink-0"
+                  data-testid="checkbox-auto-badge"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white font-medium">Otomatik indirim etiketi ekle</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Seçilen ürünlere uygulanan indirim oranını etiket olarak bassın</p>
+                </div>
+                {autoBadge && badgeTextToSend && (
+                  <div className="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded shrink-0 rotate-[-2deg]">
+                    {badgeTextToSend}
+                  </div>
+                )}
+              </label>
+              {autoBadge && (
+                <div className="px-3 pb-3 flex items-center gap-2">
+                  <span className="text-[10px] text-zinc-500 shrink-0">Etiket metni:</span>
+                  <input
+                    type="text"
+                    value={customBadgeText}
+                    onChange={e => setCustomBadgeText(e.target.value)}
+                    placeholder={autoBadgeTextComputed || '%20'}
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-zinc-500 placeholder-zinc-600"
+                    data-testid="input-badge-custom-text"
+                  />
+                  {customBadgeText && (
+                    <button onClick={() => setCustomBadgeText('')} className="text-[10px] text-zinc-500 hover:text-white shrink-0">
+                      Sıfırla
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Preview table */}
           {previewSamples.length > 0 && (

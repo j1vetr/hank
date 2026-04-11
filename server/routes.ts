@@ -1398,7 +1398,7 @@ export async function registerRoutes(
   // Bulk price update by category
   app.post("/api/admin/products/bulk-price", requireAdmin, async (req, res) => {
     try {
-      const { categoryId, productIds, action, value } = req.body;
+      const { categoryId, productIds, action, value, autoBadge, badgeText } = req.body;
       
       if (!action || value === undefined || value === null) {
         return res.status(400).json({ error: "action and value are required" });
@@ -1459,7 +1459,11 @@ export async function registerRoutes(
         // Round to 2 decimal places
         newPrice = Math.round(newPrice * 100) / 100;
         
-        await storage.updateProduct(product.id, { basePrice: String(newPrice) });
+        const updateData: any = { basePrice: String(newPrice) };
+        if (autoBadge && badgeText) {
+          updateData.discountBadge = badgeText;
+        }
+        await storage.updateProduct(product.id, updateData);
         updated++;
       }
       
