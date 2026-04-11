@@ -254,6 +254,71 @@ function FeaturedSmallCard({ product, delay = 0 }: { product: FeaturedProduct; d
   );
 }
 
+type Product = { id: string; name: string; slug: string; basePrice: string; images?: string[]; discountBadge?: string | null };
+
+function ManifestoProductSlider({ products }: { products: Product[] }) {
+  const [index, setIndex] = useState(0);
+  const [shuffled, setShuffled] = useState<Product[]>([]);
+
+  useEffect(() => {
+    if (products.length === 0) return;
+    const arr = [...products].sort(() => Math.random() - 0.5);
+    setShuffled(arr);
+  }, [products]);
+
+  useEffect(() => {
+    if (shuffled.length < 2) return;
+    const timer = setInterval(() => {
+      setIndex(prev => (prev + 2) % shuffled.length);
+    }, 3200);
+    return () => clearInterval(timer);
+  }, [shuffled]);
+
+  if (shuffled.length < 2) return <div className="flex-1" />;
+
+  const pair = [shuffled[index % shuffled.length], shuffled[(index + 1) % shuffled.length]];
+
+  return (
+    <div className="flex-1 flex gap-3 lg:gap-4">
+      <AnimatePresence mode="popLayout">
+        {pair.map((p) => {
+          const img = p.images?.[0];
+          const price = parseFloat(p.basePrice);
+          return (
+            <motion.div
+              key={`${p.id}-${index}`}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              className="flex-1 min-w-0"
+            >
+              <Link href={`/urun/${p.slug}`} data-testid={`link-manifesto-slider-${p.id}`}>
+                <div className="relative w-full overflow-hidden bg-white/4 border border-white/8 hover:border-white/22 transition-colors duration-300" style={{ aspectRatio: '3/4' }}>
+                  {img ? (
+                    <img src={img} alt={p.name} className="w-full h-full object-cover object-top opacity-80 hover:opacity-100 transition-opacity duration-400" />
+                  ) : (
+                    <div className="w-full h-full bg-white/5" />
+                  )}
+                  {p.discountBadge && (
+                    <div className="absolute top-2.5 left-2.5 bg-white text-black text-[8px] font-black px-1.5 py-0.5 tracking-widest">
+                      {p.discountBadge}
+                    </div>
+                  )}
+                </div>
+                <div className="pt-3">
+                  <p className="font-display text-white/80 text-sm tracking-wide leading-tight line-clamp-1">{p.name.toUpperCase()}</p>
+                  <p className="text-white/35 text-[11px] mt-1 font-medium">{price.toLocaleString('tr-TR')} ₺</p>
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const heroRef = useRef<HTMLElement>(null);
@@ -626,46 +691,8 @@ export default function Home() {
         <div className="py-16 lg:py-24 px-4 lg:px-10 xl:px-14">
           <div className="max-w-[1440px] mx-auto">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 lg:gap-20">
-              {/* Left: big text */}
-              <div className="flex-1">
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                  className="text-[9px] tracking-[0.4em] uppercase text-white/25 mb-5 font-medium"
-                >
-                  — Hank Felsefesi
-                </motion.p>
-                <div className="pt-2">
-                  <motion.h2
-                    initial={{ opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                    className="font-display text-white leading-[1.1] tracking-wide pb-1"
-                    style={{ fontSize: 'clamp(2.4rem, 6vw, 6rem)' }}
-                  >
-                    GÜÇ BİR
-                  </motion.h2>
-                </div>
-                <div className="pt-1">
-                  <motion.h2
-                    initial={{ opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                    transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                    className="font-display leading-[1.1] tracking-wide pb-1"
-                    style={{
-                      fontSize: 'clamp(2.4rem, 6vw, 6rem)',
-                      color: 'transparent',
-                      WebkitTextStroke: '2px rgba(255,255,255,0.7)',
-                    }}
-                  >
-                    İFADE BİÇİMİDİR.
-                  </motion.h2>
-                </div>
-              </div>
+              {/* Left: auto-rotating 2-product slider */}
+              <ManifestoProductSlider products={allProducts} />
 
               {/* Right: stats + cta */}
               <div className="flex-[0_0_auto] lg:w-72">
@@ -707,67 +734,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-white/6 mx-4 lg:mx-10 xl:mx-14" />
-
-        {/* Product slider strip */}
-        {allProducts.length > 0 && (
-          <div className="py-8 overflow-hidden">
-            <div className="flex items-center justify-between px-4 lg:px-10 xl:px-14 mb-6">
-              <p className="text-[9px] tracking-[0.35em] uppercase text-white/25 font-medium">03 — Koleksiyon</p>
-              <Link href="/magaza" className="text-[9px] tracking-[0.2em] uppercase text-white/30 hover:text-white transition-colors font-medium flex items-center gap-1.5">
-                Tümünü Gör <ArrowRight className="w-2.5 h-2.5" />
-              </Link>
-            </div>
-            <div className="relative">
-              {/* Fade edges */}
-              <div className="absolute inset-y-0 left-0 w-16 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #000, transparent)' }} />
-              <div className="absolute inset-y-0 right-0 w-16 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, #000, transparent)' }} />
-              {/* Scrolling track */}
-              <div className="flex animate-marquee-slow" style={{ width: 'max-content' }}>
-                {[...allProducts, ...allProducts, ...allProducts].map((p, i) => {
-                  const img = p.images?.[0];
-                  const price = parseFloat(p.basePrice);
-                  return (
-                    <Link
-                      key={`manifesto-${p.id}-${i}`}
-                      href={`/urun/${p.slug}`}
-                      className="group flex-shrink-0 mx-1.5 w-40 lg:w-48"
-                      data-testid={`link-manifesto-product-${p.id}-${i}`}
-                    >
-                      {/* Image */}
-                      <div className="relative w-full h-52 lg:h-64 overflow-hidden bg-white/4 border border-white/8 group-hover:border-white/25 transition-colors duration-300">
-                        {img ? (
-                          <img
-                            src={img}
-                            alt={p.name}
-                            className="w-full h-full object-cover object-top opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-white/5" />
-                        )}
-                        {p.discountBadge && (
-                          <div className="absolute top-2 left-2 bg-white text-black text-[8px] font-black px-1.5 py-0.5 tracking-widest">
-                            {p.discountBadge}
-                          </div>
-                        )}
-                      </div>
-                      {/* Info */}
-                      <div className="pt-2.5 pb-1">
-                        <p className="font-display text-white/80 group-hover:text-white transition-colors text-sm tracking-wide leading-tight truncate">
-                          {p.name.toUpperCase()}
-                        </p>
-                        <p className="text-white/35 text-[11px] mt-0.5 font-medium">
-                          {price.toLocaleString('tr-TR')} ₺
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ════════════════════════════════════════════
