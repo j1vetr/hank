@@ -327,16 +327,6 @@ export default function Home() {
 
         {/* Main content: centered */}
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-5 pb-32">
-          {/* Label */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-[9px] tracking-[0.4em] uppercase text-white/45 mb-4 lg:mb-6 font-medium"
-          >
-            / Premium Fitness Giyim — 2025
-          </motion.p>
-
           {/* Headline */}
           <div className="overflow-hidden pt-2 mb-0">
             <motion.h1
