@@ -28,7 +28,7 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
-  --font-display: 'Bebas Neue', sans-serif;
+  --font-display: 'Oswald', sans-serif;
   --font-sans: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
 }
@@ -95,6 +95,7 @@
 
 .font-display {
   font-family: var(--font-display);
+  font-weight: 700;
 }
 
 .font-body {

@@ -124,6 +124,136 @@ function EditorialCard({ product, size = 'md' }: { product: FeaturedProduct; siz
   );
 }
 
+/* ── FeaturedHeroCard: fills CSS-grid cell, h-full, large style ── */
+function FeaturedHeroCard({ product }: { product: FeaturedProduct }) {
+  const [hovered, setHovered] = useState(false);
+  const price = parseFloat(product.basePrice || '0');
+  const originalPrice = getOriginalPrice(price, product.discountBadge);
+  const img = product.images?.[0] || '';
+
+  return (
+    <Link href={`/urun/${product.slug}`} data-testid={`link-hero-featured-${product.id}`} className="block h-full">
+      <div
+        className="relative overflow-hidden bg-stone-100 cursor-pointer h-full"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <motion.img
+          src={img} alt={product.name}
+          className="w-full h-full object-cover"
+          animate={{ scale: hovered ? 1.05 : 1 }}
+          transition={{ duration: 0.8, ease: [0.33, 1, 0.68, 1] }}
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+        {product.discountBadge && (
+          <span className="absolute top-4 left-4 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">
+            {product.discountBadge}
+          </span>
+        )}
+        {product.isNew && !product.discountBadge && (
+          <span className="absolute top-4 left-4 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">Yeni</span>
+        )}
+        <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
+          <p className="font-display text-white leading-tight tracking-wide" style={{ fontSize: 'clamp(1.6rem, 2.8vw, 2.4rem)' }}>
+            {product.name.toUpperCase()}
+          </p>
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-3">
+              {originalPrice && (
+                <span className="text-white/40 text-xs line-through">
+                  {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                </span>
+              )}
+              <span className="text-white text-sm font-semibold">{price.toLocaleString('tr-TR')} ₺</span>
+            </div>
+            <motion.div
+              animate={{ opacity: hovered ? 1 : 0, x: hovered ? 0 : -6 }}
+              transition={{ duration: 0.25 }}
+              className="flex items-center gap-1.5 text-white text-[10px] tracking-[0.15em] uppercase font-medium"
+            >
+              İncele <ArrowRight className="w-3 h-3" />
+            </motion.div>
+          </div>
+        </div>
+        <motion.div
+          animate={{ opacity: hovered ? 1 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="absolute inset-3 border border-white/30 pointer-events-none"
+        />
+      </div>
+    </Link>
+  );
+}
+
+/* ── FeaturedSmallCard: fills CSS-grid cell, h-full, medium style ── */
+function FeaturedSmallCard({ product, delay = 0 }: { product: FeaturedProduct; delay?: number }) {
+  const [hovered, setHovered] = useState(false);
+  const price = parseFloat(product.basePrice || '0');
+  const originalPrice = getOriginalPrice(price, product.discountBadge);
+  const img = product.images?.[0] || '';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.55, delay }}
+      className="h-full"
+    >
+      <Link href={`/urun/${product.slug}`} data-testid={`link-small-featured-${product.id}`} className="block h-full">
+        <div
+          className="relative overflow-hidden bg-stone-100 cursor-pointer h-full"
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          <motion.img
+            src={img} alt={product.name}
+            className="w-full h-full object-cover"
+            animate={{ scale: hovered ? 1.06 : 1 }}
+            transition={{ duration: 0.75, ease: [0.33, 1, 0.68, 1] }}
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+          {product.discountBadge && (
+            <span className="absolute top-3 left-3 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">
+              {product.discountBadge}
+            </span>
+          )}
+          {product.isNew && !product.discountBadge && (
+            <span className="absolute top-3 left-3 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">Yeni</span>
+          )}
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <p className="font-display text-white text-lg leading-tight tracking-wide">{product.name.toUpperCase()}</p>
+            <div className="flex items-center justify-between mt-1.5">
+              <div className="flex items-center gap-2">
+                {originalPrice && (
+                  <span className="text-white/40 text-[11px] line-through">
+                    {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
+                  </span>
+                )}
+                <span className="text-white text-xs font-semibold">{price.toLocaleString('tr-TR')} ₺</span>
+              </div>
+              <motion.div
+                animate={{ opacity: hovered ? 1 : 0, y: hovered ? 0 : 4 }}
+                transition={{ duration: 0.22 }}
+                className="text-white text-[9px] tracking-[0.15em] uppercase font-medium flex items-center gap-1"
+              >
+                İncele <ArrowRight className="w-2.5 h-2.5" />
+              </motion.div>
+            </div>
+          </div>
+          <motion.div
+            animate={{ opacity: hovered ? 1 : 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-2 border border-white/25 pointer-events-none"
+          />
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const heroRef = useRef<HTMLElement>(null);
@@ -318,14 +448,14 @@ export default function Home() {
       </section>
 
       {/* ════════════════════════════════════════════
-          FEATURED PRODUCTS — editorial layout, first above fold
+          FEATURED PRODUCTS — editorial layout
       ════════════════════════════════════════════ */}
       {featuredProducts.length > 0 && (
         <section className="px-4 pt-5 pb-0 lg:px-10 xl:px-14" data-testid="section-featured">
           <div className="max-w-[1440px] mx-auto">
 
             {/* Section header */}
-            <div className="flex items-center justify-between py-5 lg:py-8 border-b border-black/8 mb-5 lg:mb-6">
+            <div className="flex items-center justify-between py-5 lg:py-8 border-b border-black/8 mb-0">
               <div className="flex items-center gap-4">
                 <span className="text-[9px] tracking-[0.35em] uppercase text-black/25 font-medium tabular-nums">01</span>
                 <h2 className="font-display text-2xl lg:text-4xl tracking-wide text-black leading-none">ÖZEL SEÇKİLER</h2>
@@ -336,38 +466,40 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Desktop: 1 large + 2 stacked + 2 stacked — no gaps, wall-to-wall */}
-            <div className="hidden lg:block">
-              <div ref={productsSectionRef} className="flex">
-                {/* Large card */}
+            {/* ── DESKTOP: CSS Grid layout ── */}
+            <div ref={productsSectionRef} className="hidden lg:block">
+              {/* Primary grid: 1 tall hero + up to 4 cards in a 2×2 grid */}
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: '1.65fr 1fr 1fr',
+                  gridTemplateRows: '280px 280px',
+                }}
+              >
+                {/* Hero card — spans 2 rows */}
                 {featuredProducts[0] && (
-                  <div className="flex-[1.5]">
-                    <EditorialCard product={featuredProducts[0]} size="lg" />
+                  <div style={{ gridRow: 'span 2', gridColumn: '1' }}>
+                    <FeaturedHeroCard product={featuredProducts[0]} />
                   </div>
                 )}
-                {/* Two stacked */}
-                <div className="flex-[1] flex flex-col">
-                  {featuredProducts[1] && <EditorialCard product={featuredProducts[1]} size="md" />}
-                  {featuredProducts[2] && <EditorialCard product={featuredProducts[2]} size="md" />}
-                </div>
-                {/* Two more stacked */}
-                <div className="flex-[1] flex flex-col">
-                  {featuredProducts[3] && <EditorialCard product={featuredProducts[3]} size="md" />}
-                  {featuredProducts[4] && <EditorialCard product={featuredProducts[4]} size="md" />}
-                </div>
+                {/* Remaining 4 cards auto-fill the 2×2 right area */}
+                {featuredProducts.slice(1, 5).map((product, i) => (
+                  <FeaturedSmallCard key={product.id} product={product} delay={i * 0.06} />
+                ))}
               </div>
 
-              {/* Row 2: remaining products in 5-col grid, no gaps */}
+              {/* Secondary row: products 5–9 in a 5-col strip */}
               {featuredProducts.length > 5 && (
-                <div className="grid grid-cols-5">
+                <div className="grid grid-cols-5 border-t border-black/5">
                   {featuredProducts.slice(5, 10).map((product, i) => (
                     <motion.div
                       key={product.id}
-                      initial={{ opacity: 0, y: 24 }}
+                      initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, margin: '-40px' }}
                       transition={{ duration: 0.55, delay: i * 0.06 }}
                       data-testid={`product-row2-${product.id}`}
+                      className={i > 0 ? 'border-l border-black/5' : ''}
                     >
                       <ProductCard product={product} />
                     </motion.div>
@@ -376,25 +508,25 @@ export default function Home() {
               )}
             </div>
 
-            {/* Mobile: stacked layout, no gaps */}
+            {/* ── MOBILE: full-width hero + 2-col grid ── */}
             <div className="lg:hidden">
               {featuredProducts[0] && (
-                <EditorialCard product={featuredProducts[0]} size="lg" />
+                <FeaturedHeroCard product={featuredProducts[0]} />
               )}
-              <div className="grid grid-cols-2">
-                {featuredProducts[1] && <EditorialCard product={featuredProducts[1]} size="md" />}
-                {featuredProducts[2] && <EditorialCard product={featuredProducts[2]} size="md" />}
-              </div>
-              <div className="grid grid-cols-2">
-                {featuredProducts.slice(3, 7).map((product, i) => (
+              <div
+                className="grid grid-cols-2"
+                style={{ gridAutoRows: '220px' }}
+              >
+                {featuredProducts.slice(1, 7).map((product, i) => (
                   <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: i * 0.07 }}
+                    transition={{ duration: 0.5, delay: i * 0.06 }}
+                    className={`${i % 2 === 1 ? 'border-l border-white/0' : ''}`}
                   >
-                    <ProductCard product={product} />
+                    <EditorialCard product={product} size="sm" />
                   </motion.div>
                 ))}
               </div>
@@ -410,7 +542,7 @@ export default function Home() {
       <div className="bg-black overflow-hidden h-10 flex items-center mt-5 lg:mt-8">
         <div className="flex animate-marquee-fast whitespace-nowrap">
           {tickerWords.map((word, i) => (
-            <span key={i} className="inline-flex items-center gap-3.5 text-[9px] tracking-[0.35em] uppercase text-white/40 font-medium px-4">
+            <span key={i} className="inline-flex items-center gap-3.5 text-[9px] tracking-[0.35em] uppercase text-white font-medium px-4">
               {word}
               <span className="inline-block w-px h-2 bg-white/20" />
             </span>
