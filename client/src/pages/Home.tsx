@@ -336,7 +336,7 @@ export default function Home() {
     image: cat.image || defaultCategoryImages[cat.slug] || '',
   }));
 
-  const featuredProducts = allProducts.slice(0, 8);
+  const featuredProducts = allProducts.slice(0, 9);
 
   useEffect(() => {
     const t = setInterval(() => setActiveSlide(p => (p + 1) % heroSlides.length), 6000);
@@ -543,24 +543,31 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Secondary row: products 5–9 in a 5-col strip */}
-              {featuredProducts.length > 5 && (
-                <div className="grid grid-cols-5 border-t border-black/5">
-                  {featuredProducts.slice(5, 10).map((product, i) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: '-40px' }}
-                      transition={{ duration: 0.55, delay: i * 0.06 }}
-                      data-testid={`product-row2-${product.id}`}
-                      className={i > 0 ? 'border-l border-black/5' : ''}
-                    >
-                      <ProductCard product={product} />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
+              {/* Secondary row: remaining products filling evenly */}
+              {featuredProducts.length > 5 && (() => {
+                const secondaryProducts = featuredProducts.slice(5);
+                const cols = secondaryProducts.length;
+                return (
+                  <div
+                    className="grid border-t border-black/5"
+                    style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+                  >
+                    {secondaryProducts.map((product, i) => (
+                      <motion.div
+                        key={product.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: '-40px' }}
+                        transition={{ duration: 0.55, delay: i * 0.06 }}
+                        data-testid={`product-row2-${product.id}`}
+                        className={i > 0 ? 'border-l border-black/5' : ''}
+                      >
+                        <ProductCard product={product} />
+                      </motion.div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ── MOBILE: full-width hero + 2-col grid ── */}
