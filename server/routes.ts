@@ -788,7 +788,7 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     }
 
-    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, createdAt: user.createdAt });
+    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, city: user.city, district: user.district, postalCode: user.postalCode, country: user.country, createdAt: user.createdAt });
   });
 
   app.patch("/api/auth/profile", async (req: Request, res) => {
@@ -5440,6 +5440,9 @@ Sitemap: ${baseUrl}/sitemap.xml
             if (!mergedData.firstName && dbUser.firstName) mergedData.firstName = dbUser.firstName;
             if (!mergedData.lastName && dbUser.lastName) mergedData.lastName = dbUser.lastName;
             if (!mergedData.city && dbUser.city) mergedData.city = dbUser.city;
+            if (!mergedData.state && dbUser.district) mergedData.state = dbUser.district;
+            if (!mergedData.zip && dbUser.postalCode) mergedData.zip = dbUser.postalCode;
+            if (!mergedData.country && dbUser.country) mergedData.country = dbUser.country;
           }
         }
       } catch {}

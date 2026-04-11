@@ -154,6 +154,9 @@ export default function ProductDetail() {
           firstName: user.firstName || undefined,
           lastName: user.lastName || undefined,
           city: user.city || undefined,
+          state: user.district || undefined,
+          zip: user.postalCode || undefined,
+          country: user.country || undefined,
           externalId: user.id,
         } : undefined,
       });
@@ -217,6 +220,9 @@ export default function ProductDetail() {
           firstName: user.firstName || undefined,
           lastName: user.lastName || undefined,
           city: user.city || undefined,
+          state: user.district || undefined,
+          zip: user.postalCode || undefined,
+          country: user.country || undefined,
           externalId: user.id,
         } : undefined,
       });
