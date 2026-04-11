@@ -336,10 +336,9 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Desktop: 1 large + 2 stacked + 4-col row */}
+            {/* Desktop: 1 large + 2 stacked + 2 stacked — no gaps, wall-to-wall */}
             <div className="hidden lg:block">
-              {/* Row 1: editorial */}
-              <div ref={productsSectionRef} className="flex gap-3 xl:gap-4 mb-3 xl:mb-4">
+              <div ref={productsSectionRef} className="flex">
                 {/* Large card */}
                 {featuredProducts[0] && (
                   <div className="flex-[1.5]">
@@ -347,20 +346,20 @@ export default function Home() {
                   </div>
                 )}
                 {/* Two stacked */}
-                <div className="flex-[1] flex flex-col gap-3 xl:gap-4">
+                <div className="flex-[1] flex flex-col">
                   {featuredProducts[1] && <EditorialCard product={featuredProducts[1]} size="md" />}
                   {featuredProducts[2] && <EditorialCard product={featuredProducts[2]} size="md" />}
                 </div>
                 {/* Two more stacked */}
-                <div className="flex-[1] flex flex-col gap-3 xl:gap-4">
+                <div className="flex-[1] flex flex-col">
                   {featuredProducts[3] && <EditorialCard product={featuredProducts[3]} size="md" />}
                   {featuredProducts[4] && <EditorialCard product={featuredProducts[4]} size="md" />}
                 </div>
               </div>
 
-              {/* Row 2: remaining products in 5-col grid (if any) */}
+              {/* Row 2: remaining products in 5-col grid, no gaps */}
               {featuredProducts.length > 5 && (
-                <div className="grid grid-cols-5 gap-3 xl:gap-4">
+                <div className="grid grid-cols-5">
                   {featuredProducts.slice(5, 10).map((product, i) => (
                     <motion.div
                       key={product.id}
@@ -377,21 +376,16 @@ export default function Home() {
               )}
             </div>
 
-            {/* Mobile: stacked layout */}
+            {/* Mobile: stacked layout, no gaps */}
             <div className="lg:hidden">
-              {/* First product: full width, tall */}
               {featuredProducts[0] && (
-                <div className="mb-3">
-                  <EditorialCard product={featuredProducts[0]} size="lg" />
-                </div>
+                <EditorialCard product={featuredProducts[0]} size="lg" />
               )}
-              {/* Next two: side by side */}
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="grid grid-cols-2">
                 {featuredProducts[1] && <EditorialCard product={featuredProducts[1]} size="md" />}
                 {featuredProducts[2] && <EditorialCard product={featuredProducts[2]} size="md" />}
               </div>
-              {/* Remaining: standard product cards 2-col */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2">
                 {featuredProducts.slice(3, 7).map((product, i) => (
                   <motion.div
                     key={product.id}
@@ -503,90 +497,155 @@ export default function Home() {
       </section>
 
       {/* ════════════════════════════════════════════
-          MANIFESTO — black statement
+          MANIFESTO — black statement + product slider
       ════════════════════════════════════════════ */}
-      <section className="bg-black py-16 lg:py-24 px-4 lg:px-10 overflow-hidden" data-testid="section-manifesto">
-        <div className="max-w-[1440px] mx-auto">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 lg:gap-20">
-            {/* Left: big text */}
-            <div className="flex-1">
-              <motion.p
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="text-[9px] tracking-[0.4em] uppercase text-white/25 mb-5 font-medium"
-              >
-                — Hank Felsefesi
-              </motion.p>
-              <div className="overflow-hidden">
-                <motion.h2
-                  initial={{ y: '100%' }}
-                  whileInView={{ y: '0%' }}
+      <section className="bg-black overflow-hidden" data-testid="section-manifesto">
+        {/* Top: text + stats */}
+        <div className="py-16 lg:py-24 px-4 lg:px-10 xl:px-14">
+          <div className="max-w-[1440px] mx-auto">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 lg:gap-20">
+              {/* Left: big text */}
+              <div className="flex-1">
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                  className="font-display text-white leading-[0.88] tracking-wide"
-                  style={{ fontSize: 'clamp(2.4rem, 6vw, 6rem)' }}
+                  transition={{ duration: 0.6 }}
+                  className="text-[9px] tracking-[0.4em] uppercase text-white/25 mb-5 font-medium"
                 >
-                  GÜÇ BİR
-                </motion.h2>
-              </div>
-              <div className="overflow-hidden">
-                <motion.h2
-                  initial={{ y: '100%' }}
-                  whileInView={{ y: '0%' }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                  className="font-display leading-[0.88] tracking-wide"
-                  style={{
-                    fontSize: 'clamp(2.4rem, 6vw, 6rem)',
-                    color: 'transparent',
-                    WebkitTextStroke: '2px rgba(255,255,255,0.7)',
-                  }}
-                >
-                  İFADE BİÇİMİDİR.
-                </motion.h2>
-              </div>
-            </div>
-
-            {/* Right: stats + cta */}
-            <div className="flex-[0_0_auto] lg:w-72">
-              <motion.p
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-                className="text-white/40 text-sm font-body leading-relaxed mb-8"
-              >
-                1000'den fazla sporcu HANK ile güçleniyor. Her koleksiyon, sınırları zorlamak için tasarlandı.
-              </motion.p>
-              <div className="grid grid-cols-2 gap-px bg-white/8 mb-8">
-                {[['1000+', 'Mutlu Sporcu'], ['5+', 'Yıl Deneyim'], ['%100', 'Türk Üretimi'], ['1 Gün', 'Teslimat']].map(([n, l], i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
+                  — Hank Felsefesi
+                </motion.p>
+                <div className="overflow-hidden">
+                  <motion.h2
+                    initial={{ y: '100%' }}
+                    whileInView={{ y: '0%' }}
                     viewport={{ once: true }}
-                    transition={{ delay: 0.2 + i * 0.07 }}
-                    className="bg-black px-4 py-5"
+                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    className="font-display text-white leading-[0.88] tracking-wide"
+                    style={{ fontSize: 'clamp(2.4rem, 6vw, 6rem)' }}
                   >
-                    <p className="font-display text-white text-3xl leading-none mb-1">{n}</p>
-                    <p className="text-[9px] tracking-[0.18em] uppercase text-white/30 font-medium">{l}</p>
-                  </motion.div>
-                ))}
+                    GÜÇ BİR
+                  </motion.h2>
+                </div>
+                <div className="overflow-hidden">
+                  <motion.h2
+                    initial={{ y: '100%' }}
+                    whileInView={{ y: '0%' }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                    className="font-display leading-[0.88] tracking-wide"
+                    style={{
+                      fontSize: 'clamp(2.4rem, 6vw, 6rem)',
+                      color: 'transparent',
+                      WebkitTextStroke: '2px rgba(255,255,255,0.7)',
+                    }}
+                  >
+                    İFADE BİÇİMİDİR.
+                  </motion.h2>
+                </div>
               </div>
-              <Link href="/magaza" data-testid="button-manifesto-cta">
-                <motion.span
-                  whileHover={{ x: 4 }}
-                  className="group inline-flex items-center gap-3 border border-white/20 text-white text-[10px] tracking-[0.22em] uppercase font-semibold px-7 py-4 hover:bg-white hover:text-black transition-all duration-300 cursor-pointer"
+
+              {/* Right: stats + cta */}
+              <div className="flex-[0_0_auto] lg:w-72">
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7, delay: 0.3 }}
+                  className="text-white/40 text-sm font-body leading-relaxed mb-8"
                 >
-                  Koleksiyonu Keşfet
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5" />
-                </motion.span>
-              </Link>
+                  1000'den fazla sporcu HANK ile güçleniyor. Her koleksiyon, sınırları zorlamak için tasarlandı.
+                </motion.p>
+                <div className="grid grid-cols-2 gap-px bg-white/8 mb-8">
+                  {[['1000+', 'Mutlu Sporcu'], ['5+', 'Yıl Deneyim'], ['%100', 'Türk Üretimi'], ['1 Gün', 'Teslimat']].map(([n, l], i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2 + i * 0.07 }}
+                      className="bg-black px-4 py-5"
+                    >
+                      <p className="font-display text-white text-3xl leading-none mb-1">{n}</p>
+                      <p className="text-[9px] tracking-[0.18em] uppercase text-white/30 font-medium">{l}</p>
+                    </motion.div>
+                  ))}
+                </div>
+                <Link href="/magaza" data-testid="button-manifesto-cta">
+                  <motion.span
+                    whileHover={{ x: 4 }}
+                    className="group inline-flex items-center gap-3 border border-white/20 text-white text-[10px] tracking-[0.22em] uppercase font-semibold px-7 py-4 hover:bg-white hover:text-black transition-all duration-300 cursor-pointer"
+                  >
+                    Koleksiyonu Keşfet
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5" />
+                  </motion.span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Divider */}
+        <div className="h-px bg-white/6 mx-4 lg:mx-10 xl:mx-14" />
+
+        {/* Product slider strip */}
+        {allProducts.length > 0 && (
+          <div className="py-8 overflow-hidden">
+            <div className="flex items-center justify-between px-4 lg:px-10 xl:px-14 mb-6">
+              <p className="text-[9px] tracking-[0.35em] uppercase text-white/25 font-medium">03 — Koleksiyon</p>
+              <Link href="/magaza" className="text-[9px] tracking-[0.2em] uppercase text-white/30 hover:text-white transition-colors font-medium flex items-center gap-1.5">
+                Tümünü Gör <ArrowRight className="w-2.5 h-2.5" />
+              </Link>
+            </div>
+            <div className="relative">
+              {/* Fade edges */}
+              <div className="absolute inset-y-0 left-0 w-16 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #000, transparent)' }} />
+              <div className="absolute inset-y-0 right-0 w-16 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, #000, transparent)' }} />
+              {/* Scrolling track */}
+              <div className="flex animate-marquee-slow" style={{ width: 'max-content' }}>
+                {[...allProducts, ...allProducts, ...allProducts].map((p, i) => {
+                  const img = p.images?.[0];
+                  const price = parseFloat(p.basePrice);
+                  return (
+                    <Link
+                      key={`manifesto-${p.id}-${i}`}
+                      href={`/urun/${p.slug}`}
+                      className="group flex-shrink-0 mx-1.5 w-40 lg:w-48"
+                      data-testid={`link-manifesto-product-${p.id}-${i}`}
+                    >
+                      {/* Image */}
+                      <div className="relative w-full h-52 lg:h-64 overflow-hidden bg-white/4 border border-white/8 group-hover:border-white/25 transition-colors duration-300">
+                        {img ? (
+                          <img
+                            src={img}
+                            alt={p.name}
+                            className="w-full h-full object-cover object-top opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-white/5" />
+                        )}
+                        {p.discountBadge && (
+                          <div className="absolute top-2 left-2 bg-white text-black text-[8px] font-black px-1.5 py-0.5 tracking-widest">
+                            {p.discountBadge}
+                          </div>
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="pt-2.5 pb-1">
+                        <p className="font-display text-white/80 group-hover:text-white transition-colors text-sm tracking-wide leading-tight truncate">
+                          {p.name.toUpperCase()}
+                        </p>
+                        <p className="text-white/35 text-[11px] mt-0.5 font-medium">
+                          {price.toLocaleString('tr-TR')} ₺
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ════════════════════════════════════════════
