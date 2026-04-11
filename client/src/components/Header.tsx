@@ -82,7 +82,7 @@ export function Header() {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={`relative inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors ${isActive ? 'text-black' : 'text-black/45 hover:text-black'} nav-link-hover`}>
+            <button className={`relative inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors ${isActive ? 'text-black' : 'text-black/70 hover:text-black'} nav-link-hover`}>
               {item.title}
               <ChevronDown className="w-2.5 h-2.5" />
             </button>
@@ -100,7 +100,7 @@ export function Header() {
     }
 
     const isExternal = item.type === 'link' && item.url?.startsWith('http');
-    const cls = `relative inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors nav-link-hover ${isActive ? 'text-black' : 'text-black/45 hover:text-black'}`;
+    const cls = `relative inline-flex items-center gap-1 text-[11px] font-medium tracking-[0.18em] uppercase transition-colors nav-link-hover ${isActive ? 'text-black' : 'text-black/70 hover:text-black'}`;
 
     if (isExternal || item.openInNewTab) {
       return <a href={href} target="_blank" rel="noopener noreferrer" className={cls} data-testid={`link-nav-${item.title}`}>{item.title}<ArrowUpRight className="w-2.5 h-2.5 opacity-50" /></a>;
@@ -158,8 +158,8 @@ export function Header() {
                   ? topItems.map(item => <DesktopNavLink key={item.id} item={item} />)
                   : (
                     <>
-                      <Link href="/magaza" className={`relative text-[11px] font-medium tracking-[0.18em] uppercase nav-link-hover ${location === '/magaza' ? 'text-black' : 'text-black/45 hover:text-black'}`}>Mağaza</Link>
-                      <Link href="/kategori/tshirt" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/45 hover:text-black transition-colors nav-link-hover">T-Shirt</Link>
+                      <Link href="/magaza" className={`relative text-[11px] font-medium tracking-[0.18em] uppercase nav-link-hover ${location === '/magaza' ? 'text-black' : 'text-black/70 hover:text-black'}`}>Mağaza</Link>
+                      <Link href="/kategori/tshirt" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/70 hover:text-black transition-colors nav-link-hover">T-Shirt</Link>
                     </>
                   )
                 }
@@ -185,8 +185,8 @@ export function Header() {
                   ? bottomItems.map(item => <DesktopNavLink key={item.id} item={item} />)
                   : (
                     <>
-                      <Link href="/kategori/esofman" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/45 hover:text-black transition-colors nav-link-hover">Eşofman</Link>
-                      <Link href="/kategori/sort" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/45 hover:text-black transition-colors nav-link-hover">Şort</Link>
+                      <Link href="/kategori/esofman" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/70 hover:text-black transition-colors nav-link-hover">Eşofman</Link>
+                      <Link href="/kategori/sort" className="relative text-[11px] font-medium tracking-[0.18em] uppercase text-black/70 hover:text-black transition-colors nav-link-hover">Şort</Link>
                     </>
                   )
                 }
