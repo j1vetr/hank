@@ -556,9 +556,9 @@ export default function ProductDetail() {
             <span className="text-black truncate max-w-[300px] uppercase">{product.name}</span>
           </motion.nav>
 
-          <div className="grid lg:grid-cols-2 gap-6 lg:gap-16">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex gap-3 sm:gap-4 w-full">
-              <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-16 lg:items-stretch">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex gap-3 sm:gap-4 w-full lg:h-full">
+              <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0 lg:justify-end">
                 {images.length > 5 && selectedImage > 0 && (
                   <button
                     onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
@@ -618,8 +618,8 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="relative">
+              <div className="flex-1 min-w-0 flex flex-col lg:h-full">
+                <div className="relative flex-1 flex flex-col">
                   <div className="absolute -inset-[1px] rounded-xl pointer-events-none overflow-hidden z-10">
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 133" preserveAspectRatio="none">
                       <rect
@@ -636,10 +636,10 @@ export default function ProductDetail() {
                       />
                     </svg>
                   </div>
-                  <div className="hidden sm:block">
+                  <div className="hidden sm:flex sm:flex-col flex-1">
                     <motion.div 
                       ref={imageRef}
-                      className="relative aspect-[3/4] bg-stone-100 overflow-hidden cursor-zoom-in group w-full"
+                      className="relative aspect-[3/4] lg:aspect-auto flex-1 lg:min-h-[560px] bg-stone-100 overflow-hidden cursor-zoom-in group w-full"
                       onMouseEnter={() => setIsZooming(true)}
                       onMouseLeave={() => setIsZooming(false)}
                       onMouseMove={handleMouseMove}
