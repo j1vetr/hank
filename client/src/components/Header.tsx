@@ -170,15 +170,9 @@ export function Header() {
             <Link href="/" data-testid="link-logo" className="shrink-0">
               <motion.div whileHover={{ opacity: 0.75 }} transition={{ duration: 0.2 }}>
                 <img
-                  src="/uploads/branding/hank-icon.png"
-                  alt="HANK"
-                  className="h-8 w-8 lg:hidden"
-                  data-testid="img-logo-mobile"
-                />
-                <img
                   src="/uploads/branding/hank-logo.svg"
                   alt="HANK"
-                  className="hidden lg:block h-10"
+                  className="h-7 lg:h-10"
                   data-testid="img-logo"
                 />
               </motion.div>
