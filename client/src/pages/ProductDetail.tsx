@@ -322,7 +322,7 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-white">
         <Header />
-        <main className="pt-36 pb-20 px-6">
+        <main className="pt-24 pb-20 px-6">
           <div className="max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
               <Loader2 className="w-10 h-10 text-black/25" />
@@ -338,7 +338,7 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-white">
         <Header />
-        <main className="pt-36 pb-20 px-6">
+        <main className="pt-24 pb-20 px-6">
           <div className="max-w-7xl mx-auto text-center min-h-[60vh] flex flex-col items-center justify-center">
             <div className="w-24 h-24 border border-black/8 flex items-center justify-center mb-6">
               <Package className="w-12 h-12 text-black/20" />
@@ -542,7 +542,7 @@ export default function ProductDetail() {
         )}
       </AnimatePresence>
 
-      <main className="pt-36 pb-20">
+      <main className="pt-24 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.nav initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-xs text-black/40 mb-6">
             <Link href="/" className="hover:text-black transition-colors">Ana Sayfa</Link>

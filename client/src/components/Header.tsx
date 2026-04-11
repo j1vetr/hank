@@ -172,7 +172,7 @@ export function Header() {
                 <img
                   src="/uploads/branding/hank-logo.svg"
                   alt="HANK"
-                  className="h-7 lg:h-10"
+                  className="h-8 lg:h-11"
                   data-testid="img-logo"
                 />
               </motion.div>
