@@ -558,25 +558,25 @@ export default function ProductDetail() {
 
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-16 lg:items-stretch">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex gap-3 sm:gap-4 w-full lg:h-full">
-              <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0 lg:justify-end">
+              <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0 lg:h-full">
                 {images.length > 5 && selectedImage > 0 && (
                   <button
                     onClick={() => setSelectedImage(prev => Math.max(0, prev - 1))}
-                    className="w-full h-8 flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors"
+                    className="w-full h-8 flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors flex-shrink-0"
                     data-testid="button-thumbnail-prev"
                   >
                     <ChevronLeft className="w-4 h-4 rotate-90" />
                   </button>
                 )}
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 lg:flex-1 lg:min-h-0">
                   {images.length <= 5 ? (
                     images.map((image, index) => (
                       <motion.button
                         key={index}
                         onClick={() => setSelectedImage(index)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`relative aspect-[3/4] overflow-hidden transition-all flex-shrink-0 ${
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`relative overflow-hidden transition-all aspect-[3/4] lg:aspect-auto lg:flex-1 lg:min-h-0 ${
                           index === selectedImage ? 'ring-2 ring-black' : 'opacity-40 hover:opacity-100'
                         }`}
                         data-testid={`button-thumbnail-${index}`}
@@ -594,9 +594,9 @@ export default function ProductDetail() {
                         <motion.button
                           key={actualIndex}
                           onClick={() => setSelectedImage(actualIndex)}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className={`relative aspect-[3/4] overflow-hidden transition-all flex-shrink-0 ${
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`relative overflow-hidden transition-all aspect-[3/4] lg:aspect-auto lg:flex-1 lg:min-h-0 ${
                             actualIndex === selectedImage ? 'ring-2 ring-black' : 'opacity-40 hover:opacity-100'
                           }`}
                           data-testid={`button-thumbnail-${actualIndex}`}
@@ -610,7 +610,7 @@ export default function ProductDetail() {
                 {images.length > 5 && selectedImage < images.length - 1 && (
                   <button
                     onClick={() => setSelectedImage(prev => Math.min(images.length - 1, prev + 1))}
-                    className="w-full h-8 flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors"
+                    className="w-full h-8 flex items-center justify-center bg-black/5 hover:bg-black/10 transition-colors flex-shrink-0"
                     data-testid="button-thumbnail-next"
                   >
                     <ChevronLeft className="w-4 h-4 -rotate-90" />
