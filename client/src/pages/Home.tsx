@@ -415,30 +415,30 @@ export default function Home() {
 
         {/* Product scroll strip — bottom of hero */}
         {allProducts.length > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 z-10 overflow-hidden" style={{ height: 120 }}>
+          <div className="absolute bottom-8 left-0 right-0 z-10 overflow-hidden" style={{ height: 168 }}>
             {/* Fade edges */}
-            <div className="absolute inset-y-0 left-0 w-24 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85), transparent)' }} />
-            <div className="absolute inset-y-0 right-0 w-24 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.85), transparent)' }} />
-            {/* Subtle top fade */}
-            <div className="absolute top-0 left-0 right-0 h-8 z-10 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)' }} />
+            <div className="absolute inset-y-0 left-0 w-28 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.92), transparent)' }} />
+            <div className="absolute inset-y-0 right-0 w-28 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.92), transparent)' }} />
+            {/* Top fade */}
+            <div className="absolute top-0 left-0 right-0 h-10 z-10 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)' }} />
             {/* Scrolling track */}
-            <div className="flex animate-marquee-slow h-full items-end pb-4" style={{ width: 'max-content' }}>
+            <div className="flex animate-marquee-slow h-full items-center" style={{ width: 'max-content' }}>
               {[...allProducts, ...allProducts, ...allProducts].map((p, i) => {
                 const img = p.images?.[0];
                 const price = parseFloat(p.basePrice);
                 return (
-                  <Link key={`${p.id}-${i}`} href={`/urun/${p.slug}`} className="group flex-shrink-0 mx-2 flex flex-col items-center gap-1 cursor-pointer" data-testid={`link-hero-scroll-${p.id}-${i}`}>
-                    <div className="relative w-14 h-[84px] overflow-hidden bg-white/5 border border-white/10 group-hover:border-white/30 transition-colors">
+                  <Link key={`${p.id}-${i}`} href={`/urun/${p.slug}`} className="group flex-shrink-0 mx-2.5 flex flex-col items-center gap-1.5 cursor-pointer" data-testid={`link-hero-scroll-${p.id}-${i}`}>
+                    <div className="relative w-[72px] h-[108px] overflow-hidden bg-white/5 border border-white/10 group-hover:border-white/35 transition-colors duration-300">
                       {img ? (
-                        <img src={img} alt={p.name} className="w-full h-full object-cover object-top opacity-80 group-hover:opacity-100 transition-opacity" />
+                        <img src={img} alt={p.name} className="w-full h-full object-cover object-top opacity-75 group-hover:opacity-100 group-hover:scale-105 transition-all duration-400" />
                       ) : (
                         <div className="w-full h-full bg-white/5" />
                       )}
                       {p.discountBadge && (
-                        <div className="absolute top-1 left-1 bg-red-600 text-white text-[7px] font-black px-1 py-px leading-none">{p.discountBadge}</div>
+                        <div className="absolute top-1 left-1 bg-white text-black text-[7px] font-black px-1 py-px">{p.discountBadge}</div>
                       )}
                     </div>
-                    <p className="text-[9px] text-white/50 group-hover:text-white/80 transition-colors font-medium tracking-wide truncate max-w-[56px] text-center">{price.toLocaleString('tr-TR')}₺</p>
+                    <p className="text-[10px] text-white/50 group-hover:text-white/85 transition-colors font-medium tracking-wide truncate max-w-[72px] text-center">{price.toLocaleString('tr-TR')}₺</p>
                   </Link>
                 );
               })}
