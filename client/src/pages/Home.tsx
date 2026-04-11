@@ -338,23 +338,23 @@ export default function Home() {
           </motion.p>
 
           {/* Headline */}
-          <div className="overflow-hidden mb-1">
+          <div className="overflow-hidden pt-2 mb-0">
             <motion.h1
-              initial={{ y: '100%' }}
+              initial={{ y: '110%' }}
               animate={{ y: '0%' }}
               transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display text-white leading-[0.87] tracking-wide"
+              className="font-display text-white leading-[1.05] tracking-wide"
               style={{ fontSize: 'clamp(3.8rem, 10vw, 9.5rem)' }}
             >
               GÜCÜNÜ
             </motion.h1>
           </div>
-          <div className="overflow-hidden mb-6 lg:mb-10">
+          <div className="overflow-hidden mb-6 lg:mb-10 pt-1">
             <motion.h1
-              initial={{ y: '100%' }}
+              initial={{ y: '110%' }}
               animate={{ y: '0%' }}
               transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display leading-[0.87] tracking-wide"
+              className="font-display leading-[1.05] tracking-wide"
               style={{
                 fontSize: 'clamp(3.8rem, 10vw, 9.5rem)',
                 color: 'transparent',
@@ -458,7 +458,7 @@ export default function Home() {
             <div className="flex items-center justify-between py-5 lg:py-8 border-b border-black/8 mb-0">
               <div className="flex items-center gap-4">
                 <span className="text-[9px] tracking-[0.35em] uppercase text-black/25 font-medium tabular-nums">01</span>
-                <h2 className="font-display text-2xl lg:text-4xl tracking-wide text-black leading-none">ÖZEL SEÇKİLER</h2>
+                <h2 className="font-display text-2xl lg:text-4xl tracking-wide text-black">ÖZEL SEÇKİLER</h2>
               </div>
               <Link href="/magaza" className="group flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-black/35 hover:text-black transition-colors font-medium">
                 <span>Tümünü Gör</span>
@@ -560,7 +560,7 @@ export default function Home() {
           <div className="flex items-center justify-between mb-5 lg:mb-8 border-b border-black/8 pb-5 lg:pb-8">
             <div className="flex items-center gap-4">
               <span className="text-[9px] tracking-[0.35em] uppercase text-black/25 font-medium tabular-nums">02</span>
-              <h2 className="font-display text-2xl lg:text-4xl tracking-wide text-black leading-none">KATEGORİLER</h2>
+              <h2 className="font-display text-2xl lg:text-4xl tracking-wide text-black">KATEGORİLER</h2>
             </div>
             <Link href="/magaza" className="group hidden lg:flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-black/35 hover:text-black transition-colors font-medium">
               Tümünü Gör <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
@@ -647,25 +647,25 @@ export default function Home() {
                 >
                   — Hank Felsefesi
                 </motion.p>
-                <div className="overflow-hidden">
+                <div className="overflow-hidden pt-2">
                   <motion.h2
-                    initial={{ y: '100%' }}
+                    initial={{ y: '110%' }}
                     whileInView={{ y: '0%' }}
                     viewport={{ once: true }}
                     transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                    className="font-display text-white leading-[0.88] tracking-wide"
+                    className="font-display text-white leading-[1.1] tracking-wide pb-1"
                     style={{ fontSize: 'clamp(2.4rem, 6vw, 6rem)' }}
                   >
                     GÜÇ BİR
                   </motion.h2>
                 </div>
-                <div className="overflow-hidden">
+                <div className="overflow-hidden pt-1">
                   <motion.h2
-                    initial={{ y: '100%' }}
+                    initial={{ y: '110%' }}
                     whileInView={{ y: '0%' }}
                     viewport={{ once: true }}
                     transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                    className="font-display leading-[0.88] tracking-wide"
+                    className="font-display leading-[1.1] tracking-wide pb-1"
                     style={{
                       fontSize: 'clamp(2.4rem, 6vw, 6rem)',
                       color: 'transparent',

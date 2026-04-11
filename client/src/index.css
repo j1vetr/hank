@@ -96,6 +96,7 @@
 .font-display {
   font-family: var(--font-display);
   font-weight: 700;
+  line-height: 1.05;
 }
 
 .font-body {

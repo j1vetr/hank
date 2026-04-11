@@ -135,7 +135,7 @@ export default function Category() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
-              className="font-display text-5xl sm:text-6xl lg:text-7xl text-white tracking-wide leading-none"
+              className="font-display text-5xl sm:text-6xl lg:text-7xl text-white tracking-wide leading-[1.1]"
               data-testid="text-category-title"
             >
               {category?.name?.toUpperCase()}
