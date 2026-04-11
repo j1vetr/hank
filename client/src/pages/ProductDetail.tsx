@@ -754,8 +754,16 @@ export default function ProductDetail() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="lg:pt-4">
-              {category && (
-                <p className="text-[10px] text-black/40 uppercase tracking-[0.25em] mb-3">{category.name}</p>
+              {(category || product.sku) && (
+                <div className="flex items-center gap-2 mb-3">
+                  {category && (
+                    <p className="text-[10px] text-black/40 uppercase tracking-[0.25em]">{category.name}</p>
+                  )}
+                  {category && product.sku && <span className="text-black/20 text-[10px]">·</span>}
+                  {product.sku && (
+                    <span className="text-[10px] text-black/35 tracking-[0.12em] font-mono uppercase" data-testid="text-sku-header">{product.sku}</span>
+                  )}
+                </div>
               )}
               
               <h1 className="font-display text-2xl sm:text-3xl tracking-wide uppercase mb-4 text-black leading-tight" data-testid="text-product-name">
@@ -858,8 +866,8 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center border border-black/15">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center border border-black/15 shrink-0">
                     <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-black/5 transition-colors text-black" data-testid="button-decrease-quantity">
                       <Minus className="w-4 h-4" />
                     </button>
@@ -868,16 +876,9 @@ export default function ProductDetail() {
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-
-                  {(() => {
-                    const selectedVariant = selectedSize ? product.variants?.find(v => v.size === selectedSize) : null;
-                    const displaySku = selectedVariant?.sku || product.sku;
-                    return displaySku ? (
-                      <span className="text-xs text-black/35" data-testid="text-sku">
-                        Stok Kodu: {displaySku}
-                      </span>
-                    ) : null;
-                  })()}
+                  <div className="flex-1 min-w-0">
+                    <ShippingCountdown />
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 pt-2">
@@ -949,10 +950,6 @@ export default function ProductDetail() {
                   </div>
                 </div>
 
-                {/* Same Day Shipping Notice */}
-                <div className="mt-4 p-3 bg-stone-50 border border-black/8">
-                  <ShippingCountdown />
-                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-black/8">
