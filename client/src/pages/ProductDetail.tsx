@@ -94,6 +94,7 @@ export default function ProductDetail() {
   const [isZooming, setIsZooming] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showFullDesc, setShowFullDesc] = useState(false);
   
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTitle, setReviewTitle] = useState('');
@@ -784,10 +785,23 @@ export default function ProductDetail() {
               </div>
 
               {product.description && (
-                <div 
-                  className="text-sm text-black/55 leading-relaxed mb-6 prose prose-sm max-w-none [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1 [&_strong]:text-black [&_h3]:text-black [&_h4]:text-black"
-                  dangerouslySetInnerHTML={{ __html: product.description }}
-                />
+                <div className="mb-6">
+                  <div className={`relative ${!showFullDesc ? 'max-h-[112px] overflow-hidden' : ''}`}>
+                    <div
+                      className="text-sm text-black/55 leading-relaxed prose prose-sm max-w-none [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1 [&_strong]:text-black [&_h3]:text-black [&_h4]:text-black"
+                      dangerouslySetInnerHTML={{ __html: product.description }}
+                    />
+                    {!showFullDesc && (
+                      <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowFullDesc(v => !v)}
+                    className="mt-2 text-[11px] font-semibold text-black/40 hover:text-black uppercase tracking-[0.15em] transition-colors flex items-center gap-1.5"
+                  >
+                    {showFullDesc ? 'Gizle ↑' : 'Devamını Oku ↓'}
+                  </button>
+                </div>
               )}
 
               <div className="space-y-6">
