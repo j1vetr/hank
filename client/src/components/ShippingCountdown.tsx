@@ -70,15 +70,15 @@ export function ShippingCountdown() {
   if (!info) return null;
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex-shrink-0 w-9 h-9 bg-stone-100 border border-black/8 flex items-center justify-center">
-        <Truck className="w-4 h-4 text-black/50" />
+    <div className="flex items-center gap-2 min-w-0">
+      <div className="flex-shrink-0 w-7 h-7 bg-stone-100 border border-black/8 flex items-center justify-center">
+        <Truck className="w-3.5 h-3.5 text-black/50" />
       </div>
-      <p className="text-sm text-black/65">
+      <p className="text-xs text-black/65 leading-tight min-w-0">
         <span className="text-black font-bold tabular-nums">
           {pad(info.hours)}:{pad(info.minutes)}:{pad(info.seconds)}
         </span>{' '}
-        içinde sipariş ver, <span className="font-semibold text-black">{info.label}</span>!
+        içinde sipariş ver,{' '}<span className="font-semibold text-black">{info.label}</span>!
       </p>
     </div>
   );

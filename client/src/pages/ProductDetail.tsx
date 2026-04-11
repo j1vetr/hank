@@ -557,7 +557,7 @@ export default function ProductDetail() {
           </motion.nav>
 
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-16">
-            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="flex gap-3 sm:gap-4 w-full">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex gap-3 sm:gap-4 w-full">
               <div className="hidden sm:flex flex-col gap-2 w-20 shrink-0">
                 {images.length > 5 && selectedImage > 0 && (
                   <button
@@ -753,7 +753,7 @@ export default function ProductDetail() {
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="lg:pt-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="lg:pt-4">
               {(category || product.sku) && (
                 <div className="flex items-center gap-2 mb-3">
                   {category && (
@@ -761,7 +761,9 @@ export default function ProductDetail() {
                   )}
                   {category && product.sku && <span className="text-black/20 text-[10px]">·</span>}
                   {product.sku && (
-                    <span className="text-[10px] text-black/35 tracking-[0.12em] font-mono uppercase" data-testid="text-sku-header">{product.sku}</span>
+                    <span className="text-[10px] text-black/35 tracking-[0.12em] font-mono uppercase" data-testid="text-sku-header">
+                      <span className="text-black/25 not-italic">Stok Kodu:</span> {product.sku}
+                    </span>
                   )}
                 </div>
               )}

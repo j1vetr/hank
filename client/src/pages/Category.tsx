@@ -86,7 +86,7 @@ export default function Category() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       <SEO
         title={category?.name || 'Kategori'}
         description={`${category?.name || 'Ürünler'} — HANK fitness ve bodybuilding giyim koleksiyonu`}
