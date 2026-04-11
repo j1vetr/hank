@@ -108,20 +108,23 @@ export function Header() {
     return <Link href={href} className={cls} data-testid={`link-nav-${item.title}`}>{item.title}</Link>;
   };
 
-  const announcementText = Array(6).fill('Worldwide Shipping  ·  2.500₺ Üzeri Ücretsiz Kargo  ·  1 İş Günü Teslimat  ·  Güvenli Ödeme  ').join('');
-
   return (
     <>
       {/* ── Announcement bar ── */}
-      <div className="hidden lg:block bg-black h-8 overflow-hidden">
-        <div className="flex h-full items-center">
-          <div className="animate-marquee-slow whitespace-nowrap flex">
-            <span className="text-[10px] tracking-[0.22em] uppercase text-white/60 font-medium pr-8">
-              {announcementText}
-            </span>
-            <span className="text-[10px] tracking-[0.22em] uppercase text-white/60 font-medium pr-8">
-              {announcementText}
-            </span>
+      <div className="hidden lg:flex bg-black h-9 items-center justify-center gap-0">
+        <div className="flex items-center gap-8 px-10">
+          <div className="flex items-center gap-2.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50 shrink-0">
+              <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span className="text-[10px] tracking-[0.28em] uppercase text-white/70 font-medium">World Wide Shipping</span>
+          </div>
+          <span className="w-px h-3 bg-white/15" />
+          <div className="flex items-center gap-2.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/50 shrink-0">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            <span className="text-[10px] tracking-[0.28em] uppercase text-white/70 font-medium">2.500 TL Üstü Ücretsiz Kargo</span>
           </div>
         </div>
       </div>

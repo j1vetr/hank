@@ -29,8 +29,8 @@ const heroSlides = [
   { img: heroImage2 },
 ];
 
-const tickerWords = Array(8).fill(
-  ['HANK', 'GÜÇ', 'PERFORMANS', 'STİL', 'PREMIUM', 'FİTNESS', 'TÜRKIYE']
+const tickerWords = Array(12).fill(
+  ['FITNESS', 'STYLE', 'HANK']
 ).flat();
 
 const features = [
@@ -328,25 +328,25 @@ export default function Home() {
         {/* Main content: centered */}
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-5 pb-32">
           {/* Headline */}
-          <div className="overflow-hidden pt-2 mb-0">
+          <div className="overflow-hidden pt-2 mb-2">
             <motion.h1
               initial={{ y: '110%' }}
               animate={{ y: '0%' }}
               transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
               className="font-display text-white leading-[1.05] tracking-wide"
-              style={{ fontSize: 'clamp(3.8rem, 10vw, 9.5rem)' }}
+              style={{ fontSize: 'clamp(3.2rem, 8.5vw, 8rem)' }}
             >
               GÜCÜNÜ
             </motion.h1>
           </div>
-          <div className="overflow-hidden mb-6 lg:mb-10 pt-1">
+          <div className="overflow-hidden mb-6 lg:mb-10 pt-3">
             <motion.h1
               initial={{ y: '110%' }}
               animate={{ y: '0%' }}
               transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
               className="font-display leading-[1.05] tracking-wide"
               style={{
-                fontSize: 'clamp(3.8rem, 10vw, 9.5rem)',
+                fontSize: 'clamp(3.2rem, 8.5vw, 8rem)',
                 color: 'transparent',
                 WebkitTextStroke: '2px rgba(255,255,255,0.8)',
               }}
@@ -532,9 +532,9 @@ export default function Home() {
       <div className="bg-black overflow-hidden h-10 flex items-center mt-5 lg:mt-8">
         <div className="flex animate-marquee-fast whitespace-nowrap">
           {tickerWords.map((word, i) => (
-            <span key={i} className="inline-flex items-center gap-3.5 text-[9px] tracking-[0.35em] uppercase text-white font-medium px-4">
+            <span key={i} className="inline-flex items-center gap-5 text-[10px] tracking-[0.4em] uppercase text-white font-medium px-6">
               {word}
-              <span className="inline-block w-px h-2 bg-white/20" />
+              <span className="inline-block w-4 h-px bg-white/30" />
             </span>
           ))}
         </div>
@@ -543,7 +543,7 @@ export default function Home() {
       {/* ════════════════════════════════════════════
           CATEGORIES — editorial grid
       ════════════════════════════════════════════ */}
-      <section className="py-12 lg:py-20 px-4 lg:px-10 xl:px-14" data-testid="section-categories">
+      <section className="bg-white py-12 lg:py-20 px-4 lg:px-10 xl:px-14" data-testid="section-categories">
         <div className="max-w-[1440px] mx-auto">
 
           {/* Header */}
