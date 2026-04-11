@@ -195,8 +195,8 @@ export default function Home() {
           </span>
         </div>
 
-        {/* Main content: bottom-left */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 px-5 pb-8 lg:px-12 xl:px-16 lg:pb-14 lg:max-w-3xl">
+        {/* Main content: centered */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-5 pb-32">
           {/* Label */}
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -235,12 +235,12 @@ export default function Home() {
             </motion.h1>
           </div>
 
-          {/* Description (desktop only) */}
+          {/* Description */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="hidden lg:block text-white/50 text-sm font-body leading-relaxed mb-8 max-w-sm"
+            className="text-white/50 text-sm font-body leading-relaxed mb-8 max-w-xs lg:max-w-sm"
           >
             Premium fitness ve bodybuilding giyim koleksiyonu.
             Her harekette güç, her anda stil.
@@ -271,8 +271,8 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* Slide dots */}
-        <div className="absolute bottom-8 right-5 lg:bottom-14 lg:right-12 flex items-center gap-2.5 z-10">
+        {/* Slide dots — top-right */}
+        <div className="absolute top-8 right-5 lg:top-10 lg:right-12 flex items-center gap-2.5 z-10">
           {heroSlides.map((_, i) => (
             <button
               key={i}
@@ -282,6 +282,39 @@ export default function Home() {
             />
           ))}
         </div>
+
+        {/* Product scroll strip — bottom of hero */}
+        {allProducts.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 z-10 overflow-hidden" style={{ height: 120 }}>
+            {/* Fade edges */}
+            <div className="absolute inset-y-0 left-0 w-24 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.85), transparent)' }} />
+            <div className="absolute inset-y-0 right-0 w-24 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.85), transparent)' }} />
+            {/* Subtle top fade */}
+            <div className="absolute top-0 left-0 right-0 h-8 z-10 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), transparent)' }} />
+            {/* Scrolling track */}
+            <div className="flex animate-marquee-slow h-full items-end pb-4" style={{ width: 'max-content' }}>
+              {[...allProducts, ...allProducts, ...allProducts].map((p, i) => {
+                const img = p.images?.[0];
+                const price = parseFloat(p.basePrice);
+                return (
+                  <Link key={`${p.id}-${i}`} href={`/urun/${p.slug}`} className="group flex-shrink-0 mx-2 flex flex-col items-center gap-1 cursor-pointer" data-testid={`link-hero-scroll-${p.id}-${i}`}>
+                    <div className="relative w-14 h-[84px] overflow-hidden bg-white/5 border border-white/10 group-hover:border-white/30 transition-colors">
+                      {img ? (
+                        <img src={img} alt={p.name} className="w-full h-full object-cover object-top opacity-80 group-hover:opacity-100 transition-opacity" />
+                      ) : (
+                        <div className="w-full h-full bg-white/5" />
+                      )}
+                      {p.discountBadge && (
+                        <div className="absolute top-1 left-1 bg-red-600 text-white text-[7px] font-black px-1 py-px leading-none">{p.discountBadge}</div>
+                      )}
+                    </div>
+                    <p className="text-[9px] text-white/50 group-hover:text-white/80 transition-colors font-medium tracking-wide truncate max-w-[56px] text-center">{price.toLocaleString('tr-TR')}₺</p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ════════════════════════════════════════════
