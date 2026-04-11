@@ -786,7 +786,7 @@ export default function ProductDetail() {
 
               {product.description && (
                 <div className="mb-6">
-                  <div className={`relative ${!showFullDesc ? 'max-h-[112px] overflow-hidden' : ''}`}>
+                  <div className={`relative ${!showFullDesc ? 'max-h-[336px] overflow-hidden' : ''}`}>
                     <div
                       className="text-sm text-black/55 leading-relaxed prose prose-sm max-w-none [&_p]:mb-3 [&_ul]:my-3 [&_li]:mb-1 [&_strong]:text-black [&_h3]:text-black [&_h4]:text-black"
                       dangerouslySetInnerHTML={{ __html: product.description }}
