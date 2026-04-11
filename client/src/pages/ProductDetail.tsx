@@ -543,7 +543,7 @@ export default function ProductDetail() {
         )}
       </AnimatePresence>
 
-      <main className="pt-24 pb-20">
+      <main className="pt-16 lg:pt-8 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.nav initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-xs text-black/40 mb-6">
             <Link href="/" className="hover:text-black transition-colors">Ana Sayfa</Link>
