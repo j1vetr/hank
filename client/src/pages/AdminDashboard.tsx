@@ -1339,6 +1339,7 @@ function BulkPriceModal({
   const [filterMode, setFilterMode] = useState<'all' | 'category' | 'select'>('all');
   const [filterCategory, setFilterCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'name_asc' | 'price_asc' | 'price_desc'>('newest');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [priceAction, setPriceAction] = useState<'set' | 'increase' | 'decrease' | 'percent_increase' | 'percent_decrease'>('percent_decrease');
   const [priceValue, setPriceValue] = useState('');
@@ -1351,14 +1352,31 @@ function BulkPriceModal({
 
   // Products visible in the list (for 'select' mode)
   const listProducts = useMemo(() => {
-    let list = products;
+    let list = [...products];
     if (filterCategory) list = list.filter(p => p.categoryId === filterCategory);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q));
     }
+    // Sort
+    list.sort((a, b) => {
+      switch (sortOrder) {
+        case 'newest':
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case 'oldest':
+          return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        case 'name_asc':
+          return a.name.localeCompare(b.name, 'tr');
+        case 'price_asc':
+          return parseFloat(a.basePrice) - parseFloat(b.basePrice);
+        case 'price_desc':
+          return parseFloat(b.basePrice) - parseFloat(a.basePrice);
+        default:
+          return 0;
+      }
+    });
     return list;
-  }, [products, filterCategory, searchQuery]);
+  }, [products, filterCategory, searchQuery, sortOrder]);
 
   // Products that will actually be updated
   const affectedProducts = useMemo(() => {
@@ -1545,11 +1563,23 @@ function BulkPriceModal({
                 <select
                   value={filterCategory}
                   onChange={e => setFilterCategory(e.target.value)}
-                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 max-w-[160px]"
+                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 max-w-[150px]"
                   data-testid="select-filter-category"
                 >
                   <option value="">Tüm Kategoriler</option>
                   {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </select>
+                <select
+                  value={sortOrder}
+                  onChange={e => setSortOrder(e.target.value as typeof sortOrder)}
+                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 max-w-[145px]"
+                  data-testid="select-sort-order"
+                >
+                  <option value="newest">↓ En Yeni</option>
+                  <option value="oldest">↑ En Eski</option>
+                  <option value="name_asc">A → Z</option>
+                  <option value="price_asc">Fiyat ↑</option>
+                  <option value="price_desc">Fiyat ↓</option>
                 </select>
               </div>
 
@@ -1558,10 +1588,13 @@ function BulkPriceModal({
                 <div className="max-h-52 overflow-y-auto divide-y divide-zinc-700/50">
                   {listProducts.length === 0 ? (
                     <div className="py-6 text-center text-xs text-zinc-500">Ürün bulunamadı</div>
-                  ) : listProducts.map(p => {
+                  ) : listProducts.map((p) => {
                     const checked = selectedProductIds.includes(p.id);
                     const catName = categories.find(c => c.id === p.categoryId)?.name || '';
                     const price = parseFloat(p.basePrice);
+                    const addedDate = p.createdAt ? new Date(p.createdAt) : null;
+                    const isRecentlyAdded = addedDate && (Date.now() - addedDate.getTime()) < 7 * 24 * 60 * 60 * 1000;
+                    const dateLabel = addedDate ? addedDate.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
                     return (
                       <label
                         key={p.id}
@@ -1575,12 +1608,19 @@ function BulkPriceModal({
                           className="w-3.5 h-3.5 accent-white shrink-0"
                           data-testid={`checkbox-product-${p.id}`}
                         />
-                        {p.images?.[0] && (
+                        {p.images?.[0] ? (
                           <img src={p.images[0]} alt={p.name} className="w-9 h-12 object-cover bg-zinc-700 rounded shrink-0" />
+                        ) : (
+                          <div className="w-9 h-12 bg-zinc-700 rounded shrink-0 flex items-center justify-center text-zinc-500 text-[9px]">IMG</div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-white truncate font-medium">{p.name}</p>
-                          <p className="text-[10px] text-zinc-500 mt-0.5">{catName}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs text-white truncate font-medium">{p.name}</p>
+                            {isRecentlyAdded && (
+                              <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-bold shrink-0">YENİ</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-zinc-500 mt-0.5">{catName}{dateLabel ? ` · ${dateLabel}` : ''}</p>
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="text-xs font-semibold text-white">{price.toLocaleString('tr-TR')} ₺</p>
