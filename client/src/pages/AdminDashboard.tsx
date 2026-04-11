@@ -1336,18 +1336,36 @@ function BulkPriceModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'category' | 'select'>('all');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [priceAction, setPriceAction] = useState<'set' | 'increase' | 'decrease' | 'percent_increase' | 'percent_decrease'>('percent_decrease');
   const [priceValue, setPriceValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; updated?: number } | null>(null);
 
   const numericValue = parseFloat(priceValue) || 0;
+  const isPercent = priceAction.includes('percent');
+  const isDecrease = priceAction.includes('decrease');
 
+  // Products visible in the list (for 'select' mode)
+  const listProducts = useMemo(() => {
+    let list = products;
+    if (filterCategory) list = list.filter(p => p.categoryId === filterCategory);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(p => p.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [products, filterCategory, searchQuery]);
+
+  // Products that will actually be updated
   const affectedProducts = useMemo(() => {
-    if (selectedCategory === 'all') return products;
-    return products.filter(p => p.categoryId === selectedCategory);
-  }, [selectedCategory, products]);
+    if (filterMode === 'select') return products.filter(p => selectedProductIds.includes(p.id));
+    if (filterMode === 'category') return filterCategory ? products.filter(p => p.categoryId === filterCategory) : [];
+    return products;
+  }, [filterMode, filterCategory, selectedProductIds, products]);
 
   const calcNewPrice = (currentPriceStr: string): number => {
     const current = parseFloat(currentPriceStr);
@@ -1364,9 +1382,27 @@ function BulkPriceModal({
     return Math.round(newPrice * 100) / 100;
   };
 
+  const toggleProduct = (id: string) => {
+    setSelectedProductIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const selectAllVisible = () => {
+    const visibleIds = listProducts.map(p => p.id);
+    setSelectedProductIds(prev => {
+      const existing = new Set(prev);
+      visibleIds.forEach(id => existing.add(id));
+      return Array.from(existing);
+    });
+  };
+
+  const clearVisible = () => {
+    const visibleIds = new Set(listProducts.map(p => p.id));
+    setSelectedProductIds(prev => prev.filter(id => !visibleIds.has(id)));
+  };
+
   const previewSamples = useMemo(() => {
     if (!priceValue || numericValue <= 0 || affectedProducts.length === 0) return [];
-    return affectedProducts.slice(0, 3).map(p => ({
+    return affectedProducts.slice(0, 5).map(p => ({
       name: p.name,
       before: parseFloat(p.basePrice),
       after: calcNewPrice(p.basePrice),
@@ -1374,83 +1410,203 @@ function BulkPriceModal({
   }, [affectedProducts, priceAction, priceValue]);
 
   const handleSubmit = async () => {
-    if (!priceValue || numericValue <= 0) return;
-    
+    if (!priceValue || numericValue <= 0 || affectedProducts.length === 0) return;
     setIsLoading(true);
     setResult(null);
-    
     try {
+      const body: any = { action: priceAction, value: numericValue };
+      if (filterMode === 'select') {
+        body.productIds = selectedProductIds;
+      } else if (filterMode === 'category' && filterCategory) {
+        body.categoryId = filterCategory;
+      }
+      // filterMode === 'all' → no filter, backend applies to all
+
       const res = await fetch('/api/admin/products/bulk-price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          categoryId: selectedCategory === 'all' ? null : selectedCategory,
-          action: priceAction,
-          value: numericValue,
-        }),
+        body: JSON.stringify(body),
       });
-      
       const data = await res.json();
-      
       if (!res.ok) {
         setResult({ success: false, message: data.error || 'Hata oluştu' });
       } else {
         setResult({ success: true, message: `${data.updated} ürün güncellendi`, updated: data.updated });
-        setTimeout(() => {
-          onSuccess();
-        }, 1500);
+        setTimeout(() => onSuccess(), 1500);
       }
-    } catch (error) {
+    } catch {
       setResult({ success: false, message: 'Bağlantı hatası' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isPercent = priceAction.includes('percent');
-  const isDecrease = priceAction.includes('decrease');
+  const canSubmit = !isLoading && !!priceValue && numericValue > 0 && affectedProducts.length > 0 &&
+    (filterMode !== 'category' || !!filterCategory) &&
+    (filterMode !== 'select' || selectedProductIds.length > 0);
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg shadow-2xl">
-        <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="p-5 border-b border-zinc-800 flex items-center justify-between shrink-0">
           <div>
             <h3 className="text-base font-semibold text-white">Toplu Fiyat Düzenleme</h3>
-            <p className="text-xs text-zinc-500 mt-0.5">Seçilen ürünlere fiyat işlemi uygula</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Ürün seçin ve fiyat işlemi uygulayın</p>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-white p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
-        
-        <div className="p-5 space-y-4">
-          {/* Scope */}
+
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+          {/* Step 1: Scope */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Kapsam</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500"
-            >
-              <option value="all">Tüm Ürünler ({products.length} ürün)</option>
-              {categories.map((cat) => {
-                const count = products.filter(p => p.categoryId === cat.id).length;
-                return (
-                  <option key={cat.id} value={cat.id}>{cat.name} ({count} ürün)</option>
-                );
-              })}
-            </select>
+            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              1 — Kapsam Seçin
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                ['all', 'Tüm Ürünler', `${products.length} ürün`],
+                ['category', 'Kategoriye Göre', 'Kategori seç'],
+                ['select', 'Tek Tek Seç', 'Manuel seçim'],
+              ] as [typeof filterMode, string, string][]).map(([mode, label, sub]) => (
+                <button
+                  key={mode}
+                  onClick={() => { setFilterMode(mode); setSelectedProductIds([]); setFilterCategory(''); setSearchQuery(''); }}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    filterMode === mode
+                      ? 'border-white/30 bg-white/8 text-white'
+                      : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
+                  }`}
+                  data-testid={`button-filter-mode-${mode}`}
+                >
+                  <p className="text-xs font-semibold">{label}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">{mode === 'all' ? sub : sub}</p>
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Action + Value side by side */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Category filter (for 'category' mode) */}
+          {filterMode === 'category' && (
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">İşlem</label>
+              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Kategori</label>
+              <select
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500"
+                data-testid="select-bulk-price-category"
+              >
+                <option value="">— Kategori Seçin —</option>
+                {categories.map(cat => {
+                  const count = products.filter(p => p.categoryId === cat.id).length;
+                  return <option key={cat.id} value={cat.id}>{cat.name} ({count} ürün)</option>;
+                })}
+              </select>
+            </div>
+          )}
+
+          {/* Product selection list (for 'select' mode) */}
+          {filterMode === 'select' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Ürün Seçin
+                  {selectedProductIds.length > 0 && (
+                    <span className="ml-2 text-white bg-white/10 px-1.5 py-0.5 rounded text-[10px] normal-case">
+                      {selectedProductIds.length} seçili
+                    </span>
+                  )}
+                </label>
+                <div className="flex items-center gap-2">
+                  <button onClick={selectAllVisible} className="text-[10px] text-zinc-400 hover:text-white transition-colors">
+                    Tümünü Seç
+                  </button>
+                  <span className="text-zinc-700">|</span>
+                  <button onClick={clearVisible} className="text-[10px] text-zinc-400 hover:text-white transition-colors">
+                    Temizle
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters row */}
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Ürün ara..."
+                  className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500"
+                  data-testid="input-product-search"
+                />
+                <select
+                  value={filterCategory}
+                  onChange={e => setFilterCategory(e.target.value)}
+                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-zinc-500 max-w-[160px]"
+                  data-testid="select-filter-category"
+                >
+                  <option value="">Tüm Kategoriler</option>
+                  {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </select>
+              </div>
+
+              {/* Scrollable product list */}
+              <div className="border border-zinc-700 rounded-lg overflow-hidden">
+                <div className="max-h-52 overflow-y-auto divide-y divide-zinc-700/50">
+                  {listProducts.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-zinc-500">Ürün bulunamadı</div>
+                  ) : listProducts.map(p => {
+                    const checked = selectedProductIds.includes(p.id);
+                    const catName = categories.find(c => c.id === p.categoryId)?.name || '';
+                    const price = parseFloat(p.basePrice);
+                    return (
+                      <label
+                        key={p.id}
+                        className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${checked ? 'bg-white/5' : 'hover:bg-zinc-800/60'}`}
+                        data-testid={`label-product-${p.id}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleProduct(p.id)}
+                          className="w-3.5 h-3.5 accent-white shrink-0"
+                          data-testid={`checkbox-product-${p.id}`}
+                        />
+                        {p.images?.[0] && (
+                          <img src={p.images[0]} alt={p.name} className="w-9 h-12 object-cover bg-zinc-700 rounded shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-white truncate font-medium">{p.name}</p>
+                          <p className="text-[10px] text-zinc-500 mt-0.5">{catName}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs font-semibold text-white">{price.toLocaleString('tr-TR')} ₺</p>
+                          {p.discountBadge && (
+                            <span className="text-[9px] bg-red-500/20 text-red-400 px-1.5 rounded">{p.discountBadge}</span>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Action + Value */}
+          <div>
+            <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              2 — Fiyat İşlemi
+            </label>
+            <div className="grid grid-cols-2 gap-3">
               <select
                 value={priceAction}
-                onChange={(e) => { setPriceAction(e.target.value as any); setPriceValue(''); }}
+                onChange={e => { setPriceAction(e.target.value as any); setPriceValue(''); }}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500"
+                data-testid="select-price-action"
               >
                 <option value="percent_decrease">% İndirim uygula</option>
                 <option value="percent_increase">% Zam uygula</option>
@@ -1458,21 +1614,17 @@ function BulkPriceModal({
                 <option value="increase">TL artır</option>
                 <option value="decrease">TL azalt</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                {isPercent ? 'Yüzde (%)' : priceAction === 'set' ? 'Yeni Fiyat (₺)' : 'Miktar (₺)'}
-              </label>
               <div className="relative">
                 <input
                   type="number"
                   value={priceValue}
-                  onChange={(e) => setPriceValue(e.target.value)}
+                  onChange={e => setPriceValue(e.target.value)}
                   placeholder={isPercent ? '20' : priceAction === 'set' ? '999' : '50'}
                   className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-3 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-zinc-500"
                   min="0"
                   max={isPercent ? '100' : undefined}
                   step={isPercent ? '1' : '0.01'}
+                  data-testid="input-price-value"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs pointer-events-none">
                   {isPercent ? '%' : '₺'}
@@ -1481,25 +1633,26 @@ function BulkPriceModal({
             </div>
           </div>
 
-          {/* Preview */}
+          {/* Preview table */}
           {previewSamples.length > 0 && (
             <div className="bg-zinc-800/60 rounded-lg overflow-hidden">
-              <div className="px-3 py-2 border-b border-zinc-700/50">
+              <div className="px-3 py-2 border-b border-zinc-700/50 flex items-center justify-between">
                 <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                  Önizleme — {affectedProducts.length} ürün etkilenecek
+                  Önizleme
                 </p>
+                <span className="text-[10px] text-zinc-500">{affectedProducts.length} ürün etkilenecek</span>
               </div>
               <div className="divide-y divide-zinc-700/40">
                 {previewSamples.map((s, i) => (
                   <div key={i} className="flex items-center justify-between px-3 py-2.5">
-                    <p className="text-xs text-zinc-400 truncate flex-1 mr-3">{s.name}</p>
+                    <p className="text-xs text-zinc-300 truncate flex-1 mr-3">{s.name}</p>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-zinc-500 line-through">₺{s.before.toFixed(2)}</span>
+                      <span className="text-xs text-zinc-500 line-through">{s.before.toLocaleString('tr-TR')} ₺</span>
                       <span className="text-[10px] text-zinc-600">→</span>
-                      <span className={`text-xs font-semibold ${isDecrease ? 'text-emerald-400' : priceAction === 'percent_increase' || priceAction === 'increase' ? 'text-blue-400' : 'text-white'}`}>
-                        ₺{s.after.toFixed(2)}
+                      <span className={`text-xs font-semibold ${isDecrease ? 'text-emerald-400' : priceAction.includes('increase') ? 'text-blue-400' : 'text-white'}`}>
+                        {s.after.toLocaleString('tr-TR')} ₺
                       </span>
-                      {s.before > 0 && (
+                      {s.before > 0 && s.before !== s.after && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isDecrease ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-400'}`}>
                           {isDecrease ? '-' : '+'}{Math.abs(((s.after - s.before) / s.before) * 100).toFixed(1)}%
                         </span>
@@ -1507,56 +1660,56 @@ function BulkPriceModal({
                     </div>
                   </div>
                 ))}
-                {affectedProducts.length > 3 && (
+                {affectedProducts.length > 5 && (
                   <div className="px-3 py-2 text-center">
-                    <span className="text-xs text-zinc-600">+{affectedProducts.length - 3} ürün daha</span>
+                    <span className="text-xs text-zinc-600">+{affectedProducts.length - 5} ürün daha</span>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Warning for percent roundtrip */}
+          {/* Roundtrip warning */}
           {isPercent && priceValue && numericValue > 0 && (
             <div className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
               <span className="text-amber-500 text-xs mt-0.5">⚠</span>
               <p className="text-xs text-amber-500/80">
-                %{numericValue} indirim sonrası tekrar %{numericValue} zam uygulamak orijinal fiyata dönmez. Orijinal fiyata dönmek için {isDecrease ? `%${(numericValue / (100 - numericValue) * 100).toFixed(2)}` : `%${(numericValue / (100 + numericValue) * 100).toFixed(2)}`} ters işlem gerekir.
+                %{numericValue} {isDecrease ? 'indirim' : 'zam'} sonrası geri almak için{' '}
+                {isDecrease
+                  ? `%${(numericValue / (100 - numericValue) * 100).toFixed(2)} zam`
+                  : `%${(numericValue / (100 + numericValue) * 100).toFixed(2)} indirim`} gerekir.
               </p>
             </div>
           )}
-          
+
           {result && (
             <div className={`p-3 rounded-lg text-sm ${
-              result.success 
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' 
-                : 'bg-red-500/10 border border-red-500/30 text-red-400'
+              result.success ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'
             }`}>
               {result.message}
             </div>
           )}
         </div>
-        
-        <div className="p-5 border-t border-zinc-800 flex items-center justify-between">
+
+        {/* Footer */}
+        <div className="p-5 border-t border-zinc-800 flex items-center justify-between shrink-0">
           <p className="text-xs text-zinc-600">
-            {affectedProducts.length > 0 ? `${affectedProducts.length} ürün etkilenecek` : ''}
+            {affectedProducts.length > 0 ? `${affectedProducts.length} ürün etkilenecek` : '—'}
           </p>
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
-            >
+            <button onClick={onClose} className="px-4 py-2 text-sm bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors">
               İptal
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isLoading || !priceValue || numericValue <= 0}
+              disabled={!canSubmit}
               className="px-4 py-2 text-sm bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-40 flex items-center gap-2"
+              data-testid="button-apply-bulk-price"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" />Uygulanıyor...</>
               ) : (
-                `${affectedProducts.length} Ürüne Uygula`
+                `${affectedProducts.length > 0 ? affectedProducts.length : ''} Ürüne Uygula`
               )}
             </button>
           </div>
