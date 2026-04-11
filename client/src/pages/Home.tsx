@@ -637,24 +637,24 @@ export default function Home() {
                 >
                   — Hank Felsefesi
                 </motion.p>
-                <div className="overflow-hidden pt-2">
+                <div className="pt-2">
                   <motion.h2
-                    initial={{ y: '110%' }}
-                    whileInView={{ y: '0%' }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                     className="font-display text-white leading-[1.1] tracking-wide pb-1"
                     style={{ fontSize: 'clamp(2.4rem, 6vw, 6rem)' }}
                   >
                     GÜÇ BİR
                   </motion.h2>
                 </div>
-                <div className="overflow-hidden pt-1">
+                <div className="pt-1">
                   <motion.h2
-                    initial={{ y: '110%' }}
-                    whileInView={{ y: '0%' }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                     className="font-display leading-[1.1] tracking-wide pb-1"
                     style={{
                       fontSize: 'clamp(2.4rem, 6vw, 6rem)',
