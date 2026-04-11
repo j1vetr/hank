@@ -953,31 +953,31 @@ export default function ProductDetail() {
                 </div>
 
               </div>
-
-              <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-black/8">
-                <div className="text-center">
-                  <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
-                    <Truck className="w-4 h-4 text-black/40" />
-                  </div>
-                  <p className="text-xs font-medium text-black">Ücretsiz Kargo</p>
-                  <p className="text-[10px] text-black/40">2500₺ Üzeri</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
-                    <RotateCcw className="w-4 h-4 text-black/40" />
-                  </div>
-                  <p className="text-xs font-medium text-black">Kolay İade</p>
-                  <p className="text-[10px] text-black/40">14 gün</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
-                    <Shield className="w-4 h-4 text-black/40" />
-                  </div>
-                  <p className="text-xs font-medium text-black">Güvenli Ödeme</p>
-                  <p className="text-[10px] text-black/40">SSL korumalı</p>
-                </div>
-              </div>
             </motion.div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t border-black/8">
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
+                <Truck className="w-4 h-4 text-black/40" />
+              </div>
+              <p className="text-xs font-medium text-black">Ücretsiz Kargo</p>
+              <p className="text-[10px] text-black/40">2500₺ Üzeri</p>
+            </div>
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
+                <RotateCcw className="w-4 h-4 text-black/40" />
+              </div>
+              <p className="text-xs font-medium text-black">Kolay İade</p>
+              <p className="text-[10px] text-black/40">14 gün</p>
+            </div>
+            <div className="text-center">
+              <div className="w-10 h-10 mx-auto mb-2 border border-black/8 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-black/40" />
+              </div>
+              <p className="text-xs font-medium text-black">Güvenli Ödeme</p>
+              <p className="text-[10px] text-black/40">SSL korumalı</p>
+            </div>
           </div>
 
           <motion.section 
