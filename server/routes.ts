@@ -788,7 +788,7 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     }
 
-    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, address: user.address, city: user.city, district: user.district, postalCode: user.postalCode, country: user.country, createdAt: user.createdAt });
+    res.json({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone, createdAt: user.createdAt });
   });
 
   app.patch("/api/auth/profile", async (req: Request, res) => {
@@ -1398,7 +1398,7 @@ export async function registerRoutes(
   // Bulk price update by category
   app.post("/api/admin/products/bulk-price", requireAdmin, async (req, res) => {
     try {
-      const { categoryId, productIds, action, value, autoBadge, badgeText } = req.body;
+      const { categoryId, action, value } = req.body;
       
       if (!action || value === undefined || value === null) {
         return res.status(400).json({ error: "action and value are required" });
@@ -1410,19 +1410,10 @@ export async function registerRoutes(
       }
 
       const allProducts = await storage.getProducts();
-
-      let targetProducts;
-      if (productIds && Array.isArray(productIds) && productIds.length > 0) {
-        // Specific product IDs selected
-        const idSet = new Set(productIds);
-        targetProducts = allProducts.filter(p => idSet.has(p.id));
-      } else if (categoryId) {
-        // Category filter
-        targetProducts = allProducts.filter(p => p.categoryId === categoryId);
-      } else {
-        // All products
-        targetProducts = allProducts;
-      }
+      // If categoryId is null/empty → apply to all products
+      const targetProducts = categoryId
+        ? allProducts.filter(p => p.categoryId === categoryId)
+        : allProducts;
       
       if (targetProducts.length === 0) {
         return res.status(400).json({ error: "Ürün bulunamadı" });
@@ -1459,11 +1450,7 @@ export async function registerRoutes(
         // Round to 2 decimal places
         newPrice = Math.round(newPrice * 100) / 100;
         
-        const updateData: any = { basePrice: String(newPrice) };
-        if (autoBadge && badgeText) {
-          updateData.discountBadge = badgeText;
-        }
-        await storage.updateProduct(product.id, updateData);
+        await storage.updateProduct(product.id, { basePrice: String(newPrice) });
         updated++;
       }
       
@@ -5440,9 +5427,6 @@ Sitemap: ${baseUrl}/sitemap.xml
             if (!mergedData.firstName && dbUser.firstName) mergedData.firstName = dbUser.firstName;
             if (!mergedData.lastName && dbUser.lastName) mergedData.lastName = dbUser.lastName;
             if (!mergedData.city && dbUser.city) mergedData.city = dbUser.city;
-            if (!mergedData.state && dbUser.district) mergedData.state = dbUser.district;
-            if (!mergedData.zip && dbUser.postalCode) mergedData.zip = dbUser.postalCode;
-            if (!mergedData.country && dbUser.country) mergedData.country = dbUser.country;
           }
         }
       } catch {}

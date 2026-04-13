@@ -10,8 +10,6 @@ interface User {
   address: string | null;
   city: string | null;
   district: string | null;
-  postalCode: string | null;
-  country: string | null;
 }
 
 interface AuthContextType {

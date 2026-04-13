@@ -120,7 +120,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
             onClick={onClose}
           />
           <motion.div
@@ -128,17 +128,17 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-black/8"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto bg-zinc-900 rounded-xl border border-white/10"
           >
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/6 flex items-center justify-center hover:bg-black/12 transition-colors"
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
             >
-              <X className="w-5 h-5 text-black/60" />
+              <X className="w-5 h-5" />
             </button>
 
             <div className="grid grid-cols-1 md:grid-cols-2">
-              <div className="relative aspect-square md:aspect-auto md:h-full bg-stone-100">
+              <div className="relative aspect-square md:aspect-auto md:h-full bg-zinc-800">
                 <img
                   src={product.images[currentImageIndex] || '/placeholder.jpg'}
                   alt={product.name}
@@ -151,8 +151,8 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`w-12 h-12 overflow-hidden border-2 transition-colors ${
-                          currentImageIndex === index ? 'border-black' : 'border-transparent opacity-50 hover:opacity-100'
+                        className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors ${
+                          currentImageIndex === index ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
                         }`}
                       >
                         <img src={img} alt="" className="w-full h-full object-cover" />
@@ -163,24 +163,24 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
               </div>
 
               <div className="p-6 md:p-8 flex flex-col">
-                <h2 className="font-display text-2xl md:text-3xl tracking-wide mb-2 text-black">
+                <h2 className="font-display text-2xl md:text-3xl tracking-wide mb-2">
                   {product.name}
                 </h2>
                 
                 <div className="flex items-baseline gap-3 mb-6">
                   {originalPrice && (
-                    <span className="text-lg text-black/30 line-through">
+                    <span className="text-lg text-white/40 line-through">
                       ₺{originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
                     </span>
                   )}
-                  <p className="text-2xl font-bold text-black">
+                  <p className="text-2xl font-bold text-white">
                     ₺{price.toLocaleString('tr-TR')}
                   </p>
                 </div>
 
                 {colors.length > 0 && (
                   <div className="mb-6">
-                    <p className="text-sm text-black/45 mb-3">Renk</p>
+                    <p className="text-sm text-white/60 mb-3">Renk</p>
                     <div className="flex flex-wrap gap-2">
                       {colors.map((color) => (
                         <button
@@ -188,8 +188,8 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                           onClick={() => setSelectedColor(color.hex)}
                           className={`w-10 h-10 rounded-full border-2 transition-all ${
                             selectedColor === color.hex
-                              ? 'border-black scale-110'
-                              : 'border-transparent hover:border-black/30'
+                              ? 'border-white scale-110'
+                              : 'border-transparent hover:border-white/50'
                           }`}
                           style={{ backgroundColor: color.hex }}
                           title={color.name}
@@ -201,7 +201,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
 
                 {sizes.length > 0 && (
                   <div className="mb-6">
-                    <p className="text-sm text-black/45 mb-3">Beden</p>
+                    <p className="text-sm text-white/60 mb-3">Beden</p>
                     <div className="flex flex-wrap gap-2">
                       {sizes.map((size) => {
                         const stock = getStockForVariant(size, selectedColor || undefined);
@@ -212,12 +212,12 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                             key={size}
                             onClick={() => !isOutOfStock && setSelectedSize(size)}
                             disabled={isOutOfStock}
-                            className={`min-w-[48px] h-12 px-4 border text-sm font-medium transition-all ${
+                            className={`min-w-[48px] h-12 px-4 rounded-lg border text-sm font-medium transition-all ${
                               selectedSize === size
-                                ? 'border-black bg-black text-white'
+                                ? 'border-white bg-white text-black'
                                 : isOutOfStock
-                                ? 'border-black/8 text-black/25 cursor-not-allowed line-through'
-                                : 'border-black/15 text-black hover:border-black/50'
+                                ? 'border-white/10 text-white/30 cursor-not-allowed line-through'
+                                : 'border-white/20 hover:border-white/50'
                             }`}
                           >
                             {size}
@@ -229,29 +229,29 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                 )}
 
                 <div className="mb-6">
-                  <p className="text-sm text-black/45 mb-3">Adet</p>
+                  <p className="text-sm text-white/60 mb-3">Adet</p>
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 border border-black/15 flex items-center justify-center hover:border-black/50 transition-colors"
+                      className="w-10 h-10 rounded-lg border border-white/20 flex items-center justify-center hover:border-white/50 transition-colors"
                     >
-                      <Minus className="w-4 h-4 text-black/60" />
+                      <Minus className="w-4 h-4" />
                     </button>
-                    <span className="text-xl font-medium w-8 text-center text-black">{quantity}</span>
+                    <span className="text-xl font-medium w-8 text-center">{quantity}</span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 border border-black/15 flex items-center justify-center hover:border-black/50 transition-colors"
+                      className="w-10 h-10 rounded-lg border border-white/20 flex items-center justify-center hover:border-white/50 transition-colors"
                     >
-                      <Plus className="w-4 h-4 text-black/60" />
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-black/8">
+                <div className="mt-auto pt-4 border-t border-white/10">
                   <button
                     onClick={handleAddToCart}
                     disabled={!selectedSize || isAdding}
-                    className="w-full py-4 bg-black text-white font-bold tracking-wider uppercase flex items-center justify-center gap-3 hover:bg-black/85 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-white text-black font-bold tracking-wider uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
                   >
                     {isAdding ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -263,7 +263,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                   
                   <a
                     href={`/urun/${product.slug}`}
-                    className="block text-center text-sm text-black/45 hover:text-black mt-4 transition-colors"
+                    className="block text-center text-sm text-white/60 hover:text-white mt-4 transition-colors"
                   >
                     Ürün Detaylarını Gör →
                   </a>

@@ -96,11 +96,9 @@ function App() {
         <CartProvider>
           <CartModalProvider>
             <TooltipProvider>
-              <div className="relative w-full overflow-x-hidden">
-                <Toaster />
-                <Router />
-                <ChatbotWrapper />
-              </div>
+              <Toaster />
+              <Router />
+              <ChatbotWrapper />
             </TooltipProvider>
           </CartModalProvider>
         </CartProvider>

@@ -2,10 +2,10 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
-import { ArrowRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
+import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
+import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import heroImage1 from '@assets/hero-1.webp';
 import heroImage2 from '@assets/hero-2.webp';
 import categoryTshirt from '@assets/category-tshirt.webp';
@@ -14,7 +14,6 @@ import categoryAtlet from '@assets/category-atlet.webp';
 import categorySalvar from '@assets/category-salvar.webp';
 import categoryEsofman from '@assets/category-esofman.webp';
 import { useProducts, useCategories } from '@/hooks/useProducts';
-import { getOriginalPrice } from '@/lib/discountPrice';
 
 const defaultCategoryImages: Record<string, string> = {
   'esofman': categoryEsofman,
@@ -24,753 +23,483 @@ const defaultCategoryImages: Record<string, string> = {
   'tshirt': categoryTshirt,
 };
 
-const heroSlides = [
-  { img: heroImage1 },
-  { img: heroImage2 },
-];
+const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
-const tickerWords = Array(12).fill(
-  ['FITNESS', 'STYLE', 'HANK']
-).flat();
-
-const features = [
-  { icon: Truck, label: 'Ücretsiz Kargo', sub: '2.500₺ üzeri' },
-  { icon: RotateCcw, label: 'Kolay İade', sub: '14 gün ücretsiz' },
-  { icon: Shield, label: 'Güvenli Ödeme', sub: 'SSL korumalı' },
-  { icon: Zap, label: 'Hızlı Teslimat', sub: '1 iş günü' },
-];
-
-/* ── Editorial Product Card (for featured grid) ── */
-interface FeaturedProduct {
-  id: string; name: string; slug: string; basePrice: string;
-  images: string[]; discountBadge?: string | null; isNew?: boolean;
-}
-
-function EditorialCard({ product, size = 'md' }: { product: FeaturedProduct; size?: 'lg' | 'md' | 'sm' }) {
-  const [hovered, setHovered] = useState(false);
-  const price = parseFloat(product.basePrice || '0');
-  const originalPrice = getOriginalPrice(price, product.discountBadge);
-  const img = product.images?.[0] || '';
-  const heightClass = size === 'lg' ? 'h-[420px] lg:h-[560px]' : size === 'md' ? 'h-[280px] lg:h-[275px]' : 'h-[220px]';
-
+function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
+  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
+  const duplicatedProducts = [...shuffledProducts, ...shuffledProducts, ...shuffledProducts, ...shuffledProducts];
+  
   return (
-    <Link href={`/urun/${product.slug}`} data-testid={`link-featured-${product.id}`}>
-      <div
-        className={`relative overflow-hidden bg-stone-100 cursor-pointer ${heightClass}`}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        {/* Image */}
-        <motion.img
-          src={img}
-          alt={product.name}
-          className="w-full h-full object-cover"
-          animate={{ scale: hovered ? 1.06 : 1 }}
-          transition={{ duration: 0.75, ease: [0.33, 1, 0.68, 1] }}
-          loading="lazy"
-        />
-
-        {/* Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-
-        {/* Badges */}
-        {product.discountBadge && (
-          <div className="absolute top-3 left-3 z-10">
-            <span className="bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">
-              {product.discountBadge}
-            </span>
-          </div>
-        )}
-        {product.isNew && !product.discountBadge && (
-          <span className="absolute top-3 left-3 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">
-            Yeni
-          </span>
-        )}
-
-        {/* Info at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
-          <p className="font-display text-white leading-tight tracking-wide" style={{ fontSize: size === 'lg' ? 'clamp(1.4rem,3vw,2rem)' : '1.15rem' }}>
-            {product.name.toUpperCase()}
-          </p>
-          <div className="flex items-center justify-between mt-1.5">
-            <div className="flex items-center gap-2">
-              {originalPrice && (
-                <span className="text-white/40 text-xs line-through">
-                  {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
-                </span>
-              )}
-              <span className="text-white text-sm font-semibold">
-                {price.toLocaleString('tr-TR')} ₺
-              </span>
-            </div>
-            <motion.div
-              animate={{ opacity: hovered ? 1 : 0, y: hovered ? 0 : 6 }}
-              transition={{ duration: 0.25 }}
-              className="flex items-center gap-1.5 text-white text-[10px] tracking-[0.15em] uppercase font-medium"
-            >
-              İncele <ArrowRight className="w-3 h-3" />
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Inner border on hover */}
-        <motion.div
-          animate={{ opacity: hovered ? 1 : 0 }}
-          transition={{ duration: 0.3 }}
-          className="absolute inset-3 border border-white/30 pointer-events-none"
-        />
-      </div>
-    </Link>
-  );
-}
-
-/* ── FeaturedHeroCard: fills CSS-grid cell, h-full, large style ── */
-function FeaturedHeroCard({ product }: { product: FeaturedProduct }) {
-  const [hovered, setHovered] = useState(false);
-  const price = parseFloat(product.basePrice || '0');
-  const originalPrice = getOriginalPrice(price, product.discountBadge);
-  const img = product.images?.[0] || '';
-
-  return (
-    <Link href={`/urun/${product.slug}`} data-testid={`link-hero-featured-${product.id}`} className="block h-full">
-      <div
-        className="relative overflow-hidden bg-stone-100 cursor-pointer h-full"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        <motion.img
-          src={img} alt={product.name}
-          className="w-full h-full object-cover"
-          animate={{ scale: hovered ? 1.05 : 1 }}
-          transition={{ duration: 0.8, ease: [0.33, 1, 0.68, 1] }}
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-        {product.discountBadge && (
-          <span className="absolute top-4 left-4 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">
-            {product.discountBadge}
-          </span>
-        )}
-        {product.isNew && !product.discountBadge && (
-          <span className="absolute top-4 left-4 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">Yeni</span>
-        )}
-        <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
-          <p className="font-display text-white leading-tight tracking-wide" style={{ fontSize: 'clamp(1.6rem, 2.8vw, 2.4rem)' }}>
-            {product.name.toUpperCase()}
-          </p>
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-3">
-              {originalPrice && (
-                <span className="text-white/40 text-xs line-through">
-                  {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
-                </span>
-              )}
-              <span className="text-white text-sm font-semibold">{price.toLocaleString('tr-TR')} ₺</span>
-            </div>
-            <motion.div
-              animate={{ opacity: hovered ? 1 : 0, x: hovered ? 0 : -6 }}
-              transition={{ duration: 0.25 }}
-              className="flex items-center gap-1.5 text-white text-[10px] tracking-[0.15em] uppercase font-medium"
-            >
-              İncele <ArrowRight className="w-3 h-3" />
-            </motion.div>
-          </div>
-        </div>
-        <motion.div
-          animate={{ opacity: hovered ? 1 : 0 }}
-          transition={{ duration: 0.3 }}
-          className="absolute inset-3 border border-white/30 pointer-events-none"
-        />
-      </div>
-    </Link>
-  );
-}
-
-/* ── FeaturedSmallCard: fills CSS-grid cell, h-full, medium style ── */
-function FeaturedSmallCard({ product, delay = 0 }: { product: FeaturedProduct; delay?: number }) {
-  const [hovered, setHovered] = useState(false);
-  const price = parseFloat(product.basePrice || '0');
-  const originalPrice = getOriginalPrice(price, product.discountBadge);
-  const img = product.images?.[0] || '';
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.55, delay }}
-      className="h-full"
-    >
-      <Link href={`/urun/${product.slug}`} data-testid={`link-small-featured-${product.id}`} className="block h-full">
-        <div
-          className="relative overflow-hidden bg-stone-100 cursor-pointer h-full"
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          <motion.img
-            src={img} alt={product.name}
-            className="w-full h-full object-cover"
-            animate={{ scale: hovered ? 1.06 : 1 }}
-            transition={{ duration: 0.75, ease: [0.33, 1, 0.68, 1] }}
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-          {product.discountBadge && (
-            <span className="absolute top-3 left-3 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">
-              {product.discountBadge}
-            </span>
-          )}
-          {product.isNew && !product.discountBadge && (
-            <span className="absolute top-3 left-3 z-10 bg-white text-black text-[9px] font-bold tracking-widest px-2 py-1 uppercase">Yeni</span>
-          )}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p className="font-display text-white text-lg leading-tight tracking-wide">{product.name.toUpperCase()}</p>
-            <div className="flex items-center justify-between mt-1.5">
-              <div className="flex items-center gap-2">
-                {originalPrice && (
-                  <span className="text-white/40 text-[11px] line-through">
-                    {originalPrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺
-                  </span>
-                )}
-                <span className="text-white text-xs font-semibold">{price.toLocaleString('tr-TR')} ₺</span>
+    <div className="overflow-hidden">
+      <div className="flex animate-hero-slider gap-3 lg:gap-4">
+        {duplicatedProducts.map((product, index) => (
+          <Link key={`${product.id}-${index}`} href={`/urun/${product.slug}`}>
+            <div className="relative w-24 h-32 sm:w-28 sm:h-36 lg:w-32 lg:h-44 rounded-lg overflow-hidden group cursor-pointer flex-shrink-0 border border-white/20 hover:border-white/40 transition-colors">
+              <img
+                src={product.images[0] || '/placeholder.jpg'}
+                alt={product.name}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-2">
+                <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-medium truncate">{product.name}</p>
+                <p className="text-white text-[9px] sm:text-[10px] lg:text-xs font-bold">₺{parseFloat(product.basePrice).toLocaleString('tr-TR')}</p>
               </div>
-              <motion.div
-                animate={{ opacity: hovered ? 1 : 0, y: hovered ? 0 : 4 }}
-                transition={{ duration: 0.22 }}
-                className="text-white text-[9px] tracking-[0.15em] uppercase font-medium flex items-center gap-1"
-              >
-                İncele <ArrowRight className="w-2.5 h-2.5" />
-              </motion.div>
             </div>
-          </div>
-          <motion.div
-            animate={{ opacity: hovered ? 1 : 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-2 border border-white/25 pointer-events-none"
-          />
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
-
-type Product = { id: string; name: string; slug: string; basePrice: string; images?: string[]; discountBadge?: string | null };
-
-function ManifestoProductSlider({ products }: { products: Product[] }) {
-  const [index, setIndex] = useState(0);
-  const [shuffled, setShuffled] = useState<Product[]>([]);
-
-  useEffect(() => {
-    if (products.length === 0) return;
-    const arr = [...products].sort(() => Math.random() - 0.5);
-    setShuffled(arr);
-  }, [products]);
-
-  useEffect(() => {
-    if (shuffled.length < 2) return;
-    const timer = setInterval(() => {
-      setIndex(prev => (prev + 2) % shuffled.length);
-    }, 3200);
-    return () => clearInterval(timer);
-  }, [shuffled]);
-
-  if (shuffled.length < 2) return <div className="flex-1" />;
-
-  const pair = [shuffled[index % shuffled.length], shuffled[(index + 1) % shuffled.length]];
-
-  return (
-    <div className="flex-1 flex gap-3 lg:gap-4">
-      <AnimatePresence mode="popLayout">
-        {pair.map((p) => {
-          const img = p.images?.[0];
-          const price = parseFloat(p.basePrice);
-          return (
-            <motion.div
-              key={`${p.id}-${index}`}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="flex-1 min-w-0"
-            >
-              <Link href={`/urun/${p.slug}`} data-testid={`link-manifesto-slider-${p.id}`}>
-                <div className="relative w-full overflow-hidden bg-white/4 border border-white/8 hover:border-white/22 transition-colors duration-300" style={{ aspectRatio: '3/4' }}>
-                  {img ? (
-                    <img src={img} alt={p.name} className="w-full h-full object-cover object-top opacity-80 hover:opacity-100 transition-opacity duration-400" />
-                  ) : (
-                    <div className="w-full h-full bg-white/5" />
-                  )}
-                  {p.discountBadge && (
-                    <div className="absolute top-2.5 left-2.5 bg-white text-black text-[8px] font-black px-1.5 py-0.5 tracking-widest">
-                      {p.discountBadge}
-                    </div>
-                  )}
-                </div>
-                <div className="pt-3">
-                  <p className="font-display text-white/80 text-sm tracking-wide leading-tight line-clamp-1">{p.name.toUpperCase()}</p>
-                  <p className="text-white/35 text-[11px] mt-1 font-medium">{price.toLocaleString('tr-TR')} ₺</p>
-                </div>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
 
+const features = [
+  { icon: Truck, title: 'Ücretsiz Kargo', desc: '2.500₺ üzeri siparişlerde' },
+  { icon: RotateCcw, title: 'Kolay İade', desc: '14 gün içinde ücretsiz' },
+  { icon: Shield, title: 'Güvenli Ödeme', desc: 'SSL ile korunan ödeme' },
+  { icon: Zap, title: 'Hızlı Teslimat', desc: '1 İş Günü içinde' },
+];
+
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
-  const heroRef = useRef<HTMLElement>(null);
-  const productsSectionRef = useRef<HTMLDivElement>(null);
-  const productsInView = useInView(productsSectionRef, { once: true, margin: '-100px' });
-
-  const { scrollY } = useScroll();
-  const heroImgY = useTransform(scrollY, [0, 700], [0, -60]);
+  const heroImages = [heroImage1, heroImage2];
 
   const { data: apiCategories = [] } = useCategories();
   const { data: allProducts = [] } = useProducts({});
 
   const categories = apiCategories.map(cat => ({
     ...cat,
-    image: cat.image || defaultCategoryImages[cat.slug] || '',
+    image: cat.image || defaultCategoryImages[cat.slug] || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
   }));
 
-  const featuredProducts = allProducts.slice(0, 9);
+  const featuredProducts = allProducts.slice(0, 8);
+
+  const categoriesRef = useRef(null);
+  const productsRef = useRef(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const scrollPositionRef = useRef(0);
+  const lastTimeRef = useRef<number | null>(null);
+  const isPausedRef = useRef(false);
+  const isRunningRef = useRef(false);
+  
+  const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
+  const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
+
+  // Auto-scroll categories on mobile with delta-time based speed
+  useEffect(() => {
+    const scrollContainer = categoryScrollRef.current;
+    if (!scrollContainer || categories.length === 0) return;
+
+    const SCROLL_SPEED = 30; // pixels per second (consistent across all devices)
+    const MAX_DELTA = 50; // clamp delta to prevent jumps (in ms)
+
+    const stopAnimation = () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      isRunningRef.current = false;
+      lastTimeRef.current = null;
+    };
+
+    const animate = (currentTime: number) => {
+      if (!isRunningRef.current) return;
+      
+      const scrollEl = categoryScrollRef.current;
+      if (!scrollEl) {
+        stopAnimation();
+        return;
+      }
+
+      if (lastTimeRef.current === null) {
+        lastTimeRef.current = currentTime;
+      }
+
+      const rawDelta = currentTime - lastTimeRef.current;
+      const delta = Math.min(rawDelta, MAX_DELTA); // Clamp delta to prevent speed spikes
+      lastTimeRef.current = currentTime;
+
+      if (!isPausedRef.current) {
+        const movement = (SCROLL_SPEED * delta) / 1000; // Convert to pixels
+        scrollPositionRef.current += movement;
+        
+        const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+        if (scrollPositionRef.current >= maxScroll) {
+          scrollPositionRef.current = 0;
+        }
+        
+        scrollEl.scrollLeft = scrollPositionRef.current;
+      }
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    const startAnimation = () => {
+      // Guard: Stop any existing animation before starting
+      stopAnimation();
+      isRunningRef.current = true;
+      lastTimeRef.current = null;
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    // Only auto-scroll on mobile
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        startAnimation();
+      } else {
+        stopAnimation();
+      }
+    };
+
+    // Initial check
+    if (mediaQuery.matches) {
+      startAnimation();
+    }
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', handleMediaChange);
+
+    return () => {
+      stopAnimation();
+      mediaQuery.removeEventListener('change', handleMediaChange);
+    };
+  }, [categories.length]);
+
+  // Pointer event handlers to prevent double-trigger on iOS
+  const handleCategoryPointerDown = (e: React.PointerEvent) => {
+    // Prevent handling the same interaction twice
+    if (e.pointerType === 'mouse' && 'ontouchstart' in window) return;
+    
+    isPausedRef.current = true;
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current);
+      pauseTimeoutRef.current = null;
+    }
+  };
+
+  const handleCategoryPointerUp = (e: React.PointerEvent) => {
+    // Prevent handling the same interaction twice
+    if (e.pointerType === 'mouse' && 'ontouchstart' in window) return;
+    
+    if (pauseTimeoutRef.current) {
+      clearTimeout(pauseTimeoutRef.current);
+    }
+    // Resume after 3 seconds
+    pauseTimeoutRef.current = setTimeout(() => {
+      if (categoryScrollRef.current) {
+        // Sync scroll position before resuming
+        scrollPositionRef.current = categoryScrollRef.current.scrollLeft;
+        isPausedRef.current = false;
+      }
+    }, 3000);
+  };
 
   useEffect(() => {
-    const t = setInterval(() => setActiveSlide(p => (p + 1) % heroSlides.length), 6000);
-    return () => clearInterval(t);
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
-      <SEO
+    <div className="min-h-screen bg-background">
+      <SEO 
         title="Ana Sayfa"
-        description="Premium fitness ve bodybuilding giyim markası. Güç, performans ve stil bir arada."
+        description="Premium fitness ve bodybuilding giyim markası. Güç, performans ve stil bir arada. HANK ile antrenmanlarınızda fark yaratın."
         url="/"
       />
       <Header />
 
-      {/* ════════════════════════════════════════════
-          HERO — full-bleed cinematic, text overlay
-      ════════════════════════════════════════════ */}
-      <section
-        ref={heroRef}
-        className="relative overflow-hidden bg-black"
-        style={{ height: 'calc(100svh - 0px)', minHeight: 600, maxHeight: 960 }}
-        data-testid="section-hero"
-      >
-        {/* Slides */}
-        <motion.div className="absolute inset-0" style={{ y: heroImgY }}>
-          {heroSlides.map((slide, i) => (
-            <div
-              key={i}
-              className={`absolute inset-0 transition-opacity duration-[1400ms] ease-in-out ${activeSlide === i ? 'opacity-100' : 'opacity-0'}`}
-            >
-              <img
-                src={slide.img}
-                alt="HANK"
-                className="w-full h-full object-cover object-top"
-                style={{ transform: 'scale(1.05)' }}
-                data-testid={`img-hero-${i}`}
-              />
-            </div>
-          ))}
-        </motion.div>
+      <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
+        {heroImages.map((img, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              activeSlide === index ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <img
+              src={img}
+              alt={`HANK Hero ${index + 1}`}
+              className="w-full h-full object-cover object-top scale-105"
+              data-testid={`img-hero-${index}`}
+            />
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+          </div>
+        ))}
 
-        {/* Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/5" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent hidden lg:block" />
-
-        {/* Top-right: slide counter */}
-        <div className="absolute top-6 right-6 lg:top-8 lg:right-10 flex items-center gap-3 z-10">
-          <span className="text-white/35 text-[10px] tracking-[0.3em] font-medium tabular-nums">
-            {String(activeSlide + 1).padStart(2, '0')} / {String(heroSlides.length).padStart(2, '0')}
-          </span>
+        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 z-20 hidden sm:flex justify-between px-6 pointer-events-none">
+          <button
+            onClick={() => setActiveSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length)}
+            className="w-12 h-12 border border-white/30 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all pointer-events-auto"
+            data-testid="button-hero-prev"
+          >
+            <ChevronRight className="w-6 h-6 rotate-180" />
+          </button>
+          <button
+            onClick={() => setActiveSlide((prev) => (prev + 1) % heroImages.length)}
+            className="w-12 h-12 border border-white/30 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all pointer-events-auto"
+            data-testid="button-hero-next"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
         </div>
 
-        {/* Main content: centered */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-5 pb-32">
-          {/* Headline */}
-          <div className="overflow-hidden pt-2 mb-2">
-            <motion.h1
-              initial={{ y: '110%' }}
-              animate={{ y: '0%' }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display text-white leading-[1.05] tracking-wide"
-              style={{ fontSize: 'clamp(3.2rem, 8.5vw, 8rem)' }}
-            >
-              GÜCÜNÜ
-            </motion.h1>
-          </div>
-          <div className="overflow-hidden mb-6 lg:mb-10 pt-3">
-            <motion.h1
-              initial={{ y: '110%' }}
-              animate={{ y: '0%' }}
-              transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display leading-[1.05] tracking-wide"
-              style={{
-                fontSize: 'clamp(3.2rem, 8.5vw, 8rem)',
-                color: 'transparent',
-                WebkitTextStroke: '2px rgba(255,255,255,0.8)',
-              }}
-            >
-              GÖSTER
-            </motion.h1>
-          </div>
-
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="text-white/50 text-sm font-body leading-relaxed mb-8 max-w-xs lg:max-w-sm"
-          >
-            Premium fitness ve bodybuilding giyim koleksiyonu.
-            Her harekette güç, her anda stil.
-          </motion.p>
-
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.6 }}
-            className="flex items-center gap-4 lg:gap-6"
-          >
-            <Link href="/magaza" data-testid="button-hero-shop">
-              <motion.span
-                whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.97 }}
-                className="group inline-flex items-center gap-3 bg-white text-black text-[10px] tracking-[0.22em] uppercase font-bold px-6 py-3.5 lg:px-8 lg:py-4 cursor-pointer hover:bg-stone-100 transition-colors"
-              >
-                Koleksiyonu Keşfet
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5" />
-              </motion.span>
-            </Link>
-            <Link href="/magaza">
-              <span className="text-[10px] tracking-[0.18em] uppercase text-white/40 hover:text-white transition-colors font-medium underline underline-offset-4 decoration-white/20">
-                Tüm Ürünler
-              </span>
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* Slide dots — top-right */}
-        <div className="absolute top-8 right-5 lg:top-10 lg:right-12 flex items-center gap-2.5 z-10">
-          {heroSlides.map((_, i) => (
+        <div className="absolute bottom-[180px] sm:bottom-[200px] lg:bottom-[240px] left-1/2 -translate-x-1/2 z-20 flex gap-3">
+          {heroImages.map((_, index) => (
             <button
-              key={i}
-              onClick={() => setActiveSlide(i)}
-              className={`h-px transition-all duration-500 ease-out ${activeSlide === i ? 'w-10 bg-white' : 'w-4 bg-white/28 hover:bg-white/55'}`}
-              data-testid={`button-slide-${i}`}
+              key={index}
+              onClick={() => setActiveSlide(index)}
+              className={`h-1 transition-all duration-500 ${
+                activeSlide === index ? 'w-12 bg-white' : 'w-6 bg-white/40'
+              }`}
+              data-testid={`button-hero-dot-${index}`}
             />
           ))}
         </div>
 
-        {/* Product scroll strip — bottom of hero */}
-        {allProducts.length > 0 && (
-          <div className="absolute bottom-8 left-0 right-0 z-10 overflow-hidden" style={{ height: 168 }}>
-            {/* Fade edges */}
-            <div className="absolute inset-y-0 left-0 w-28 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.92), transparent)' }} />
-            <div className="absolute inset-y-0 right-0 w-28 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.92), transparent)' }} />
-            {/* Top fade */}
-            <div className="absolute top-0 left-0 right-0 h-10 z-10 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)' }} />
-            {/* Scrolling track */}
-            <div className="flex animate-marquee-slow h-full items-center" style={{ width: 'max-content' }}>
-              {[...allProducts, ...allProducts, ...allProducts].map((p, i) => {
-                const img = p.images?.[0];
-                const price = parseFloat(p.basePrice);
-                return (
-                  <Link key={`${p.id}-${i}`} href={`/urun/${p.slug}`} className="group flex-shrink-0 mx-2.5 flex flex-col items-center gap-1.5 cursor-pointer" data-testid={`link-hero-scroll-${p.id}-${i}`}>
-                    <div className="relative w-[72px] h-[108px] overflow-hidden bg-white/5 border border-white/10 group-hover:border-white/35 transition-colors duration-300">
-                      {img ? (
-                        <img src={img} alt={p.name} className="w-full h-full object-cover object-top opacity-75 group-hover:opacity-100 group-hover:scale-105 transition-all duration-400" />
-                      ) : (
-                        <div className="w-full h-full bg-white/5" />
-                      )}
-                      {p.discountBadge && (
-                        <div className="absolute top-1 left-1 bg-white text-black text-[7px] font-black px-1 py-px">{p.discountBadge}</div>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-white/50 group-hover:text-white/85 transition-colors font-medium tracking-wide truncate max-w-[72px] text-center">{price.toLocaleString('tr-TR')}₺</p>
-                  </Link>
-                );
-              })}
-            </div>
+        <div className="relative z-10 h-full flex flex-col justify-center items-center">
+          <div className="text-center px-6 w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-5 sm:mb-6"
+            >
+              <Link href="/magaza">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-white text-black px-8 sm:px-10 py-3 sm:py-3.5 rounded-full text-sm sm:text-base font-bold tracking-wider uppercase hover:bg-white/90 transition-all"
+                  data-testid="button-hero-shop"
+                >
+                  ALIŞVERİŞE BAŞLA
+                </motion.button>
+              </Link>
+            </motion.div>
+            <motion.h1 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="font-display text-5xl sm:text-6xl lg:text-[100px] xl:text-[120px] text-white tracking-wider mb-6 sm:mb-8 leading-none text-center"
+            >
+              <motion.span 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="block mb-1 sm:mb-2"
+              >
+                GÜCÜNÜ
+              </motion.span>
+              <motion.span 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="block text-stroke-white"
+              >
+                GÖSTER
+              </motion.span>
+            </motion.h1>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0 mb-8 lg:mb-12"
+            >
+              <Link href="/magaza" className="w-full sm:w-auto">
+                <button
+                  data-testid="button-shop-men"
+                  className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-black font-semibold tracking-wide uppercase flex items-center justify-center gap-3 hover:bg-white/90 transition-all hover:gap-4 text-sm"
+                >
+                  Koleksiyonu Keşfet
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </button>
+              </Link>
+              <Link href="/magaza" className="w-full sm:w-auto">
+                <button
+                  data-testid="button-shop-all"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold tracking-wide uppercase hover:bg-white hover:text-black transition-all text-sm"
+                >
+                  Tüm Ürünler
+                </button>
+              </Link>
+            </motion.div>
           </div>
-        )}
+
+          </div>
+
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          {allProducts.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="pb-6 lg:pb-8"
+            >
+              <HeroProductSlider products={allProducts} />
+            </motion.div>
+          )}
+        </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          FEATURED PRODUCTS — editorial layout
-      ════════════════════════════════════════════ */}
-      {featuredProducts.length > 0 && (
-        <section className="px-4 pt-5 pb-0 lg:px-10 xl:px-14" data-testid="section-featured">
-          <div className="max-w-[1440px] mx-auto">
-
-            {/* Section header */}
-            <div className="flex items-center justify-between py-5 lg:py-8 border-b border-black/8 mb-0">
-              <div className="flex items-center gap-4">
-                <span className="text-[9px] tracking-[0.35em] uppercase text-black/25 font-medium tabular-nums">01</span>
-                <h2 className="font-display text-2xl lg:text-4xl tracking-wide text-black">ÖZEL SEÇKİLER</h2>
-              </div>
-              <Link href="/magaza" className="group flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-black/35 hover:text-black transition-colors font-medium">
-                <span>Tümünü Gör</span>
-                <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-
-            {/* ── DESKTOP: CSS Grid layout ── */}
-            <div ref={productsSectionRef} className="hidden lg:block">
-              {/* Primary grid: 1 tall hero + up to 4 cards in a 2×2 grid */}
-              <div
-                className="grid"
-                style={{
-                  gridTemplateColumns: '1.65fr 1fr 1fr',
-                  gridTemplateRows: '280px 280px',
-                }}
+      <section ref={categoriesRef} className="py-6 lg:py-10 px-4 lg:px-6" data-testid="section-categories">
+        <div className="max-w-[1400px] mx-auto">
+          <div 
+            ref={categoryScrollRef}
+            onPointerDown={handleCategoryPointerDown}
+            onPointerUp={handleCategoryPointerUp}
+            onPointerCancel={handleCategoryPointerUp}
+            onPointerLeave={handleCategoryPointerUp}
+            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x"
+          >
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.id}
+                initial={{ opacity: 0, x: 30 }}
+                animate={categoriesInView ? { opacity: 1, x: 0 } : {}}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+                className="snap-start shrink-0"
               >
-                {/* Hero card — spans 2 rows */}
-                {featuredProducts[0] && (
-                  <div style={{ gridRow: 'span 2', gridColumn: '1' }}>
-                    <FeaturedHeroCard product={featuredProducts[0]} />
-                  </div>
-                )}
-                {/* Remaining 4 cards auto-fill the 2×2 right area */}
-                {featuredProducts.slice(1, 5).map((product, i) => (
-                  <FeaturedSmallCard key={product.id} product={product} delay={i * 0.06} />
-                ))}
-              </div>
-
-              {/* Secondary row: remaining products filling evenly */}
-              {featuredProducts.length > 5 && (() => {
-                const secondaryProducts = featuredProducts.slice(5);
-                const cols = secondaryProducts.length;
-                return (
-                  <div
-                    className="grid border-t border-black/5"
-                    style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-                  >
-                    {secondaryProducts.map((product, i) => (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, margin: '-40px' }}
-                        transition={{ duration: 0.55, delay: i * 0.06 }}
-                        data-testid={`product-row2-${product.id}`}
-                        className={i > 0 ? 'border-l border-black/5' : ''}
-                      >
-                        <ProductCard product={product} />
-                      </motion.div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* ── MOBILE: full-width hero + 2-col grid ── */}
-            <div className="lg:hidden">
-              {featuredProducts[0] && (
-                <FeaturedHeroCard product={featuredProducts[0]} />
-              )}
-              <div
-                className="grid grid-cols-2"
-                style={{ gridAutoRows: '220px' }}
-              >
-                {featuredProducts.slice(1, 7).map((product, i) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: i * 0.06 }}
-                    className={`${i % 2 === 1 ? 'border-l border-white/0' : ''}`}
-                  >
-                    <EditorialCard product={product} size="sm" />
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-        </section>
-      )}
-
-      {/* ════════════════════════════════════════════
-          TICKER STRIP
-      ════════════════════════════════════════════ */}
-      <div className="bg-black overflow-hidden h-10 flex items-center mt-5 lg:mt-8">
-        <div className="flex animate-marquee-fast whitespace-nowrap">
-          {tickerWords.map((word, i) => (
-            <span key={i} className="inline-flex items-center gap-5 text-[10px] tracking-[0.4em] uppercase text-white font-medium px-6">
-              {word}
-              <span className="inline-block w-4 h-px bg-white/30" />
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* ════════════════════════════════════════════
-          CATEGORIES — editorial grid
-      ════════════════════════════════════════════ */}
-      <section className="bg-white py-12 lg:py-20 px-4 lg:px-10 xl:px-14" data-testid="section-categories">
-        <div className="max-w-[1440px] mx-auto">
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-5 lg:mb-8 border-b border-black/8 pb-5 lg:pb-8">
-            <div className="flex items-center gap-4">
-              <span className="text-[9px] tracking-[0.35em] uppercase text-black/25 font-medium tabular-nums">02</span>
-              <h2 className="font-display text-2xl lg:text-4xl tracking-wide text-black">KATEGORİLER</h2>
-            </div>
-            <Link href="/magaza" className="group hidden lg:flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-black/35 hover:text-black transition-colors font-medium">
-              Tümünü Gör <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
-
-          {/* Desktop editorial grid: 1 tall + 2×2 */}
-          {categories.length >= 4 ? (
-            <div className="hidden lg:flex gap-3 xl:gap-4" style={{ height: '520px' }}>
-              {/* Big left card */}
-              <Link href={`/kategori/${categories[0].slug}`} className="flex-[1.4] relative overflow-hidden group bg-stone-100 block" data-testid={`link-cat-${categories[0].id}`}>
-                <motion.img src={categories[0].image} alt={categories[0].name} className="w-full h-full object-cover" whileHover={{ scale: 1.05 }} transition={{ duration: 0.8, ease: [0.33, 1, 0.68, 1] }} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                <div className="absolute inset-3 border border-white/0 group-hover:border-white/28 transition-all duration-500 pointer-events-none" />
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <span className="text-[9px] tracking-[0.3em] uppercase text-white/45 font-medium">Keşfet</span>
-                  <h3 className="font-display text-3xl xl:text-4xl text-white tracking-wide mt-1 group-hover:-translate-y-1 transition-transform duration-500">{categories[0].name.toUpperCase()}</h3>
-                </div>
-              </Link>
-              {/* Right 2×2 */}
-              <div className="flex-[2] grid grid-cols-2 grid-rows-2 gap-3 xl:gap-4">
-                {categories.slice(1, 5).map(cat => (
-                  <Link key={cat.id} href={`/kategori/${cat.slug}`} className="relative overflow-hidden group bg-stone-100 block" data-testid={`link-cat-${cat.id}`}>
-                    <motion.img src={cat.image} alt={cat.name} className="w-full h-full object-cover" whileHover={{ scale: 1.06 }} transition={{ duration: 0.7, ease: [0.33, 1, 0.68, 1] }} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
-                    <div className="absolute inset-2 border border-white/0 group-hover:border-white/25 transition-all duration-500 pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4 xl:p-5">
-                      <h3 className="font-display text-xl xl:text-2xl text-white tracking-wide group-hover:-translate-y-0.5 transition-transform duration-500">{cat.name.toUpperCase()}</h3>
+                <Link
+                  href={`/kategori/${category.slug}`}
+                  data-testid={`link-category-${category.id}`}
+                >
+                  <div className="group relative w-[200px] sm:w-[220px] lg:w-[260px] h-[280px] sm:h-[300px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      data-testid={`img-category-${category.id}`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 group-hover:from-black/95 transition-all" />
+                    
+                    <div className="absolute inset-0 flex flex-col justify-end p-4 lg:p-6">
+                      <h3 className="font-display text-lg sm:text-xl lg:text-2xl text-white tracking-wide leading-tight mb-2">
+                        {category.name.toUpperCase()}
+                      </h3>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                        <span className="text-white/80 text-xs lg:text-sm">Keşfet</span>
+                        <ArrowRight className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+                      </div>
                     </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="hidden lg:flex gap-3 xl:gap-4" style={{ height: '480px' }}>
-              {categories.map(cat => (
-                <Link key={cat.id} href={`/kategori/${cat.slug}`} className="flex-1 relative overflow-hidden group bg-stone-100 block" data-testid={`link-cat-${cat.id}`}>
-                  <motion.img src={cat.image} alt={cat.name} className="w-full h-full object-cover" whileHover={{ scale: 1.05 }} transition={{ duration: 0.7 }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <h3 className="font-display text-2xl text-white tracking-wide">{cat.name.toUpperCase()}</h3>
+                    
+                    <div className="absolute inset-0 rounded-xl ring-1 ring-white/10 group-hover:ring-white/30 transition-all" />
                   </div>
                 </Link>
-              ))}
-            </div>
-          )}
-
-          {/* Mobile: horizontal scroll */}
-          <div className="lg:hidden flex gap-3 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory -mx-4 px-4">
-            {categories.map((cat, i) => (
-              <div key={cat.id} className="snap-start shrink-0 w-[72vw] max-w-[320px]">
-                <Link href={`/kategori/${cat.slug}`} data-testid={`link-cat-mobile-${cat.id}`}>
-                  <div className="relative h-[240px] overflow-hidden bg-stone-100">
-                    <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="font-display text-2xl text-white tracking-wide">{cat.name.toUpperCase()}</h3>
-                    </div>
-                  </div>
-                </Link>
-              </div>
+              </motion.div>
             ))}
           </div>
-
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          MANIFESTO — black statement + product slider
-      ════════════════════════════════════════════ */}
-      <section className="bg-black overflow-hidden" data-testid="section-manifesto">
-        {/* Top: text + stats */}
-        <div className="py-16 lg:py-24 px-4 lg:px-10 xl:px-14">
-          <div className="max-w-[1440px] mx-auto">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 lg:gap-20">
-              {/* Left: auto-rotating 2-product slider */}
-              <ManifestoProductSlider products={allProducts} />
-
-              {/* Right: stats + cta */}
-              <div className="flex-[0_0_auto] lg:w-72">
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.7, delay: 0.3 }}
-                  className="text-white/40 text-sm font-body leading-relaxed mb-8"
-                >
-                  1000'den fazla sporcu HANK ile güçleniyor. Her koleksiyon, sınırları zorlamak için tasarlandı.
-                </motion.p>
-                <div className="grid grid-cols-2 gap-px bg-white/8 mb-8">
-                  {[['1000+', 'Mutlu Sporcu'], ['5+', 'Yıl Deneyim'], ['%100', 'Türk Üretimi'], ['1 Gün', 'Teslimat']].map(([n, l], i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.2 + i * 0.07 }}
-                      className="bg-black px-4 py-5"
-                    >
-                      <p className="font-display text-white text-3xl leading-none mb-1">{n}</p>
-                      <p className="text-[9px] tracking-[0.18em] uppercase text-white/30 font-medium">{l}</p>
-                    </motion.div>
-                  ))}
-                </div>
-                <Link href="/magaza" data-testid="button-manifesto-cta">
-                  <motion.span
-                    whileHover={{ x: 4 }}
-                    className="group inline-flex items-center gap-3 border border-white/20 text-white text-[10px] tracking-[0.22em] uppercase font-semibold px-7 py-4 hover:bg-white hover:text-black transition-all duration-300 cursor-pointer"
-                  >
-                    Koleksiyonu Keşfet
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5" />
-                  </motion.span>
-                </Link>
-              </div>
+      <section ref={productsRef} className="py-24 lg:py-32 px-6 relative" data-testid="section-products">
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-background to-zinc-900/50" />
+        <div className="absolute inset-0 noise-overlay opacity-30" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        
+        <div className="max-w-[1400px] mx-auto relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 mb-12 lg:mb-16"
+          >
+            <div>
+              <motion.span 
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="inline-block text-sm tracking-[0.3em] uppercase text-muted-foreground mb-4"
+              >
+                En Çok Tercih Edilenler
+              </motion.span>
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wide"
+              >
+                POPÜLER ÜRÜNLER
+              </motion.h2>
             </div>
-          </div>
-        </div>
+            <Link href="/kategori/tshirt" className="group flex items-center gap-3 px-6 py-3 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all">
+              <span className="text-sm font-medium tracking-wider uppercase">Tümünü Gör</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </motion.div>
 
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+            {featuredProducts.map((product, index) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ 
+                  duration: 0.6, 
+                  delay: (index % 4) * 0.1,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }}
+              >
+                <ProductCard product={product} />
+              </motion.div>
+            ))}
+          </div>
+          
+          {featuredProducts.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-muted-foreground">Henüz ürün eklenmemiş.</p>
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          FEATURES — minimal 4-col
-      ════════════════════════════════════════════ */}
-      <section className="border-t border-black/8" data-testid="section-features">
-        <div className="max-w-[1440px] mx-auto grid grid-cols-2 lg:grid-cols-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.07 }}
-              className={`flex items-start gap-4 px-5 py-8 lg:px-8 lg:py-12
-                ${i > 0 ? 'border-l border-black/8' : ''}
-                ${i === 2 ? 'border-t border-black/8 lg:border-t-0' : ''}
-                ${i === 3 ? 'border-t border-black/8 lg:border-t-0' : ''}
-              `}
-              data-testid={`feature-${i}`}
-            >
-              <div className="w-8 h-8 lg:w-9 lg:h-9 border border-black/10 flex items-center justify-center shrink-0">
-                <f.icon className="w-3.5 h-3.5 text-black/40" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-black mb-1 leading-tight">{f.label}</h3>
-                <p className="text-xs text-black/38">{f.sub}</p>
-              </div>
-            </motion.div>
-          ))}
+      <section className="py-20 lg:py-24 px-6 relative overflow-hidden" data-testid="section-features">
+        <div className="absolute inset-0 bg-gradient-to-b from-background to-zinc-900/50" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        
+        <div className="max-w-[1400px] mx-auto relative z-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ 
+                  duration: 0.5, 
+                  delay: index * 0.1,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }}
+                className="group text-center p-6 lg:p-8 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all"
+                data-testid={`feature-${index}`}
+              >
+                <motion.div 
+                  className="w-14 h-14 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform"
+                  whileInView={{ rotate: [0, 10, -10, 0] }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
+                >
+                  <feature.icon className="w-6 h-6 text-white/80" />
+                </motion.div>
+                <h3 className="font-display text-lg lg:text-xl tracking-wide mb-2">
+                  {feature.title.toUpperCase()}
+                </h3>
+                <p className="text-muted-foreground text-sm">{feature.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 

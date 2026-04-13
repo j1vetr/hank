@@ -84,14 +84,11 @@ export default function Register() {
     formData.password.length < 6 ? 1 :
     formData.password.length < 8 ? 2 : 3;
 
-  const strengthColors = ['', 'bg-red-400', 'bg-amber-400', 'bg-green-500'];
+  const strengthColors = ['', 'bg-red-500', 'bg-yellow-500', 'bg-green-500'];
   const strengthTexts = ['', 'Zayıf', 'Orta', 'Güçlü'];
 
-  const inputCls = "h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25";
-  const labelCls = "text-xs font-medium tracking-wide uppercase text-black/50";
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
       
       <main className="pt-20 min-h-screen flex items-center justify-center p-6 overflow-y-auto">
@@ -106,14 +103,12 @@ export default function Register() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
+                className="relative"
               >
-                <div className="inline-flex items-center justify-center w-14 h-14 mb-6 border border-black/10 bg-stone-50">
-                  <User className="w-6 h-6 text-black/40" />
-                </div>
-                <h1 className="font-display text-4xl tracking-wide mb-3 text-black" data-testid="text-page-title">
-                  KAYIT OL
+                <h1 className="font-display text-4xl tracking-wide mb-3" data-testid="text-page-title">
+                  Kayıt Ol
                 </h1>
-                <p className="text-black/45">
+                <p className="text-muted-foreground">
                   Hesap oluştur ve alışverişe başla.
                 </p>
               </motion.div>
@@ -128,9 +123,9 @@ export default function Register() {
             >
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className={labelCls}>Ad</Label>
+                  <Label htmlFor="firstName" className="text-sm font-medium">Ad</Label>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="firstName"
                       name="firstName"
@@ -138,14 +133,14 @@ export default function Register() {
                       onChange={handleChange}
                       placeholder="Adınız"
                       data-testid="input-firstName"
-                      className={`${inputCls} pl-11`}
+                      className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className={labelCls}>Soyad</Label>
+                  <Label htmlFor="lastName" className="text-sm font-medium">Soyad</Label>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="lastName"
                       name="lastName"
@@ -153,16 +148,16 @@ export default function Register() {
                       onChange={handleChange}
                       placeholder="Soyadınız"
                       data-testid="input-lastName"
-                      className={`${inputCls} pl-11`}
+                      className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                     />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className={labelCls}>E-posta Adresi *</Label>
+                <Label htmlFor="email" className="text-sm font-medium">E-posta Adresi *</Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
                     name="email"
@@ -172,15 +167,15 @@ export default function Register() {
                     placeholder="ornek@email.com"
                     required
                     data-testid="input-email"
-                    className={`${inputCls} pl-11`}
+                    className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone" className={labelCls}>Telefon *</Label>
+                <Label htmlFor="phone" className="text-sm font-medium">Telefon *</Label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="phone"
                     name="phone"
@@ -190,13 +185,13 @@ export default function Register() {
                     placeholder="05XX XXX XX XX"
                     required
                     data-testid="input-phone"
-                    className={`${inputCls} pl-11`}
+                    className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address" className={labelCls}>Adres</Label>
+                <Label htmlFor="address" className="text-sm font-medium">Adres</Label>
                 <Input
                   id="address"
                   name="address"
@@ -204,13 +199,13 @@ export default function Register() {
                   onChange={handleChange}
                   placeholder="Sokak, Mahalle, Bina No, Daire No"
                   data-testid="input-address"
-                  className={inputCls}
+                  className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city" className={labelCls}>İl</Label>
+                  <Label htmlFor="city" className="text-sm font-medium">İl</Label>
                   <Input
                     id="city"
                     name="city"
@@ -218,11 +213,11 @@ export default function Register() {
                     onChange={handleChange}
                     placeholder="İstanbul"
                     data-testid="input-city"
-                    className={inputCls}
+                    className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="district" className={labelCls}>İlçe</Label>
+                  <Label htmlFor="district" className="text-sm font-medium">İlçe</Label>
                   <Input
                     id="district"
                     name="district"
@@ -230,23 +225,23 @@ export default function Register() {
                     onChange={handleChange}
                     placeholder="Kadıköy"
                     data-testid="input-district"
-                    className={inputCls}
+                    className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="country" className={labelCls}>Ülke</Label>
+                <Label htmlFor="country" className="text-sm font-medium">Ülke</Label>
                 <select
                   id="country"
                   name="country"
                   value={formData.country}
                   onChange={handleChange}
                   data-testid="select-country"
-                  className="w-full h-12 bg-stone-50 border border-black/12 focus:border-black/40 focus:outline-none rounded-none px-4 text-black text-sm"
+                  className="w-full h-12 bg-zinc-900/50 border border-white/10 focus:border-white/30 rounded-lg px-4 text-white"
                 >
                   {COUNTRIES.map(country => (
-                    <option key={country} value={country}>
+                    <option key={country} value={country} className="bg-zinc-900">
                       {country}
                     </option>
                   ))}
@@ -254,9 +249,9 @@ export default function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className={labelCls}>Şifre *</Label>
+                <Label htmlFor="password" className="text-sm font-medium">Şifre *</Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="password"
                     name="password"
@@ -266,12 +261,12 @@ export default function Register() {
                     placeholder="En az 6 karakter"
                     required
                     data-testid="input-password"
-                    className={`${inputCls} pl-11 pr-11`}
+                    className="h-12 pl-11 pr-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-black/30 hover:text-black/60 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -282,16 +277,16 @@ export default function Register() {
                       {[1, 2, 3].map((level) => (
                         <div
                           key={level}
-                          className={`h-0.5 flex-1 transition-colors ${
-                            passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-black/10'
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            passwordStrength >= level ? strengthColors[passwordStrength] : 'bg-white/10'
                           }`}
                         />
                       ))}
                     </div>
                     <span className={`text-xs ${
                       passwordStrength === 1 ? 'text-red-500' :
-                      passwordStrength === 2 ? 'text-amber-500' :
-                      passwordStrength === 3 ? 'text-green-600' : ''
+                      passwordStrength === 2 ? 'text-yellow-500' :
+                      passwordStrength === 3 ? 'text-green-500' : ''
                     }`}>
                       {strengthTexts[passwordStrength]}
                     </span>
@@ -300,9 +295,9 @@ export default function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className={labelCls}>Şifre Tekrar *</Label>
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">Şifre Tekrar *</Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -312,7 +307,7 @@ export default function Register() {
                     placeholder="Şifrenizi tekrar girin"
                     required
                     data-testid="input-confirmPassword"
-                    className={`${inputCls} pl-11`}
+                    className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                   {formData.confirmPassword && formData.password === formData.confirmPassword && (
                     <Check className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
@@ -327,7 +322,7 @@ export default function Register() {
               >
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-black text-white hover:bg-black/85 font-bold tracking-[0.12em] text-xs uppercase group rounded-none"
+                  className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide text-sm group rounded-lg"
                   disabled={loading}
                   data-testid="button-register"
                 >
@@ -349,15 +344,15 @@ export default function Register() {
               transition={{ delay: 0.5 }}
               className="mt-6 text-center"
             >
-              <p className="text-black/45 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Zaten hesabın var mı?{' '}
                 <Link href="/giris" data-testid="link-login">
-                  <span className="text-black font-semibold hover:underline underline-offset-2">Giriş Yap</span>
+                  <span className="text-foreground font-medium hover:underline">Giriş Yap</span>
                 </Link>
               </p>
             </motion.div>
 
-            <p className="text-xs text-black/30 text-center mt-6">
+            <p className="text-xs text-muted-foreground text-center mt-6">
               Kayıt olarak <span className="underline">Kullanım Koşulları</span> ve{' '}
               <span className="underline">Gizlilik Politikası</span>'nı kabul etmiş olursunuz.
             </p>

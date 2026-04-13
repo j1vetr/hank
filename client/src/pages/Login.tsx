@@ -37,7 +37,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
       
       <main className="pt-20 min-h-screen flex items-center justify-center p-6">
@@ -52,14 +52,16 @@ export default function Login() {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
+                className="relative"
               >
-                <div className="inline-flex items-center justify-center w-14 h-14 mb-6 border border-black/10 bg-stone-50">
-                  <Lock className="w-6 h-6 text-black/40" />
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-20 h-20 bg-gradient-to-br from-white/10 to-white/5 rounded-full blur-2xl" />
+                <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 shadow-xl">
+                  <Lock className="w-7 h-7 text-white" />
                 </div>
-                <h1 className="font-display text-4xl tracking-wide mb-3 text-black" data-testid="text-page-title">
-                  HOŞ GELDİN
+                <h1 className="font-display text-4xl tracking-wide mb-3" data-testid="text-page-title">
+                  Hoş Geldin
                 </h1>
-                <p className="text-black/45 text-sm">
+                <p className="text-muted-foreground text-sm">
                   Hesabına giriş yap ve alışverişe başla.
                 </p>
               </motion.div>
@@ -73,9 +75,9 @@ export default function Login() {
               className="space-y-5"
             >
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-medium tracking-wide uppercase text-black/50">E-posta Adresi</Label>
+                <Label htmlFor="email" className="text-sm font-medium">E-posta Adresi</Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
@@ -84,20 +86,20 @@ export default function Login() {
                     placeholder="ornek@email.com"
                     required
                     data-testid="input-email"
-                    className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                    className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs font-medium tracking-wide uppercase text-black/50">Şifre</Label>
-                  <Link href="/sifremi-unuttum" className="text-xs text-black/35 hover:text-black transition-colors">
+                  <Label htmlFor="password" className="text-sm font-medium">Şifre</Label>
+                  <Link href="/sifremi-unuttum" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Şifremi unuttum
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -106,12 +108,12 @@ export default function Login() {
                     placeholder="••••••••"
                     required
                     data-testid="input-password"
-                    className="h-12 pl-11 pr-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                    className="h-12 pl-11 pr-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-black/30 hover:text-black/60 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -124,7 +126,7 @@ export default function Login() {
               >
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-black text-white hover:bg-black/85 font-bold tracking-[0.12em] text-xs uppercase group rounded-none"
+                  className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide text-sm group rounded-lg"
                   disabled={loading}
                   data-testid="button-login"
                 >
@@ -148,18 +150,18 @@ export default function Login() {
             >
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-black/8" />
+                  <div className="w-full border-t border-white/10" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="px-4 bg-white text-black/30">veya</span>
+                  <span className="px-4 bg-background text-muted-foreground">veya</span>
                 </div>
               </div>
 
               <div className="mt-6 text-center">
-                <p className="text-black/45 text-sm">
+                <p className="text-muted-foreground">
                   Hesabın yok mu?{' '}
                   <Link href="/kayit" data-testid="link-register">
-                    <span className="text-black font-semibold hover:underline underline-offset-2">Hemen Kayıt Ol</span>
+                    <span className="text-foreground font-medium hover:underline">Hemen Kayıt Ol</span>
                   </Link>
                 </p>
               </div>

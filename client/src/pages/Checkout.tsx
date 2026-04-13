@@ -506,12 +506,12 @@ export default function Checkout() {
             <p className="text-muted-foreground mb-2">
               Siparişiniz başarıyla oluşturuldu.
             </p>
-            <p className="text-lg font-mono font-bold text-black mb-8">
+            <p className="text-lg font-mono font-bold text-white mb-8">
               Sipariş No: #{orderNumber}
             </p>
             
-            <div className="bg-stone-50 border border-black/8 p-6 mb-8 text-left">
-              <h3 className="font-semibold text-black mb-4">Sipariş Detayları</h3>
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 mb-8 text-left">
+              <h3 className="font-semibold text-white mb-4">Sipariş Detayları</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">E-posta</span>
@@ -525,7 +525,7 @@ export default function Checkout() {
                   <span className="text-muted-foreground">Ödeme Yöntemi</span>
                   <span>Kredi Kartı</span>
                 </div>
-                <div className="h-px bg-black/8 my-3" />
+                <div className="h-px bg-zinc-800 my-3" />
                 <div className="flex justify-between font-semibold">
                   <span>Toplam</span>
                   <span>{(savedOrderTotal || total).toLocaleString('tr-TR')} ₺</span>
@@ -540,13 +540,13 @@ export default function Checkout() {
             <div className="flex flex-col sm:flex-row gap-3">
               {user ? (
                 <Link href="/hesabim" className="flex-1">
-                  <Button className="w-full h-12 bg-black hover:bg-black/85 text-white font-bold tracking-wide rounded-none">
+                  <Button className="w-full h-12 bg-zinc-800 hover:bg-zinc-700 font-bold tracking-wide">
                     SİPARİŞLERİM
                   </Button>
                 </Link>
               ) : null}
               <Link href="/" className="flex-1">
-                <Button className="w-full h-12 bg-black text-white hover:bg-black/85 font-bold tracking-wide group rounded-none">
+                <Button className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide group">
                   ALIŞVERİŞE DEVAM ET
                   <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </Button>
@@ -568,7 +568,7 @@ export default function Checkout() {
             animate={{ opacity: 1, scale: 1 }}
             className="max-w-md mx-auto text-center"
           >
-            <div className="w-20 h-20 mx-auto mb-6 bg-stone-100 flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
               <ShoppingBag className="w-8 h-8 text-muted-foreground" />
             </div>
             <h1 className="font-display text-3xl tracking-wider mb-4">
@@ -593,7 +593,12 @@ export default function Checkout() {
     <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Header />
       
-      <main className="pt-36 pb-20 px-4 sm:px-6 w-full box-border overflow-hidden">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/50 via-transparent to-transparent h-64 pointer-events-none" />
+        <div className="absolute inset-0 noise-overlay opacity-30 pointer-events-none" />
+      </div>
+
+      <main className="pt-36 pb-20 px-4 sm:px-6 relative z-10 w-full box-border overflow-hidden">
         <div className="max-w-5xl mx-auto w-full overflow-hidden">
           <motion.nav 
             initial={{ opacity: 0, y: -10 }}
@@ -629,7 +634,7 @@ export default function Checkout() {
                         ? 'bg-white text-black' 
                         : currentStep > step.id
                           ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : 'bg-black/4 text-black/40 border border-black/10'
+                          : 'bg-white/5 text-muted-foreground border border-white/10'
                     } ${step.id > currentStep + 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                     data-testid={`step-${step.id}`}
                   >
@@ -641,7 +646,7 @@ export default function Checkout() {
                     <span className="text-[10px] sm:text-xs font-medium truncate">{step.title}</span>
                   </motion.button>
                   {index < steps.length - 1 && (
-                    <div className={`w-2 sm:w-6 h-px mx-0.5 sm:mx-1 shrink-0 ${currentStep > step.id ? 'bg-green-500' : 'bg-black/10'}`} />
+                    <div className={`w-2 sm:w-6 h-px mx-0.5 sm:mx-1 shrink-0 ${currentStep > step.id ? 'bg-green-500' : 'bg-white/10'}`} />
                   )}
                 </div>
               ))}
@@ -658,11 +663,11 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-none p-4 sm:p-6 overflow-hidden"
+                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
-                          <User className="w-5 h-5 text-black/50" />
+                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                          <User className="w-5 h-5" />
                         </div>
                         <div>
                           <h2 className="font-display text-xl tracking-wide">
@@ -677,13 +682,13 @@ export default function Checkout() {
                       </div>
 
                       {!user && (
-                        <div className="mb-6 p-4 bg-stone-50 border border-black/8 rounded-lg">
+                        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                           <div className="flex items-start gap-3">
-                            <UserPlus className="w-5 h-5 text-black/40 shrink-0 mt-0.5" />
+                            <UserPlus className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-black/70">Zaten üye misiniz?</p>
-                              <p className="text-xs text-black/40 mt-1">
-                                <Link href="/giris" className="text-black font-semibold hover:underline underline-offset-2">Giriş yapın</Link> ve bilgilerinizi otomatik doldurun.
+                              <p className="text-sm font-medium text-blue-400">Zaten üye misiniz?</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                <Link href="/giris" className="text-blue-400 hover:underline">Giriş yapın</Link> ve bilgilerinizi otomatik doldurun.
                               </p>
                             </div>
                           </div>
@@ -712,7 +717,7 @@ export default function Checkout() {
                               value={formData.customerName}
                               onChange={handleChange}
                               data-testid="input-customerName"
-                              className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                              className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                               placeholder="Adınız Soyadınız"
                             />
                           </div>
@@ -730,7 +735,7 @@ export default function Checkout() {
                                 value={formData.customerEmail}
                                 onChange={handleChange}
                                 data-testid="input-customerEmail"
-                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                                 placeholder="ornek@email.com"
                               />
                             </div>
@@ -746,7 +751,7 @@ export default function Checkout() {
                                 value={formData.customerPhone}
                                 onChange={handleChange}
                                 data-testid="input-customerPhone"
-                                className="h-12 pl-11 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 pl-11 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                                 placeholder="05XX XXX XX XX"
                               />
                             </div>
@@ -774,11 +779,11 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-none p-4 sm:p-6 overflow-hidden"
+                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
-                          <MapPin className="w-5 h-5 text-black/50" />
+                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                          <MapPin className="w-5 h-5" />
                         </div>
                         <h2 className="font-display text-xl tracking-wide">
                           TESLİMAT ADRESİ
@@ -806,10 +811,10 @@ export default function Checkout() {
                                 key={addr.id}
                                 type="button"
                                 onClick={() => handleSelectAddress(addr)}
-                                className={`w-full text-left p-4 border transition-all ${
+                                className={`w-full text-left p-4 rounded-xl border transition-all ${
                                   selectedAddressId === addr.id 
-                                    ? 'border-black bg-stone-50' 
-                                    : 'border-black/10 hover:border-black/25 bg-white'
+                                    ? 'border-white bg-white/10' 
+                                    : 'border-white/10 hover:border-white/30 bg-zinc-800/50'
                                 }`}
                                 data-testid={`address-option-${addr.id}`}
                               >
@@ -852,7 +857,7 @@ export default function Checkout() {
                                 country: 'Türkiye',
                               }));
                             }}
-                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-black transition-colors"
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
                             data-testid="button-new-address"
                           >
                             <UserPlus className="w-4 h-4" />
@@ -874,7 +879,7 @@ export default function Checkout() {
                                   if (defaultAddr) handleSelectAddress(defaultAddr);
                                 }
                               }}
-                              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-black transition-colors mb-4"
+                              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors mb-4"
                             >
                               <ArrowRight className="w-4 h-4 rotate-180" />
                               Kayıtlı Adreslerime Dön
@@ -889,7 +894,7 @@ export default function Checkout() {
                               onChange={handleChange}
                               placeholder="Sokak, Mahalle, Bina No, Daire No"
                               data-testid="input-address"
-                              className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                              className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                             />
                           </div>
 
@@ -902,7 +907,7 @@ export default function Checkout() {
                                 value={formData.city}
                                 onChange={handleChange}
                                 data-testid="input-city"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                                 placeholder="İstanbul"
                               />
                             </div>
@@ -914,7 +919,7 @@ export default function Checkout() {
                                 value={formData.district}
                                 onChange={handleChange}
                                 data-testid="input-district"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                                 placeholder="Kadıköy"
                               />
                             </div>
@@ -929,7 +934,7 @@ export default function Checkout() {
                                 value={formData.postalCode}
                                 onChange={handleChange}
                                 data-testid="input-postalCode"
-                                className="h-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                className="h-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                                 placeholder="34000"
                               />
                             </div>
@@ -941,10 +946,10 @@ export default function Checkout() {
                                 value={formData.country}
                                 onChange={handleChange}
                                 data-testid="select-country"
-                                className="w-full h-12 bg-stone-50 border border-black/12 focus:border-black/40 focus:outline-none rounded-none px-4 text-black"
+                                className="w-full h-12 bg-zinc-900/50 border border-white/10 focus:border-white/30 rounded-lg px-4 text-white"
                               >
                                 {COUNTRIES.map(country => (
-                                  <option key={country} value={country} className="bg-white">
+                                  <option key={country} value={country} className="bg-zinc-900">
                                     {country}
                                   </option>
                                 ))}
@@ -970,13 +975,13 @@ export default function Checkout() {
                               type="checkbox"
                               checked={createAccount}
                               onChange={(e) => setCreateAccount(e.target.checked)}
-                              className="mt-1 w-5 h-5 border-black/20 bg-white text-black focus:ring-black focus:ring-offset-0 rounded-none"
+                              className="mt-1 w-5 h-5 rounded border-white/20 bg-zinc-800 text-white focus:ring-white focus:ring-offset-0"
                               data-testid="checkbox-create-account"
                             />
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <UserPlus className="w-4 h-4 text-blue-400" />
-                                <span className="font-medium text-black">Üye olmak ister misiniz?</span>
+                                <span className="font-medium text-white">Üye olmak ister misiniz?</span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Siparişlerinizi kolayca takip edin, adreslerinizi kaydedin ve özel kampanyalardan haberdar olun.
@@ -1003,7 +1008,7 @@ export default function Checkout() {
                                       onChange={(e) => setAccountPassword(e.target.value)}
                                       placeholder="En az 6 karakter"
                                       data-testid="input-account-password"
-                                      className="h-12 pl-12 bg-stone-50 border-black/12 focus:border-black/40 rounded-none text-black placeholder:text-black/25"
+                                      className="h-12 pl-12 bg-zinc-900/50 border-white/10 focus:border-white/30 rounded-lg"
                                       minLength={6}
                                     />
                                   </div>
@@ -1022,7 +1027,7 @@ export default function Checkout() {
                           type="button" 
                           variant="outline"
                           onClick={() => setCurrentStep(1)}
-                          className="flex-1 h-12 border-black/15 hover:bg-black/4 text-black rounded-none"
+                          className="flex-1 h-12 border-white/20 hover:bg-white/5 rounded-lg"
                         >
                           Geri
                         </Button>
@@ -1030,7 +1035,7 @@ export default function Checkout() {
                           <Button 
                             type="button" 
                             onClick={handleNextStep}
-                            className="w-full h-12 bg-black text-white hover:bg-black/85 font-bold tracking-wide group rounded-none"
+                            className="w-full h-12 bg-white text-black hover:bg-white/90 font-bold tracking-wide group rounded-lg"
                             data-testid="button-next-step2"
                           >
                             DEVAM ET
@@ -1047,11 +1052,11 @@ export default function Checkout() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="bg-white border border-black/8 rounded-none p-4 sm:p-6 overflow-hidden"
+                      className="bg-gradient-to-br from-zinc-900 to-zinc-800/50 border border-white/10 rounded-2xl p-4 sm:p-6 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-stone-100 flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 text-black/50" />
+                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                          <CreditCard className="w-5 h-5" />
                         </div>
                         <h2 className="font-display text-xl tracking-wide">
                           KREDİ KARTI İLE ÖDE
@@ -1104,14 +1109,14 @@ export default function Checkout() {
                               setPaymentError(null);
                               setCurrentStep(2);
                             }}
-                            className="w-full h-12 border-black/15 hover:bg-black/4 text-black rounded-none"
+                            className="w-full h-12 border-white/20 hover:bg-white/5 rounded-lg"
                           >
                             Bilgilerimi Düzenle
                           </Button>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-12">
-                          <Loader2 className="w-8 h-8 animate-spin text-black/30 mb-4" />
+                          <Loader2 className="w-8 h-8 animate-spin text-white/50 mb-4" />
                           <p className="text-muted-foreground">Ödeme formu yükleniyor...</p>
                         </div>
                       )}
@@ -1126,17 +1131,18 @@ export default function Checkout() {
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-stone-50 border border-black/8 p-4 sm:p-6 sticky top-24 overflow-hidden"
+                className="bg-gradient-to-br from-zinc-900 via-zinc-800/80 to-zinc-900 border border-white/10 rounded-2xl p-4 sm:p-6 sticky top-24 overflow-hidden"
               >
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent rounded-2xl pointer-events-none" />
                 
                 <h2 className="font-display text-lg tracking-wide mb-4 relative">
                   SİPARİŞ ÖZETİ
                 </h2>
 
-                <div className="space-y-3 pb-4 border-b border-black/8 relative max-h-48 overflow-y-auto">
+                <div className="space-y-3 pb-4 border-b border-white/5 relative max-h-48 overflow-y-auto">
                   {cartItemsWithProducts.map((item) => (
                     <div key={item.id} className="flex gap-3">
-                      <div className="w-14 h-16 bg-stone-200 overflow-hidden shrink-0">
+                      <div className="w-14 h-16 bg-zinc-800 rounded-lg overflow-hidden shrink-0">
                         {item.product?.images?.[0] && (
                           <img 
                             src={item.product.images[0]} 
@@ -1157,7 +1163,7 @@ export default function Checkout() {
                 </div>
 
                 {/* Coupon Input Section */}
-                <div className="py-4 border-b border-black/8 relative">
+                <div className="py-4 border-b border-white/5 relative">
                   {appliedCoupon ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
@@ -1167,7 +1173,7 @@ export default function Checkout() {
                         </div>
                         <button
                           onClick={handleRemoveCoupon}
-                          className="text-muted-foreground hover:text-black transition-colors"
+                          className="text-muted-foreground hover:text-white transition-colors"
                           data-testid="button-remove-coupon"
                         >
                           <X className="w-4 h-4" />
@@ -1207,7 +1213,7 @@ export default function Checkout() {
                               setCouponError('');
                             }}
                             placeholder="Kupon kodu"
-                            className="pl-10 bg-stone-50 border-black/12 h-10 uppercase text-black placeholder:text-black/25 rounded-none"
+                            className="pl-10 bg-zinc-800/50 border-zinc-700 h-10 uppercase"
                             data-testid="input-coupon-code"
                           />
                         </div>
@@ -1281,14 +1287,14 @@ export default function Checkout() {
                       </div>
                     </div>
                   )}
-                  <div className="h-px bg-black/8" />
+                  <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                   <div className="flex justify-between text-base">
                     <span className="font-bold">Toplam</span>
                     <span className="font-bold text-xl" data-testid="text-total">{total.toLocaleString('tr-TR')} ₺</span>
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-4 border-t border-black/8 relative">
+                <div className="space-y-3 pt-4 border-t border-white/5 relative">
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <Shield className="w-4 h-4 shrink-0 text-green-400" />
                     <span>Güvenli Ödeme</span>

@@ -154,7 +154,7 @@ export default function Store() {
   );
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background">
       <SEO 
         title="Mağaza"
         description="HANK fitness ve bodybuilding giyim koleksiyonu - Tüm ürünleri keşfedin"
