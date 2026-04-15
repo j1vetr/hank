@@ -45,7 +45,8 @@ export async function sendInvoiceToBizimHesap(
 
     const invoiceDate = new Date().toISOString();
     const isTurkey = !shippingAddress.country || shippingAddress.country === "Türkiye" || shippingAddress.country === "Turkey";
-    const KDV_RATE = isTurkey ? 20 : 0;
+    const KDV_RATE = isTurkey ? 10 : 0;
+    const SHIPPING_KDV_RATE = isTurkey ? 20 : 0;
 
     // Calculate original subtotal (sum of item subtotals)
     const originalSubtotal = orderItems.reduce((sum, item) => sum + parseFloat(item.subtotal), 0);
@@ -92,7 +93,7 @@ export async function sendInvoiceToBizimHesap(
     // Add shipping cost as separate line item if applicable
     const shippingCost = parseFloat(order.shippingCost || "0");
     if (shippingCost > 0) {
-      const shippingNet = shippingCost / (1 + KDV_RATE / 100);
+      const shippingNet = shippingCost / (1 + SHIPPING_KDV_RATE / 100);
       const shippingTax = shippingCost - shippingNet;
 
       details.push({
@@ -100,7 +101,7 @@ export async function sendInvoiceToBizimHesap(
         productName: "Kargo Ücreti",
         note: "",
         barcode: "",
-        taxRate: `${KDV_RATE}.00`,
+        taxRate: `${SHIPPING_KDV_RATE}.00`,
         quantity: 1,
         unitPrice: shippingNet.toFixed(2),
         grossPrice: shippingNet.toFixed(2),
@@ -112,8 +113,8 @@ export async function sendInvoiceToBizimHesap(
     }
 
     const totalWithTax = parseFloat(order.total);
-    const netTotal = totalWithTax / (1 + KDV_RATE / 100);
-    const taxTotal = totalWithTax - netTotal;
+    const netTotal = details.reduce((sum, d) => sum + parseFloat(d.net), 0);
+    const taxTotal = details.reduce((sum, d) => sum + parseFloat(d.tax), 0);
 
     const invoiceData = {
       firmId: FIRM_ID,
