@@ -68,7 +68,7 @@ export function Header() {
   const renderNavItem = (item: MenuItemData, dropdownAlign: 'start' | 'end') => {
     const href = getMenuItemHref(item);
     const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
-    const baseClass = `relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white whitespace-nowrap ${
+    const baseClass = `relative text-[10.5px] tracking-[0.14em] xl:text-[12px] xl:tracking-[0.18em] uppercase font-medium transition-colors hover:text-white focus-visible:outline-none focus-visible:text-white whitespace-nowrap ${
       location === href ? 'text-white' : 'text-white/70'
     }`;
 
@@ -138,8 +138,8 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50">
-        <div className="bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-xl border-b border-white/5">
+      <header className="fixed top-0 left-0 right-0 z-50 lg:overflow-visible">
+        <div className="bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-xl border-b border-white/5 lg:overflow-visible">
           <div className="hidden lg:block border-b border-white/5 overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900">
             <div className="relative h-9 flex items-center">
               <div className="absolute inset-0 flex items-center animate-marquee-slow whitespace-nowrap">
@@ -230,25 +230,30 @@ export function Header() {
               </div>
             </div>
 
-            {/* DESKTOP LAYOUT: 5-zone symmetric grid:
-                [invisible spacer matching actions width] | [left nav 1fr] | [logo auto] | [right nav 1fr] | [actions auto]
-                The invisible spacer mirrors the actions pill, making the layout perfectly symmetric.
-                Logo is centered both between nav columns AND in the viewport. */}
-            <div className="hidden lg:grid grid-cols-[auto_1fr_auto_1fr_auto] items-center h-24 gap-6">
-              {/* LEFT SPACER: invisible mirror of actions pill, preserves symmetry */}
-              <div aria-hidden="true" className="flex items-center invisible pointer-events-none">
-                <div className="flex items-center gap-1 p-1.5 rounded-full">
+            {/* DESKTOP LAYOUT — "Crown Medallion":
+                Pure 3-column grid [1fr | logo | 1fr] keeps the logo at viewport center.
+                Logo is rendered as a circular medallion that protrudes BELOW the bar.
+                Actions float absolutely top-right; an invisible mirror floats top-left
+                to keep the visual mass perfectly symmetric. Supports up to 8 nav items. */}
+            <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center h-20 relative">
+              {/* INVISIBLE LEFT MIRROR (matches actions pill exactly) — preserves perceived symmetry */}
+              <div
+                aria-hidden="true"
+                className="absolute left-0 top-1/2 -translate-y-1/2 invisible pointer-events-none"
+              >
+                <div className="flex items-center gap-1 p-1.5 rounded-full border border-white/10">
                   <div className="p-2.5"><Search className="w-[18px] h-[18px]" /></div>
                   <div className="p-2.5"><User className="w-[18px] h-[18px]" /></div>
                   <div className="p-2.5"><ShoppingBag className="w-[18px] h-[18px]" /></div>
                 </div>
               </div>
 
-              {/* LEFT NAV: up to 4 items, right-aligned (next to logo) */}
-              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-end min-w-0 pr-2">
+              {/* LEFT NAV: up to 4 items, right-aligned next to medallion.
+                  Padding leaves room for the invisible left mirror so items never collide with it. */}
+              <nav className="flex items-center gap-x-3 xl:gap-x-6 justify-end min-w-0 pl-[140px] xl:pl-[200px] pr-2 xl:pr-3">
                 {!hasMenuItems && (
                   <Link href="/magaza" data-testid="link-nav-magaza">
-                    <span className={`relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white group whitespace-nowrap ${
+                    <span className={`relative text-[11px] tracking-[0.2em] uppercase font-medium transition-colors hover:text-white group whitespace-nowrap ${
                       location === '/magaza' ? 'text-white' : 'text-white/70'
                     }`}>
                       MAĞAZA
@@ -267,30 +272,46 @@ export function Header() {
                 {hasMenuItems && leftMenuItems.map((item) => renderNavItem(item, 'start'))}
               </nav>
 
-              {/* CENTER: Logo — perfectly centered (auto column between two equal 1fr nav columns) */}
-              <Link href="/" data-testid="link-logo" className="block px-2 xl:px-4">
+              {/* CENTER MEDALLION: circular logo with subtle ~8px downward protrusion.
+                  Reserves an 84px-wide column in the grid so nav items don't visually collide
+                  with the round shape. Medallion is 92px and gracefully overflows the bar. */}
+              <Link
+                href="/"
+                data-testid="link-logo"
+                className="relative block w-[84px] h-20 mx-2 xl:mx-3"
+                aria-label="HANK ana sayfa"
+              >
                 <motion.div
-                  whileHover={{ scale: 1.03 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative"
+                  whileHover={{ scale: 1.05, rotate: -3 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 translate-y-[2px]"
+                  style={{ transformOrigin: 'center' }}
                 >
-                  <img
-                    src="/uploads/branding/hank-logo.svg"
-                    alt="HANK"
-                    className="h-11 invert"
-                    data-testid="img-logo"
-                  />
+                  {/* Ambient glow halo */}
+                  <div className="absolute inset-[-16px] rounded-full bg-white/[0.06] blur-2xl pointer-events-none" />
+                  {/* Outer accent ring */}
+                  <div className="absolute inset-[-2px] rounded-full bg-gradient-to-br from-white/30 via-white/5 to-white/20 pointer-events-none" />
+                  {/* Medallion body */}
+                  <div className="relative w-[92px] h-[92px] rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-950 border border-white/10 shadow-[0_14px_32px_-10px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)] flex items-center justify-center">
+                    <img
+                      src="/uploads/branding/hank-icon.png"
+                      alt="HANK"
+                      className="w-11 h-11 object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.15)]"
+                      data-testid="img-logo"
+                    />
+                  </div>
                 </motion.div>
               </Link>
 
-              {/* RIGHT NAV: up to 4 items, left-aligned (next to logo) */}
-              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-start min-w-0 pl-2">
+              {/* RIGHT NAV: up to 4 items, left-aligned next to medallion.
+                  Padding leaves room for the actions pill so items never collide with it. */}
+              <nav className="flex items-center gap-x-3 xl:gap-x-6 justify-start min-w-0 pl-2 xl:pl-3 pr-[140px] xl:pr-[200px]">
                 {hasMenuItems && rightMenuItems.map((item) => renderNavItem(item, 'end'))}
               </nav>
 
-              {/* ACTIONS: absolutely positioned on right edge so logo stays at true viewport center */}
+              {/* ACTIONS: floating glass pill, absolute top-right of the bar */}
               <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
-                <div className="flex items-center gap-1 p-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
+                <div className="flex items-center gap-1 p-1.5 bg-white/[0.04] rounded-full border border-white/10 backdrop-blur-md shadow-[0_4px_16px_-4px_rgba(0,0,0,0.4)]">
                   <button
                     data-testid="button-search-desktop"
                     className="p-2.5 hover:bg-white/10 rounded-full transition-colors"

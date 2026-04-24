@@ -306,7 +306,7 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 h-full flex flex-col justify-center items-center">
-          <div className="text-center px-6 w-full">
+          <div className="text-center px-6 w-full lg:pt-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
