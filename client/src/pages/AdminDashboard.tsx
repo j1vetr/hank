@@ -69,7 +69,8 @@ import {
   ShoppingBag,
   BadgePercent,
   Star,
-  Award
+  Award,
+  Home
 } from 'lucide-react';
 
 interface Product {
@@ -2709,6 +2710,7 @@ function CategoryModal({
     name: category?.name || '',
     image: category?.image || '',
     displayOrder: category?.displayOrder || 0,
+    showOnHomepage: category?.showOnHomepage ?? true,
   });
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(category?.image || null);
@@ -2866,7 +2868,27 @@ function CategoryModal({
               data-testid="input-category-order"
             />
           </div>
-          
+
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, showOnHomepage: !formData.showOnHomepage })}
+            className="w-full flex items-center justify-between gap-3 p-3 bg-zinc-800/60 border border-zinc-700 rounded-lg hover:border-zinc-600 transition-colors"
+            data-testid="toggle-show-on-homepage"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${formData.showOnHomepage ? 'bg-purple-500/20 text-purple-400' : 'bg-zinc-700 text-zinc-500'}`}>
+                <Home className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">Ana sayfada göster</p>
+                <p className="text-xs text-zinc-500">Kategori, ana sayfadaki kategori bandında görünür</p>
+              </div>
+            </div>
+            <div className={`relative w-11 h-6 rounded-full transition-colors ${formData.showOnHomepage ? 'bg-purple-500' : 'bg-zinc-700'}`}>
+              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${formData.showOnHomepage ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </div>
+          </button>
+
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"

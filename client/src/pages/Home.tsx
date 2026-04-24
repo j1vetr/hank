@@ -67,10 +67,12 @@ export default function Home() {
   const { data: apiCategories = [] } = useCategories();
   const { data: allProducts = [] } = useProducts({});
 
-  const categories = apiCategories.map(cat => ({
-    ...cat,
-    image: cat.image || defaultCategoryImages[cat.slug] || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
-  }));
+  const categories = apiCategories
+    .filter(cat => cat.showOnHomepage !== false)
+    .map(cat => ({
+      ...cat,
+      image: cat.image || defaultCategoryImages[cat.slug] || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop',
+    }));
 
   const featuredProducts = allProducts.slice(0, 8);
 
