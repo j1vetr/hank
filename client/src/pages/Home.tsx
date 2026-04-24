@@ -4,7 +4,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
 import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
 import { Link } from 'wouter';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import heroImage1 from '@assets/hero-1.webp';
 import heroImage2 from '@assets/hero-2.webp';
@@ -25,10 +25,15 @@ const defaultCategoryImages: Record<string, string> = {
 
 const marqueeText = 'HANK • GÜÇ • PERFORMANS • STİL • HANK • GÜÇ • PERFORMANS • STİL • ';
 
-function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
-  const shuffledProducts = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
-  const duplicatedProducts = [...shuffledProducts, ...shuffledProducts, ...shuffledProducts, ...shuffledProducts];
-  
+const HeroProductSlider = memo(function HeroProductSlider({ products }: { products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }> }) {
+  // Shuffle once when products list changes — NOT on every parent re-render.
+  // Without this memo, any state update in the parent (e.g. category scroll)
+  // re-shuffles and remounts every <img>, causing visible jank + slider "jumps".
+  const duplicatedProducts = useMemo(() => {
+    const shuffled = [...products].sort(() => Math.random() - 0.5).slice(0, 12);
+    return [...shuffled, ...shuffled, ...shuffled, ...shuffled];
+  }, [products]);
+
   return (
     <div className="overflow-hidden">
       <div className="flex animate-hero-slider gap-3 lg:gap-4">
@@ -39,6 +44,8 @@ function HeroProductSlider({ products }: { products: Array<{ id: string; name: s
                 src={product.images[0] || '/placeholder.jpg'}
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-2">
@@ -51,7 +58,7 @@ function HeroProductSlider({ products }: { products: Array<{ id: string; name: s
       </div>
     </div>
   );
-}
+});
 
 const features = [
   { icon: Truck, title: 'Ücretsiz Kargo', desc: '2.500₺ üzeri siparişlerde' },
@@ -90,19 +97,41 @@ export default function Home() {
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [categoryScrollProgress, setCategoryScrollProgress] = useState(0);
   const [hasCategoryOverflow, setHasCategoryOverflow] = useState(false);
+  const scrollRafRef = useRef<number | null>(null);
 
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
   const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
 
-  // Track scroll position to show/hide arrows + compute progress on desktop
+  // rAF-throttled scroll handler. Without this, every scroll tick fires 3
+  // setState calls — re-rendering the whole Home tree (incl. featured products)
+  // and causing visible jank on horizontal swipe.
   const handleCategoryScroll = () => {
-    const el = categoryScrollRef.current;
-    if (!el) return;
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    setShowLeftArrow(el.scrollLeft > 8);
-    setShowRightArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
-    setCategoryScrollProgress(maxScroll > 0 ? Math.min(100, Math.max(0, (el.scrollLeft / maxScroll) * 100)) : 0);
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      const el = categoryScrollRef.current;
+      if (!el) return;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      const nextLeft = el.scrollLeft > 8;
+      const nextRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 8;
+      const nextProgress = maxScroll > 0
+        ? Math.min(100, Math.max(0, (el.scrollLeft / maxScroll) * 100))
+        : 0;
+      // Only update state when values actually change (saves needless renders)
+      setShowLeftArrow((prev) => (prev !== nextLeft ? nextLeft : prev));
+      setShowRightArrow((prev) => (prev !== nextRight ? nextRight : prev));
+      setCategoryScrollProgress((prev) => (Math.abs(prev - nextProgress) > 0.5 ? nextProgress : prev));
+    });
   };
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) {
+        cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
+  }, []);
 
   // Recompute arrow visibility when categories load or window resizes
   useEffect(() => {
