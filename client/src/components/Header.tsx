@@ -61,8 +61,80 @@ export function Header() {
   };
 
   const hasMenuItems = menuItems.length > 0;
-  const leftMenuItems = hasMenuItems ? menuItems.slice(0, Math.ceil(menuItems.length / 2)) : [];
-  const rightMenuItems = hasMenuItems ? menuItems.slice(Math.ceil(menuItems.length / 2)) : [];
+  // Split menu: max 4 items each side, balanced around the logo
+  const leftMenuItems = hasMenuItems ? menuItems.slice(0, Math.min(4, Math.ceil(menuItems.length / 2))) : [];
+  const rightMenuItems = hasMenuItems ? menuItems.slice(Math.min(4, Math.ceil(menuItems.length / 2)), 8) : [];
+
+  const renderNavItem = (item: MenuItemData, dropdownAlign: 'start' | 'end') => {
+    const href = getMenuItemHref(item);
+    const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
+    const baseClass = `relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white whitespace-nowrap ${
+      location === href ? 'text-white' : 'text-white/70'
+    }`;
+
+    if (hasChildren) {
+      return (
+        <DropdownMenu key={item.id}>
+          <DropdownMenuTrigger asChild>
+            <button
+              data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+              className={`${baseClass} flex items-center gap-1 group`}
+            >
+              {item.title}
+              <ChevronDown className="w-3 h-3 transition-transform group-data-[state=open]:rotate-180" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align={dropdownAlign} className="w-48 bg-zinc-900 border-white/10">
+            {item.children!.map((child) => (
+              <DropdownMenuItem
+                key={child.id}
+                onClick={() => navigate(getMenuItemHref(child))}
+                data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
+              >
+                {child.title}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+
+    const isExternal = item.type === 'link' && item.url?.startsWith('http');
+    const innerSpan = (
+      <span className={`${baseClass} group`}>
+        {item.title}
+        <motion.span
+          className="absolute -bottom-1.5 left-0 right-0 h-px bg-white origin-left"
+          initial={{ scaleX: 0 }}
+          whileHover={{ scaleX: 1 }}
+          transition={{ duration: 0.3 }}
+        />
+        {location === href && (
+          <span className="absolute -bottom-1.5 left-0 right-0 h-px bg-white" />
+        )}
+      </span>
+    );
+
+    if (isExternal || item.openInNewTab) {
+      return (
+        <a
+          key={item.id}
+          href={href}
+          target={item.openInNewTab ? '_blank' : undefined}
+          rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+        >
+          {innerSpan}
+        </a>
+      );
+    }
+
+    return (
+      <Link key={item.id} href={href} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>
+        {innerSpan}
+      </Link>
+    );
+  };
 
   return (
     <>
@@ -158,10 +230,12 @@ export function Header() {
               </div>
             </div>
 
-            {/* DESKTOP LAYOUT: 3-column grid - logo always perfectly centered */}
-            <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center h-24 gap-6">
-              {/* LEFT: All navigation items */}
-              <nav className="flex items-center gap-x-6 xl:gap-x-7 gap-y-1 flex-wrap justify-start min-w-0">
+            {/* DESKTOP LAYOUT: 4-zone grid — left nav | logo | right nav | actions
+                Logo is mathematically centered between left+right nav columns of equal 1fr width,
+                so it never shifts no matter how many items are on each side. */}
+            <div className="hidden lg:grid grid-cols-[1fr_auto_1fr_auto] items-center h-24 gap-6">
+              {/* LEFT NAV: up to 4 items, right-aligned (next to logo) */}
+              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-end min-w-0">
                 {!hasMenuItems && (
                   <Link href="/magaza" data-testid="link-nav-magaza">
                     <span className={`relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white group whitespace-nowrap ${
@@ -180,80 +254,11 @@ export function Header() {
                     </span>
                   </Link>
                 )}
-                {hasMenuItems && menuItems.map((item) => {
-                  const href = getMenuItemHref(item);
-                  const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
-                  const baseClass = `relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white whitespace-nowrap ${
-                    location === href ? 'text-white' : 'text-white/70'
-                  }`;
-
-                  if (hasChildren) {
-                    return (
-                      <DropdownMenu key={item.id}>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                            className={`${baseClass} flex items-center gap-1 group`}
-                          >
-                            {item.title}
-                            <ChevronDown className="w-3 h-3 transition-transform group-data-[state=open]:rotate-180" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-48 bg-zinc-900 border-white/10">
-                          {item.children!.map((child) => (
-                            <DropdownMenuItem
-                              key={child.id}
-                              onClick={() => navigate(getMenuItemHref(child))}
-                              data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
-                            >
-                              {child.title}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    );
-                  }
-
-                  const isExternal = item.type === 'link' && item.url?.startsWith('http');
-                  const innerSpan = (
-                    <span className={`${baseClass} group`}>
-                      {item.title}
-                      <motion.span
-                        className="absolute -bottom-1.5 left-0 right-0 h-px bg-white origin-left"
-                        initial={{ scaleX: 0 }}
-                        whileHover={{ scaleX: 1 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                      {location === href && (
-                        <span className="absolute -bottom-1.5 left-0 right-0 h-px bg-white" />
-                      )}
-                    </span>
-                  );
-
-                  if (isExternal || item.openInNewTab) {
-                    return (
-                      <a
-                        key={item.id}
-                        href={href}
-                        target={item.openInNewTab ? '_blank' : undefined}
-                        rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
-                        data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                      >
-                        {innerSpan}
-                      </a>
-                    );
-                  }
-
-                  return (
-                    <Link key={item.id} href={href} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>
-                      {innerSpan}
-                    </Link>
-                  );
-                })}
+                {hasMenuItems && leftMenuItems.map((item) => renderNavItem(item, 'start'))}
               </nav>
 
-              {/* CENTER: Logo - always perfectly centered */}
-              <Link href="/" data-testid="link-logo" className="block px-4">
+              {/* CENTER: Logo — perfectly centered (auto column between two equal 1fr nav columns) */}
+              <Link href="/" data-testid="link-logo" className="block px-2 xl:px-4">
                 <motion.div
                   whileHover={{ scale: 1.03 }}
                   transition={{ duration: 0.2 }}
@@ -268,13 +273,19 @@ export function Header() {
                 </motion.div>
               </Link>
 
-              {/* RIGHT: Action icons */}
-              <div className="flex items-center justify-end">
+              {/* RIGHT NAV: up to 4 items, left-aligned (next to logo) */}
+              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-start min-w-0">
+                {hasMenuItems && rightMenuItems.map((item) => renderNavItem(item, 'end'))}
+              </nav>
+
+              {/* ACTIONS: search/user/cart pill */}
+              <div className="flex items-center justify-end pl-2">
                 <div className="flex items-center gap-1 p-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
                   <button
                     data-testid="button-search-desktop"
                     className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
                     onClick={() => setSearchOpen(true)}
+                    aria-label="Ara"
                   >
                     <Search className="w-[18px] h-[18px]" />
                   </button>
@@ -284,6 +295,7 @@ export function Header() {
                         <button
                           data-testid="button-account-desktop"
                           className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                          aria-label="Hesap"
                         >
                           <User className="w-[18px] h-[18px]" />
                         </button>
@@ -305,6 +317,7 @@ export function Header() {
                       <button
                         data-testid="button-account-desktop"
                         className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                        aria-label="Giriş yap"
                       >
                         <User className="w-[18px] h-[18px]" />
                       </button>
@@ -314,6 +327,7 @@ export function Header() {
                     <button
                       data-testid="button-cart-desktop"
                       className="p-2.5 hover:bg-white/10 rounded-full transition-colors relative"
+                      aria-label="Sepet"
                     >
                       <ShoppingBag className="w-[18px] h-[18px]" />
                       {totalItems > 0 && (
