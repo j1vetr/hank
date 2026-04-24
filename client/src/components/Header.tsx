@@ -87,254 +87,205 @@ export function Header() {
             </div>
           </div>
           
-          <div className="max-w-[1400px] mx-auto px-6">
-            <div className="flex items-center justify-between h-20 lg:h-24">
-              <div className="flex items-center gap-3 lg:hidden">
-                <button
-                  data-testid="button-mobile-menu"
-                  className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors"
-                  onClick={() => setMobileMenuOpen(true)}
-                >
-                  <Menu className="w-6 h-6" />
-                </button>
-              </div>
+          <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
+            {/* MOBILE LAYOUT: 3-zone flex with absolute centered logo */}
+            <div className="lg:hidden flex items-center justify-between h-20 relative">
+              <button
+                data-testid="button-mobile-menu"
+                className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors"
+                onClick={() => setMobileMenuOpen(true)}
+              >
+                <Menu className="w-6 h-6" />
+              </button>
 
-              <nav className="hidden lg:flex items-center gap-8">
+              <Link href="/" data-testid="link-logo-mobile-wrap" className="absolute left-1/2 -translate-x-1/2">
+                <img
+                  src="/uploads/branding/hank-icon.png"
+                  alt="HANK"
+                  className="h-11 w-11"
+                  data-testid="img-logo-mobile"
+                />
+              </Link>
+
+              <div className="flex items-center gap-0.5 p-1 bg-white/5 rounded-full border border-white/10">
+                <button
+                  data-testid="button-search"
+                  className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
+                  onClick={() => setSearchOpen(true)}
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+                {user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button data-testid="button-account" className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
+                        <User className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10">
+                      <DropdownMenuItem disabled className="text-muted-foreground">
+                        {user.firstName || user.email}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/hesabim')}>
+                        <User className="w-4 h-4 mr-2" /> Hesabım
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { logout(); navigate('/'); }}>
+                        <LogOut className="w-4 h-4 mr-2" /> Çıkış Yap
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Link href="/giris">
+                    <button data-testid="button-account" className="p-1.5 hover:bg-white/10 rounded-full transition-colors">
+                      <User className="w-4 h-4" />
+                    </button>
+                  </Link>
+                )}
+                <Link href="/sepet">
+                  <button data-testid="button-cart" className="p-1.5 hover:bg-white/10 rounded-full transition-colors relative">
+                    <ShoppingBag className="w-4 h-4" />
+                    {totalItems > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white text-black text-[10px] font-bold flex items-center justify-center rounded-full"
+                      >
+                        {totalItems}
+                      </motion.span>
+                    )}
+                  </button>
+                </Link>
+              </div>
+            </div>
+
+            {/* DESKTOP LAYOUT: 3-column grid - logo always perfectly centered */}
+            <div className="hidden lg:grid grid-cols-[1fr_auto_1fr] items-center h-24 gap-6">
+              {/* LEFT: All navigation items */}
+              <nav className="flex items-center gap-x-6 xl:gap-x-7 gap-y-1 flex-wrap justify-start min-w-0">
                 {!hasMenuItems && (
-                  <Link
-                    href="/magaza"
-                    data-testid="link-nav-magaza"
-                  >
-                    <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
+                  <Link href="/magaza" data-testid="link-nav-magaza">
+                    <span className={`relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white group whitespace-nowrap ${
                       location === '/magaza' ? 'text-white' : 'text-white/70'
                     }`}>
                       MAĞAZA
                       <motion.span
-                        className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
+                        className="absolute -bottom-1.5 left-0 right-0 h-px bg-white origin-left"
                         initial={{ scaleX: 0 }}
                         whileHover={{ scaleX: 1 }}
                         transition={{ duration: 0.3 }}
                       />
                       {location === '/magaza' && (
-                        <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
+                        <span className="absolute -bottom-1.5 left-0 right-0 h-px bg-white" />
                       )}
                     </span>
                   </Link>
                 )}
-                {hasMenuItems ? (
-                  leftMenuItems.map((item) => {
-                    const href = getMenuItemHref(item);
-                    const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
-                    
-                    if (hasChildren) {
-                      return (
-                        <DropdownMenu key={item.id}>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                              className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70 flex items-center gap-1"
-                            >
-                              {item.title}
-                              <ChevronDown className="w-3 h-3" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="w-48 bg-zinc-900 border-white/10">
-                            {item.children!.map((child) => (
-                              <DropdownMenuItem
-                                key={child.id}
-                                onClick={() => navigate(getMenuItemHref(child))}
-                                data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
-                              >
-                                {child.title}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      );
-                    }
-                    
-                    const isExternal = item.type === 'link' && item.url?.startsWith('http');
-                    
-                    if (isExternal || item.openInNewTab) {
-                      return (
-                        <a
-                          key={item.id}
-                          href={href}
-                          target={item.openInNewTab ? '_blank' : undefined}
-                          rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
-                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                        >
-                          <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                            location === href ? 'text-white' : 'text-white/70'
-                          }`}>
-                            {item.title}
-                            <motion.span
-                              className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                              initial={{ scaleX: 0 }}
-                              whileHover={{ scaleX: 1 }}
-                              transition={{ duration: 0.3 }}
-                            />
-                            {location === href && (
-                              <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                            )}
-                          </span>
-                        </a>
-                      );
-                    }
-                    
+                {hasMenuItems && menuItems.map((item) => {
+                  const href = getMenuItemHref(item);
+                  const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
+                  const baseClass = `relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white whitespace-nowrap ${
+                    location === href ? 'text-white' : 'text-white/70'
+                  }`;
+
+                  if (hasChildren) {
                     return (
-                      <Link
+                      <DropdownMenu key={item.id}>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
+                            className={`${baseClass} flex items-center gap-1 group`}
+                          >
+                            {item.title}
+                            <ChevronDown className="w-3 h-3 transition-transform group-data-[state=open]:rotate-180" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-48 bg-zinc-900 border-white/10">
+                          {item.children!.map((child) => (
+                            <DropdownMenuItem
+                              key={child.id}
+                              onClick={() => navigate(getMenuItemHref(child))}
+                              data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
+                            >
+                              {child.title}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    );
+                  }
+
+                  const isExternal = item.type === 'link' && item.url?.startsWith('http');
+                  const innerSpan = (
+                    <span className={`${baseClass} group`}>
+                      {item.title}
+                      <motion.span
+                        className="absolute -bottom-1.5 left-0 right-0 h-px bg-white origin-left"
+                        initial={{ scaleX: 0 }}
+                        whileHover={{ scaleX: 1 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                      {location === href && (
+                        <span className="absolute -bottom-1.5 left-0 right-0 h-px bg-white" />
+                      )}
+                    </span>
+                  );
+
+                  if (isExternal || item.openInNewTab) {
+                    return (
+                      <a
                         key={item.id}
                         href={href}
+                        target={item.openInNewTab ? '_blank' : undefined}
+                        rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
                         data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
                       >
-                        <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                          location === href ? 'text-white' : 'text-white/70'
-                        }`}>
-                          {item.title}
-                          <motion.span
-                            className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                            initial={{ scaleX: 0 }}
-                            whileHover={{ scaleX: 1 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                          {location === href && (
-                            <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                          )}
-                        </span>
-                      </Link>
+                        {innerSpan}
+                      </a>
                     );
-                  })
-) : null}
+                  }
+
+                  return (
+                    <Link key={item.id} href={href} data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}>
+                      {innerSpan}
+                    </Link>
+                  );
+                })}
               </nav>
 
-              <Link href="/" data-testid="link-logo" className="absolute left-1/2 -translate-x-1/2 lg:relative lg:left-auto lg:translate-x-0">
+              {/* CENTER: Logo - always perfectly centered */}
+              <Link href="/" data-testid="link-logo" className="block px-4">
                 <motion.div
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.03 }}
                   transition={{ duration: 0.2 }}
                   className="relative"
                 >
                   <img
-                    src="/uploads/branding/hank-icon.png"
-                    alt="HANK"
-                    className="h-11 w-11 lg:hidden"
-                    data-testid="img-logo-mobile"
-                  />
-                  <img
                     src="/uploads/branding/hank-logo.svg"
                     alt="HANK"
-                    className="hidden lg:block h-12 invert"
+                    className="h-11 invert"
                     data-testid="img-logo"
                   />
                 </motion.div>
               </Link>
 
-              <nav className="hidden lg:flex items-center gap-8">
-                {hasMenuItems ? (
-                  rightMenuItems.map((item) => {
-                    const href = getMenuItemHref(item);
-                    const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
-                    
-                    if (hasChildren) {
-                      return (
-                        <DropdownMenu key={item.id}>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                              className="relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white text-white/70 flex items-center gap-1"
-                            >
-                              {item.title}
-                              <ChevronDown className="w-3 h-3" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10">
-                            {item.children!.map((child) => (
-                              <DropdownMenuItem
-                                key={child.id}
-                                onClick={() => navigate(getMenuItemHref(child))}
-                                data-testid={`link-dropdown-${child.title.toLowerCase().replace(/\s/g, '-')}`}
-                              >
-                                {child.title}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      );
-                    }
-                    
-                    const isExternal = item.type === 'link' && item.url?.startsWith('http');
-                    
-                    if (isExternal || item.openInNewTab) {
-                      return (
-                        <a
-                          key={item.id}
-                          href={href}
-                          target={item.openInNewTab ? '_blank' : undefined}
-                          rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
-                          data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                        >
-                          <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                            location === href ? 'text-white' : 'text-white/70'
-                          }`}>
-                            {item.title}
-                            <motion.span
-                              className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                              initial={{ scaleX: 0 }}
-                              whileHover={{ scaleX: 1 }}
-                              transition={{ duration: 0.3 }}
-                            />
-                            {location === href && (
-                              <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                            )}
-                          </span>
-                        </a>
-                      );
-                    }
-                    
-                    return (
-                      <Link
-                        key={item.id}
-                        href={href}
-                        data-testid={`link-nav-${item.title.toLowerCase().replace(/\s/g, '-')}`}
-                      >
-                        <span className={`relative text-[13px] tracking-widest uppercase font-medium transition-colors hover:text-white group ${
-                          location === href ? 'text-white' : 'text-white/70'
-                        }`}>
-                          {item.title}
-                          <motion.span
-                            className="absolute -bottom-1 left-0 right-0 h-px bg-white origin-left"
-                            initial={{ scaleX: 0 }}
-                            whileHover={{ scaleX: 1 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                          {location === href && (
-                            <span className="absolute -bottom-1 left-0 right-0 h-px bg-white" />
-                          )}
-                        </span>
-                      </Link>
-                    );
-                  })
-) : null}
-              </nav>
-
-              <div className="flex items-center">
-                <div className="flex items-center gap-0.5 sm:gap-1 p-1 sm:p-1.5 bg-white/5 rounded-full border border-white/10">
+              {/* RIGHT: Action icons */}
+              <div className="flex items-center justify-end">
+                <div className="flex items-center gap-1 p-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
                   <button
-                    data-testid="button-search"
-                    className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                    data-testid="button-search-desktop"
+                    className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
                     onClick={() => setSearchOpen(true)}
                   >
-                    <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Search className="w-[18px] h-[18px]" />
                   </button>
-                  
                   {user ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
-                          data-testid="button-account"
-                          className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                          data-testid="button-account-desktop"
+                          className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
                         >
-                          <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <User className="w-[18px] h-[18px]" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-white/10">
@@ -342,37 +293,34 @@ export function Header() {
                           {user.firstName || user.email}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate('/hesabim')}>
-                          <User className="w-4 h-4 mr-2" />
-                          Hesabım
+                          <User className="w-4 h-4 mr-2" /> Hesabım
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => { logout(); navigate('/'); }}>
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Çıkış Yap
+                          <LogOut className="w-4 h-4 mr-2" /> Çıkış Yap
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ) : (
                     <Link href="/giris">
                       <button
-                        data-testid="button-account"
-                        className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors"
+                        data-testid="button-account-desktop"
+                        className="p-2.5 hover:bg-white/10 rounded-full transition-colors"
                       >
-                        <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <User className="w-[18px] h-[18px]" />
                       </button>
                     </Link>
                   )}
-
                   <Link href="/sepet">
                     <button
-                      data-testid="button-cart"
-                      className="p-1.5 sm:p-2.5 hover:bg-white/10 rounded-full transition-colors relative"
+                      data-testid="button-cart-desktop"
+                      className="p-2.5 hover:bg-white/10 rounded-full transition-colors relative"
                     >
-                      <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <ShoppingBag className="w-[18px] h-[18px]" />
                       {totalItems > 0 && (
                         <motion.span
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-white text-black text-[10px] sm:text-xs font-bold flex items-center justify-center rounded-full"
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-[11px] font-bold flex items-center justify-center rounded-full"
                         >
                           {totalItems}
                         </motion.span>

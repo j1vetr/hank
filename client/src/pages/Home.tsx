@@ -85,9 +85,48 @@ export default function Home() {
   const lastTimeRef = useRef<number | null>(null);
   const isPausedRef = useRef(false);
   const isRunningRef = useRef(false);
-  
+
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
   const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
+
+  // Track scroll position to show/hide arrows on desktop
+  const handleCategoryScroll = () => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    setShowLeftArrow(el.scrollLeft > 8);
+    setShowRightArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  };
+
+  // Recompute arrow visibility when categories load or window resizes
+  useEffect(() => {
+    const checkOverflow = () => {
+      const el = categoryScrollRef.current;
+      if (!el) return;
+      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      if (!isDesktop) {
+        setShowLeftArrow(false);
+        setShowRightArrow(false);
+        return;
+      }
+      setShowLeftArrow(el.scrollLeft > 8);
+      setShowRightArrow(el.scrollWidth > el.clientWidth + 8 && el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+    };
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [categories.length]);
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    // Scroll by approximately one card width + gap (260 + 16 = 276, scroll ~3 cards)
+    const cardWidth = 276;
+    const scrollAmount = cardWidth * 2;
+    el.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+  };
 
   // Auto-scroll categories on mobile with delta-time based speed
   useEffect(() => {
@@ -352,14 +391,47 @@ export default function Home() {
       </section>
 
       <section ref={categoriesRef} className="py-6 lg:py-10 px-4 lg:px-6" data-testid="section-categories">
-        <div className="max-w-[1400px] mx-auto">
-          <div 
+        <div className="max-w-[1400px] mx-auto relative group/cat-section">
+          {/* Desktop nav arrow - LEFT */}
+          {showLeftArrow && (
+            <button
+              onClick={() => scrollCategories('left')}
+              data-testid="button-categories-prev"
+              aria-label="Önceki kategoriler"
+              title="Önceki"
+              className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center bg-black/70 backdrop-blur-sm border border-white/20 text-white rounded-full opacity-0 group-hover/cat-section:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white hover:bg-white hover:text-black transition-all -translate-x-2"
+            >
+              <ChevronRight className="w-5 h-5 rotate-180" aria-hidden="true" />
+            </button>
+          )}
+          {/* Desktop nav arrow - RIGHT */}
+          {showRightArrow && (
+            <button
+              onClick={() => scrollCategories('right')}
+              data-testid="button-categories-next"
+              aria-label="Sonraki kategoriler"
+              title="Sonraki"
+              className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center bg-black/70 backdrop-blur-sm border border-white/20 text-white rounded-full opacity-0 group-hover/cat-section:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white hover:bg-white hover:text-black transition-all translate-x-2"
+            >
+              <ChevronRight className="w-5 h-5" aria-hidden="true" />
+            </button>
+          )}
+          {/* Right edge fade hint */}
+          {showRightArrow && (
+            <div className="hidden lg:block absolute right-0 top-0 bottom-4 w-20 bg-gradient-to-l from-background via-background/70 to-transparent pointer-events-none z-10" />
+          )}
+          {showLeftArrow && (
+            <div className="hidden lg:block absolute left-0 top-0 bottom-4 w-20 bg-gradient-to-r from-background via-background/70 to-transparent pointer-events-none z-10" />
+          )}
+
+          <div
             ref={categoryScrollRef}
             onPointerDown={handleCategoryPointerDown}
             onPointerUp={handleCategoryPointerUp}
             onPointerCancel={handleCategoryPointerUp}
             onPointerLeave={handleCategoryPointerUp}
-            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x"
+            onScroll={handleCategoryScroll}
+            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x scroll-smooth"
           >
             {categories.map((category, index) => (
               <motion.div
@@ -381,7 +453,7 @@ export default function Home() {
                       data-testid={`img-category-${category.id}`}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 group-hover:from-black/95 transition-all" />
-                    
+
                     <div className="absolute inset-0 flex flex-col justify-end p-4 lg:p-6">
                       <h3 className="font-display text-lg sm:text-xl lg:text-2xl text-white tracking-wide leading-tight mb-2">
                         {category.name.toUpperCase()}
@@ -391,7 +463,7 @@ export default function Home() {
                         <ArrowRight className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
                       </div>
                     </div>
-                    
+
                     <div className="absolute inset-0 rounded-xl ring-1 ring-white/10 group-hover:ring-white/30 transition-all" />
                   </div>
                 </Link>

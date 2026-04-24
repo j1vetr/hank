@@ -38,6 +38,7 @@ export interface Category {
   slug: string;
   image?: string;
   displayOrder: number;
+  showOnHomepage?: boolean;
 }
 
 export interface ProductFilters {
