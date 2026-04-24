@@ -61,9 +61,9 @@ export function Header() {
   };
 
   const hasMenuItems = menuItems.length > 0;
-  // Split menu: max 4 items each side, balanced around the logo
-  const leftMenuItems = hasMenuItems ? menuItems.slice(0, Math.min(4, Math.ceil(menuItems.length / 2))) : [];
-  const rightMenuItems = hasMenuItems ? menuItems.slice(Math.min(4, Math.ceil(menuItems.length / 2)), 8) : [];
+  // Split menu: up to 4 items on the LEFT of the logo, up to 3 on the RIGHT (max 7 visible)
+  const leftMenuItems = hasMenuItems ? menuItems.slice(0, 4) : [];
+  const rightMenuItems = hasMenuItems ? menuItems.slice(4, 7) : [];
 
   const renderNavItem = (item: MenuItemData, dropdownAlign: 'start' | 'end') => {
     const href = getMenuItemHref(item);
@@ -248,9 +248,9 @@ export function Header() {
                 </div>
               </div>
 
-              {/* LEFT NAV: up to 4 items, right-aligned next to medallion.
+              {/* LEFT NAV: up to 4 items, right-aligned next to logo.
                   Padding leaves room for the invisible left mirror so items never collide with it. */}
-              <nav className="flex items-center gap-x-3 xl:gap-x-6 justify-end min-w-0 pl-[140px] xl:pl-[200px] pr-2 xl:pr-3">
+              <nav className="flex items-center gap-x-3 xl:gap-x-4 justify-end min-w-0 pl-[160px] pr-2">
                 {!hasMenuItems && (
                   <Link href="/magaza" data-testid="link-nav-magaza">
                     <span className={`relative text-[11px] tracking-[0.2em] uppercase font-medium transition-colors hover:text-white group whitespace-nowrap ${
@@ -272,40 +272,58 @@ export function Header() {
                 {hasMenuItems && leftMenuItems.map((item) => renderNavItem(item, 'start'))}
               </nav>
 
-              {/* CENTER MEDALLION: circular logo with subtle ~8px downward protrusion.
-                  Reserves an 84px-wide column in the grid so nav items don't visually collide
-                  with the round shape. Medallion is 92px and gracefully overflows the bar. */}
+              {/* CENTER LOGO: HANK wordmark, perfectly centered, with a downward chevron
+                  protrusion that extends below the bar into the hero — premium "banner" accent. */}
               <Link
                 href="/"
                 data-testid="link-logo"
-                className="relative block w-[84px] h-20 mx-2 xl:mx-3"
+                className="relative block px-8 xl:px-12 group"
                 aria-label="HANK ana sayfa"
               >
-                <motion.div
-                  whileHover={{ scale: 1.05, rotate: -3 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 translate-y-[2px]"
-                  style={{ transformOrigin: 'center' }}
+                {/* Soft ambient glow behind the wordmark on hover */}
+                <div className="absolute inset-0 -inset-x-4 bg-white/[0.04] blur-2xl rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                {/* Chevron protrusion: V-shape extending below the header bar */}
+                <svg
+                  aria-hidden="true"
+                  className="absolute left-1/2 -translate-x-1/2 top-full -mt-px pointer-events-none"
+                  width="180"
+                  height="36"
+                  viewBox="0 0 180 36"
+                  fill="none"
+                  preserveAspectRatio="none"
                 >
-                  {/* Ambient glow halo */}
-                  <div className="absolute inset-[-16px] rounded-full bg-white/[0.06] blur-2xl pointer-events-none" />
-                  {/* Outer accent ring */}
-                  <div className="absolute inset-[-2px] rounded-full bg-gradient-to-br from-white/30 via-white/5 to-white/20 pointer-events-none" />
-                  {/* Medallion body */}
-                  <div className="relative w-[92px] h-[92px] rounded-full bg-gradient-to-br from-zinc-900 via-black to-zinc-950 border border-white/10 shadow-[0_14px_32px_-10px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)] flex items-center justify-center">
-                    <img
-                      src="/uploads/branding/hank-icon.png"
-                      alt="HANK"
-                      className="w-11 h-11 object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.15)]"
-                      data-testid="img-logo"
-                    />
-                  </div>
+                  {/* Solid background that matches the header bar — gives the V a "carved" look */}
+                  <path
+                    d="M0 0 L90 32 L180 0 Z"
+                    className="fill-background/95"
+                  />
+                  {/* Subtle outline */}
+                  <path
+                    d="M0 0 L90 32 L180 0"
+                    className="stroke-white/10"
+                    strokeWidth="1"
+                    fill="none"
+                  />
+                </svg>
+
+                <motion.div
+                  whileHover={{ scale: 1.04 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                  className="relative"
+                >
+                  <img
+                    src="/uploads/branding/hank-logo.svg"
+                    alt="HANK"
+                    className="h-11 invert drop-shadow-[0_2px_12px_rgba(255,255,255,0.08)]"
+                    data-testid="img-logo"
+                  />
                 </motion.div>
               </Link>
 
-              {/* RIGHT NAV: up to 4 items, left-aligned next to medallion.
+              {/* RIGHT NAV: up to 4 items, left-aligned next to logo.
                   Padding leaves room for the actions pill so items never collide with it. */}
-              <nav className="flex items-center gap-x-3 xl:gap-x-6 justify-start min-w-0 pl-2 xl:pl-3 pr-[140px] xl:pr-[200px]">
+              <nav className="flex items-center gap-x-3 xl:gap-x-4 justify-start min-w-0 pl-2 pr-[160px]">
                 {hasMenuItems && rightMenuItems.map((item) => renderNavItem(item, 'end'))}
               </nav>
 
