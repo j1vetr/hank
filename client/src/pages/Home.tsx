@@ -88,16 +88,20 @@ export default function Home() {
 
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [categoryScrollProgress, setCategoryScrollProgress] = useState(0);
+  const [hasCategoryOverflow, setHasCategoryOverflow] = useState(false);
 
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 });
   const productsInView = useInView(productsRef, { once: true, amount: 0.1 });
 
-  // Track scroll position to show/hide arrows on desktop
+  // Track scroll position to show/hide arrows + compute progress on desktop
   const handleCategoryScroll = () => {
     const el = categoryScrollRef.current;
     if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
     setShowLeftArrow(el.scrollLeft > 8);
     setShowRightArrow(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+    setCategoryScrollProgress(maxScroll > 0 ? Math.min(100, Math.max(0, (el.scrollLeft / maxScroll) * 100)) : 0);
   };
 
   // Recompute arrow visibility when categories load or window resizes
@@ -105,6 +109,8 @@ export default function Home() {
     const checkOverflow = () => {
       const el = categoryScrollRef.current;
       if (!el) return;
+      const overflow = el.scrollWidth > el.clientWidth + 8;
+      setHasCategoryOverflow(overflow);
       const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
       if (!isDesktop) {
         setShowLeftArrow(false);
@@ -112,7 +118,9 @@ export default function Home() {
         return;
       }
       setShowLeftArrow(el.scrollLeft > 8);
-      setShowRightArrow(el.scrollWidth > el.clientWidth + 8 && el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+      setShowRightArrow(overflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      setCategoryScrollProgress(maxScroll > 0 ? Math.min(100, Math.max(0, (el.scrollLeft / maxScroll) * 100)) : 0);
     };
     checkOverflow();
     window.addEventListener('resize', checkOverflow);
@@ -390,86 +398,150 @@ export default function Home() {
         </div>
       </section>
 
-      <section ref={categoriesRef} className="py-6 lg:py-10 px-4 lg:px-6" data-testid="section-categories">
-        <div className="max-w-[1400px] mx-auto relative group/cat-section">
-          {/* Desktop nav arrow - LEFT */}
-          {showLeftArrow && (
-            <button
-              onClick={() => scrollCategories('left')}
-              data-testid="button-categories-prev"
-              aria-label="Önceki kategoriler"
-              title="Önceki"
-              className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center bg-black/70 backdrop-blur-sm border border-white/20 text-white rounded-full opacity-0 group-hover/cat-section:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white hover:bg-white hover:text-black transition-all -translate-x-2"
-            >
-              <ChevronRight className="w-5 h-5 rotate-180" aria-hidden="true" />
-            </button>
-          )}
-          {/* Desktop nav arrow - RIGHT */}
-          {showRightArrow && (
-            <button
-              onClick={() => scrollCategories('right')}
-              data-testid="button-categories-next"
-              aria-label="Sonraki kategoriler"
-              title="Sonraki"
-              className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 items-center justify-center bg-black/70 backdrop-blur-sm border border-white/20 text-white rounded-full opacity-0 group-hover/cat-section:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white hover:bg-white hover:text-black transition-all translate-x-2"
-            >
-              <ChevronRight className="w-5 h-5" aria-hidden="true" />
-            </button>
-          )}
-          {/* Right edge fade hint */}
-          {showRightArrow && (
-            <div className="hidden lg:block absolute right-0 top-0 bottom-4 w-20 bg-gradient-to-l from-background via-background/70 to-transparent pointer-events-none z-10" />
-          )}
-          {showLeftArrow && (
-            <div className="hidden lg:block absolute left-0 top-0 bottom-4 w-20 bg-gradient-to-r from-background via-background/70 to-transparent pointer-events-none z-10" />
-          )}
-
-          <div
-            ref={categoryScrollRef}
-            onPointerDown={handleCategoryPointerDown}
-            onPointerUp={handleCategoryPointerUp}
-            onPointerCancel={handleCategoryPointerUp}
-            onPointerLeave={handleCategoryPointerUp}
-            onScroll={handleCategoryScroll}
-            className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x scroll-smooth"
+      <section ref={categoriesRef} className="py-12 lg:py-20 px-4 lg:px-6" data-testid="section-categories">
+        <div className="max-w-[1400px] mx-auto">
+          {/* Section header — eyebrow + title + counter + nav arrows + "Tümü" */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={categoriesInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8 lg:mb-10"
           >
-            {categories.map((category, index) => (
-              <motion.div
-                key={category.id}
-                initial={{ opacity: 0, x: 30 }}
-                animate={categoriesInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ duration: 0.4, delay: index * 0.08 }}
-                className="snap-start shrink-0"
+            <div>
+              <span className="inline-block text-[10px] lg:text-xs tracking-[0.32em] uppercase text-white/50 mb-3">
+                Koleksiyonlarımız
+              </span>
+              <div className="flex items-baseline gap-4">
+                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl tracking-wide leading-none">
+                  KATEGORİLER
+                </h2>
+                {categories.length > 0 && (
+                  <span
+                    className="text-xs tracking-[0.2em] uppercase text-white/40 tabular-nums"
+                    data-testid="text-category-count"
+                  >
+                    {String(categories.length).padStart(2, '0')} Koleksiyon
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 lg:gap-4">
+              <Link
+                href="/magaza"
+                data-testid="link-all-categories"
+                className="group inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase font-medium text-white/80 hover:text-white transition-colors"
               >
-                <Link
-                  href={`/kategori/${category.slug}`}
-                  data-testid={`link-category-${category.id}`}
+                <span>Tümünü Gör</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+              </Link>
+
+              {/* Always-visible nav arrows on desktop — disabled at edges */}
+              {hasCategoryOverflow && (
+                <div className="hidden lg:flex items-center gap-2 ml-2 pl-4 border-l border-white/10">
+                  <button
+                    onClick={() => scrollCategories('left')}
+                    data-testid="button-categories-prev"
+                    aria-label="Önceki kategoriler"
+                    disabled={!showLeftArrow}
+                    className="w-11 h-11 rounded-full border border-white/15 flex items-center justify-center text-white/80 hover:bg-white hover:text-black hover:border-white disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/80 disabled:hover:border-white/15 transition-all"
+                  >
+                    <ChevronRight className="w-4 h-4 rotate-180" aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => scrollCategories('right')}
+                    data-testid="button-categories-next"
+                    aria-label="Sonraki kategoriler"
+                    disabled={!showRightArrow}
+                    className="w-11 h-11 rounded-full border border-white/15 flex items-center justify-center text-white/80 hover:bg-white hover:text-black hover:border-white disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/80 disabled:hover:border-white/15 transition-all"
+                  >
+                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Slider — card design unchanged, but with a stronger right-edge "peek" fade */}
+          <div className="relative">
+            {showRightArrow && (
+              <div className="hidden lg:block absolute right-0 top-0 bottom-4 w-32 bg-gradient-to-l from-background via-background/85 to-transparent pointer-events-none z-10" />
+            )}
+            {showLeftArrow && (
+              <div className="hidden lg:block absolute left-0 top-0 bottom-4 w-24 bg-gradient-to-r from-background via-background/80 to-transparent pointer-events-none z-10" />
+            )}
+
+            <div
+              ref={categoryScrollRef}
+              onPointerDown={handleCategoryPointerDown}
+              onPointerUp={handleCategoryPointerUp}
+              onPointerCancel={handleCategoryPointerUp}
+              onPointerLeave={handleCategoryPointerUp}
+              onScroll={handleCategoryScroll}
+              className="flex gap-3 lg:gap-4 overflow-x-auto pb-4 scrollbar-hide sm:snap-x sm:snap-mandatory touch-pan-x scroll-smooth"
+            >
+              {categories.map((category, index) => (
+                <motion.div
+                  key={category.id}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={categoriesInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ duration: 0.4, delay: index * 0.08 }}
+                  className="snap-start shrink-0"
                 >
-                  <div className="group relative w-[200px] sm:w-[220px] lg:w-[260px] h-[280px] sm:h-[300px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      data-testid={`img-category-${category.id}`}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 group-hover:from-black/95 transition-all" />
+                  <Link
+                    href={`/kategori/${category.slug}`}
+                    data-testid={`link-category-${category.id}`}
+                  >
+                    <div className="group relative w-[200px] sm:w-[220px] lg:w-[260px] h-[280px] sm:h-[300px] lg:h-[340px] overflow-hidden rounded-xl cursor-pointer">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        data-testid={`img-category-${category.id}`}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 group-hover:from-black/95 transition-all" />
 
-                    <div className="absolute inset-0 flex flex-col justify-end p-4 lg:p-6">
-                      <h3 className="font-display text-lg sm:text-xl lg:text-2xl text-white tracking-wide leading-tight mb-2">
-                        {category.name.toUpperCase()}
-                      </h3>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                        <span className="text-white/80 text-xs lg:text-sm">Keşfet</span>
-                        <ArrowRight className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+                      <div className="absolute inset-0 flex flex-col justify-end p-4 lg:p-6">
+                        <h3 className="font-display text-lg sm:text-xl lg:text-2xl text-white tracking-wide leading-tight mb-2">
+                          {category.name.toUpperCase()}
+                        </h3>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                          <span className="text-white/80 text-xs lg:text-sm">Keşfet</span>
+                          <ArrowRight className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="absolute inset-0 rounded-xl ring-1 ring-white/10 group-hover:ring-white/30 transition-all" />
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                      <div className="absolute inset-0 rounded-xl ring-1 ring-white/10 group-hover:ring-white/30 transition-all" />
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           </div>
+
+          {/* Scroll progress indicator — only visible when there's overflow */}
+          {hasCategoryOverflow && (
+            <div className="hidden lg:flex items-center gap-4 mt-6" data-testid="category-scroll-progress">
+              <div className="relative h-[2px] flex-1 max-w-[280px] bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-white rounded-full transition-[width] duration-200 ease-out"
+                  style={{ width: `${Math.max(8, categoryScrollProgress)}%` }}
+                />
+              </div>
+              <span className="text-[10px] tracking-[0.25em] uppercase text-white/40 tabular-nums">
+                Kaydırın
+              </span>
+            </div>
+          )}
+
+          {/* Mobile hint — small swipe affordance */}
+          {hasCategoryOverflow && (
+            <div className="flex lg:hidden items-center justify-center gap-2 mt-4 text-[10px] tracking-[0.25em] uppercase text-white/40">
+              <span className="w-6 h-px bg-white/20" />
+              <span>Kaydırarak keşfet</span>
+              <ArrowRight className="w-3 h-3" />
+            </div>
+          )}
         </div>
       </section>
 
