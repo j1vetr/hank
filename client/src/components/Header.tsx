@@ -61,14 +61,18 @@ export function Header() {
   };
 
   const hasMenuItems = menuItems.length > 0;
-  // Split menu: up to 4 items on the LEFT of the logo, up to 3 on the RIGHT (max 7 visible)
-  const leftMenuItems = hasMenuItems ? menuItems.slice(0, 4) : [];
-  const rightMenuItems = hasMenuItems ? menuItems.slice(4, 7) : [];
+  // Always reserve up to 3 items on the RIGHT (next to the actions pill).
+  // Remaining items (max 4) go on the LEFT. Examples: 6 items → 3+3, 7 items → 4+3.
+  const visibleMenuItems = menuItems.slice(0, 7);
+  const rightCount = Math.min(3, visibleMenuItems.length);
+  const leftCount = visibleMenuItems.length - rightCount;
+  const leftMenuItems = visibleMenuItems.slice(0, leftCount);
+  const rightMenuItems = visibleMenuItems.slice(leftCount);
 
   const renderNavItem = (item: MenuItemData, dropdownAlign: 'start' | 'end') => {
     const href = getMenuItemHref(item);
     const hasChildren = item.type === 'submenu' && item.children && item.children.length > 0;
-    const baseClass = `relative text-[10.5px] tracking-[0.14em] xl:text-[12px] xl:tracking-[0.18em] uppercase font-medium transition-colors hover:text-white focus-visible:outline-none focus-visible:text-white whitespace-nowrap ${
+    const baseClass = `relative text-[10.5px] tracking-[0.14em] xl:text-[11.5px] xl:tracking-[0.16em] uppercase font-medium transition-colors hover:text-white focus-visible:outline-none focus-visible:text-white whitespace-nowrap ${
       location === href ? 'text-white' : 'text-white/70'
     }`;
 
@@ -250,7 +254,7 @@ export function Header() {
 
               {/* LEFT NAV: up to 4 items, right-aligned next to logo.
                   Padding leaves room for the invisible left mirror so items never collide with it. */}
-              <nav className="flex items-center gap-x-3 xl:gap-x-4 justify-end min-w-0 pl-[160px] pr-2">
+              <nav className="flex items-center gap-x-3 justify-end min-w-0 pl-[155px] pr-2">
                 {!hasMenuItems && (
                   <Link href="/magaza" data-testid="link-nav-magaza">
                     <span className={`relative text-[11px] tracking-[0.2em] uppercase font-medium transition-colors hover:text-white group whitespace-nowrap ${
@@ -277,13 +281,14 @@ export function Header() {
               <Link
                 href="/"
                 data-testid="link-logo"
-                className="relative block px-8 xl:px-12 group"
+                className="relative block px-6 xl:px-8 group"
                 aria-label="HANK ana sayfa"
               >
                 {/* Soft ambient glow behind the wordmark on hover */}
                 <div className="absolute inset-0 -inset-x-4 bg-white/[0.04] blur-2xl rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                {/* Chevron protrusion: V-shape extending below the header bar */}
+                {/* Chevron protrusion: V-shape extending below the header bar.
+                    Solid fill matches the header background — pure shape, no outline. */}
                 <svg
                   aria-hidden="true"
                   className="absolute left-1/2 -translate-x-1/2 top-full -mt-px pointer-events-none"
@@ -293,17 +298,9 @@ export function Header() {
                   fill="none"
                   preserveAspectRatio="none"
                 >
-                  {/* Solid background that matches the header bar — gives the V a "carved" look */}
                   <path
                     d="M0 0 L90 32 L180 0 Z"
-                    className="fill-background/95"
-                  />
-                  {/* Subtle outline */}
-                  <path
-                    d="M0 0 L90 32 L180 0"
-                    className="stroke-white/10"
-                    strokeWidth="1"
-                    fill="none"
+                    className="fill-background"
                   />
                 </svg>
 
@@ -323,7 +320,7 @@ export function Header() {
 
               {/* RIGHT NAV: up to 4 items, left-aligned next to logo.
                   Padding leaves room for the actions pill so items never collide with it. */}
-              <nav className="flex items-center gap-x-3 xl:gap-x-4 justify-start min-w-0 pl-2 pr-[160px]">
+              <nav className="flex items-center gap-x-3 justify-start min-w-0 pl-2 pr-[155px]">
                 {hasMenuItems && rightMenuItems.map((item) => renderNavItem(item, 'end'))}
               </nav>
 
