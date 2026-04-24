@@ -287,23 +287,6 @@ export function Header() {
                 {/* Soft ambient glow behind the wordmark on hover */}
                 <div className="absolute inset-0 -inset-x-4 bg-white/[0.04] blur-2xl rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                {/* Chevron protrusion: V-shape extending below the header bar.
-                    Solid fill matches the header background — pure shape, no outline. */}
-                <svg
-                  aria-hidden="true"
-                  className="absolute left-1/2 -translate-x-1/2 top-full -mt-px pointer-events-none"
-                  width="180"
-                  height="36"
-                  viewBox="0 0 180 36"
-                  fill="none"
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d="M0 0 L90 32 L180 0 Z"
-                    className="fill-background"
-                  />
-                </svg>
-
                 <motion.div
                   whileHover={{ scale: 1.04 }}
                   transition={{ type: 'spring', stiffness: 260, damping: 18 }}
