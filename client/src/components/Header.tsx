@@ -230,12 +230,22 @@ export function Header() {
               </div>
             </div>
 
-            {/* DESKTOP LAYOUT: 4-zone grid — left nav | logo | right nav | actions
-                Logo is mathematically centered between left+right nav columns of equal 1fr width,
-                so it never shifts no matter how many items are on each side. */}
-            <div className="hidden lg:grid grid-cols-[1fr_auto_1fr_auto] items-center h-24 gap-6">
+            {/* DESKTOP LAYOUT: 5-zone symmetric grid:
+                [invisible spacer matching actions width] | [left nav 1fr] | [logo auto] | [right nav 1fr] | [actions auto]
+                The invisible spacer mirrors the actions pill, making the layout perfectly symmetric.
+                Logo is centered both between nav columns AND in the viewport. */}
+            <div className="hidden lg:grid grid-cols-[auto_1fr_auto_1fr_auto] items-center h-24 gap-6">
+              {/* LEFT SPACER: invisible mirror of actions pill, preserves symmetry */}
+              <div aria-hidden="true" className="flex items-center invisible pointer-events-none">
+                <div className="flex items-center gap-1 p-1.5 rounded-full">
+                  <div className="p-2.5"><Search className="w-[18px] h-[18px]" /></div>
+                  <div className="p-2.5"><User className="w-[18px] h-[18px]" /></div>
+                  <div className="p-2.5"><ShoppingBag className="w-[18px] h-[18px]" /></div>
+                </div>
+              </div>
+
               {/* LEFT NAV: up to 4 items, right-aligned (next to logo) */}
-              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-end min-w-0">
+              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-end min-w-0 pr-2">
                 {!hasMenuItems && (
                   <Link href="/magaza" data-testid="link-nav-magaza">
                     <span className={`relative text-[12px] tracking-[0.18em] uppercase font-medium transition-colors hover:text-white group whitespace-nowrap ${
@@ -274,12 +284,12 @@ export function Header() {
               </Link>
 
               {/* RIGHT NAV: up to 4 items, left-aligned (next to logo) */}
-              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-start min-w-0">
+              <nav className="flex items-center gap-x-6 xl:gap-x-7 justify-start min-w-0 pl-2">
                 {hasMenuItems && rightMenuItems.map((item) => renderNavItem(item, 'end'))}
               </nav>
 
-              {/* ACTIONS: search/user/cart pill */}
-              <div className="flex items-center justify-end pl-2">
+              {/* ACTIONS: absolutely positioned on right edge so logo stays at true viewport center */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
                 <div className="flex items-center gap-1 p-1.5 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
                   <button
                     data-testid="button-search-desktop"
