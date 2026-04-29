@@ -1883,12 +1883,16 @@ export async function registerRoutes(
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
+      const GREECE_SHIPPING_COST = 3000;
       
       const isDomestic = selectedCountry === 'Türkiye';
       const isIraq = selectedCountry === 'Irak';
+      const isGreece = selectedCountry === 'Yunanistan';
       let shippingCost = isDomestic 
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
+        : isIraq ? IRAQ_SHIPPING_COST 
+        : isGreece ? GREECE_SHIPPING_COST 
+        : INTERNATIONAL_SHIPPING_COST;
       
       if (couponFreeShipping) {
         shippingCost = 0;
@@ -2386,13 +2390,17 @@ export async function registerRoutes(
       const DOMESTIC_SHIPPING_COST = 200;
       const INTERNATIONAL_SHIPPING_COST = 2500;
       const IRAQ_SHIPPING_COST = 5700;
+      const GREECE_SHIPPING_COST = 3000;
       
       const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
       const isDomestic = orderCountry === 'Türkiye';
       const isIraq = orderCountry === 'Irak';
+      const isGreece = orderCountry === 'Yunanistan';
       const shippingCost = isDomestic 
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST : INTERNATIONAL_SHIPPING_COST;
+        : isIraq ? IRAQ_SHIPPING_COST 
+        : isGreece ? GREECE_SHIPPING_COST 
+        : INTERNATIONAL_SHIPPING_COST;
       const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
       
       const validated = insertOrderSchema.parse({
