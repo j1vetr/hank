@@ -119,22 +119,35 @@ const upload = multer({
 });
 
 // Helper function to generate quote PDF as buffer for email attachment
-// Resolve a product image URL/path to a local file path on disk for embedding in PDFs
-function resolveLocalImagePath(imageUrl: string | null | undefined): string | null {
+// Load product image bytes for embedding in PDFs.
+// Tries local disk first (faster, offline) then falls back to production URL.
+async function loadProductImageBuffer(imageUrl: string | null | undefined): Promise<Buffer | null> {
   if (!imageUrl) return null;
   try {
     let p = imageUrl;
+    let isAbsolute = false;
     if (p.startsWith('http://') || p.startsWith('https://')) {
-      try { p = new URL(p).pathname; } catch { return null; }
+      isAbsolute = true;
+    } else {
+      if (!p.startsWith('/')) p = '/' + p;
     }
-    if (!p.startsWith('/')) p = '/' + p;
-    const candidates = [
-      path.join(process.cwd(), 'client', 'public', p.replace(/^\//, '')),
-      path.join(process.cwd(), 'public', p.replace(/^\//, '')),
-      path.join(process.cwd(), 'dist', 'public', p.replace(/^\//, '')),
-    ];
-    for (const c of candidates) {
-      if (fs.existsSync(c)) return c;
+    if (!isAbsolute) {
+      const candidates = [
+        path.join(process.cwd(), 'client', 'public', p.replace(/^\//, '')),
+        path.join(process.cwd(), 'public', p.replace(/^\//, '')),
+        path.join(process.cwd(), 'dist', 'public', p.replace(/^\//, '')),
+      ];
+      for (const c of candidates) {
+        if (fs.existsSync(c)) {
+          try { return fs.readFileSync(c); } catch {}
+        }
+      }
+    }
+    // Fallback: fetch via HTTP. For relative /uploads/... go through production CDN.
+    const fetchUrl = isAbsolute ? p : `https://hank.com.tr${p}`;
+    const res = await fetch(fetchUrl);
+    if (res.ok) {
+      return Buffer.from(await res.arrayBuffer());
     }
   } catch {}
   return null;
@@ -304,12 +317,12 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
         const bg = i % 2 === 0 ? '#ffffff' : '#fafafa';
         doc.rect(MARGIN, currentY, CONTENT_W, rowHeight).fillAndStroke(bg, '#e5e5e5');
 
-        // Product image
-        const localImg = resolveLocalImagePath(item.productImage);
+        // Product image (local disk → falls back to HTTPS fetch from production)
+        const imgBytes = await loadProductImageBuffer(item.productImage);
         const imgY = currentY + (rowHeight - imgW) / 2;
-        if (localImg) {
+        if (imgBytes) {
           try {
-            const buf = await sharp(localImg).resize(96, 96, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer();
+            const buf = await sharp(imgBytes).resize(96, 96, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer();
             doc.image(buf, colImg, imgY, { width: imgW, height: imgW });
           } catch {
             doc.rect(colImg, imgY, imgW, imgW).fillAndStroke('#f0f0f0', '#cccccc');
