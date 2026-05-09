@@ -223,8 +223,12 @@ export default function AdminQuoteDetail() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="print-logo w-16 h-16 bg-white rounded-xl flex items-center justify-center print:bg-black">
-                    <span className="text-2xl font-black text-black print:text-white tracking-tighter">HANK</span>
+                  <div className="print-logo w-20 h-20 bg-white rounded-xl flex items-center justify-center p-2 print:bg-white print:border print:border-zinc-200">
+                    <img
+                      src="/uploads/branding/hank-logo.svg"
+                      alt="HANK"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <div>
                     <h1 className="text-3xl font-bold text-white print:text-black">TEKLİF</h1>
@@ -248,54 +252,58 @@ export default function AdminQuoteDetail() {
           </div>
 
           <div className="print-body p-8 space-y-8">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="print-info-card bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="print-info-icon w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
-                    <Building2 className="w-5 h-5 text-zinc-300 print:text-zinc-600" />
+            <div className="print-info-card bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
+              <div className="grid md:grid-cols-2 gap-6 md:divide-x md:divide-zinc-700/50 print:md:divide-zinc-300">
+                {/* Bayi Bilgileri */}
+                <div className="md:pr-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="print-info-icon w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
+                      <Building2 className="w-5 h-5 text-zinc-300 print:text-zinc-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white print:text-black">Bayi Bilgileri</h3>
                   </div>
-                  <h3 className="text-lg font-semibold text-white print:text-black">Bayi Bilgileri</h3>
+                  <div className="space-y-2">
+                    <p className="text-white font-medium text-lg print:text-black">{quote.dealer?.name || 'Bilinmeyen Bayi'}</p>
+                    {quote.dealer?.contactPerson && (
+                      <p className="text-zinc-400 print:text-zinc-600">{quote.dealer.contactPerson}</p>
+                    )}
+                    {quote.dealer?.email && (
+                      <p className="text-zinc-500 print:text-zinc-500">{quote.dealer.email}</p>
+                    )}
+                    {quote.dealer?.phone && (
+                      <p className="text-zinc-500 print:text-zinc-500">{quote.dealer.phone}</p>
+                    )}
+                    {quote.dealer?.address && (
+                      <p className="text-zinc-500 text-sm print:text-zinc-500">{quote.dealer.address}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-white font-medium text-lg print:text-black">{quote.dealer?.name || 'Bilinmeyen Bayi'}</p>
-                  {quote.dealer?.contactPerson && (
-                    <p className="text-zinc-400 print:text-zinc-600">{quote.dealer.contactPerson}</p>
-                  )}
-                  {quote.dealer?.email && (
-                    <p className="text-zinc-500 print:text-zinc-500">{quote.dealer.email}</p>
-                  )}
-                  {quote.dealer?.phone && (
-                    <p className="text-zinc-500 print:text-zinc-500">{quote.dealer.phone}</p>
-                  )}
-                  {quote.dealer?.address && (
-                    <p className="text-zinc-500 text-sm print:text-zinc-500">{quote.dealer.address}</p>
-                  )}
-                </div>
-              </div>
 
-              <div className="print-info-card bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="print-info-icon w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
-                    <FileText className="w-5 h-5 text-zinc-300 print:text-zinc-600" />
+                {/* Teklif Detayları */}
+                <div className="md:pl-6 mt-6 md:mt-0 pt-6 md:pt-0 border-t md:border-t-0 border-zinc-700/50 print:border-zinc-300">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="print-info-icon w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
+                      <FileText className="w-5 h-5 text-zinc-300 print:text-zinc-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white print:text-black">Teklif Detayları</h3>
                   </div>
-                  <h3 className="text-lg font-semibold text-white print:text-black">Teklif Detayları</h3>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-400 print:text-zinc-600">Geçerlilik Tarihi</span>
-                    <span className="text-white font-medium print:text-black">
-                      {quote.validUntil 
-                        ? new Date(quote.validUntil).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-                        : 'Belirtilmemiş'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-400 print:text-zinc-600">Ödeme Koşulu</span>
-                    <span className="text-white font-medium print:text-black">{getPaymentTermsLabel(quote.paymentTerms)}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-zinc-400 print:text-zinc-600">KDV</span>
-                    <span className="text-white font-medium print:text-black">{quote.includesVat ? 'Dahil' : 'Hariç'}</span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-400 print:text-zinc-600">Geçerlilik Tarihi</span>
+                      <span className="text-white font-medium print:text-black">
+                        {quote.validUntil 
+                          ? new Date(quote.validUntil).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+                          : 'Belirtilmemiş'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-400 print:text-zinc-600">Ödeme Koşulu</span>
+                      <span className="text-white font-medium print:text-black">{getPaymentTermsLabel(quote.paymentTerms)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-zinc-400 print:text-zinc-600">KDV</span>
+                      <span className="text-white font-medium print:text-black">{quote.includesVat ? 'Dahil' : 'Hariç'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -503,8 +511,8 @@ export default function AdminQuoteDetail() {
           .print-header { padding: 8mm !important; }
           .print-header h1 { font-size: 18pt !important; }
           .print-header .quote-number { font-size: 10pt !important; }
-          .print-logo { width: 48px !important; height: 48px !important; }
-          .print-logo span { font-size: 16pt !important; }
+          .print-logo { width: 60px !important; height: 60px !important; padding: 4px !important; background: white !important; }
+          .print-logo img { width: 100% !important; height: 100% !important; object-fit: contain; filter: invert(1); }
 
           /* Body padding */
           .print-body { padding: 6mm 8mm !important; }

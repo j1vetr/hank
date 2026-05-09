@@ -170,9 +170,30 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       // ===== HEADER (mirrors print-header) =====
       const headerY = MARGIN;
       const headerH = 70;
-      // Logo: black square with white "HANK" text
-      doc.rect(MARGIN, headerY, 48, 48).fill('#000000');
-      doc.fillColor('#ffffff').font(fontBold).fontSize(14).text('HANK', MARGIN, headerY + 16, { width: 48, align: 'center' });
+      // Logo: real HANK logo from /uploads/branding/hank-logo.svg (or PNG fallback)
+      const logoSize = 56;
+      const svgLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-logo.svg');
+      const pngLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-icon.png');
+      let logoDrawn = false;
+      try {
+        if (fs.existsSync(svgLogoPath)) {
+          const logoBuf = await sharp(svgLogoPath, { density: 300 })
+            .resize(logoSize * 3, logoSize * 3, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+            .png()
+            .toBuffer();
+          doc.image(logoBuf, MARGIN, headerY, { fit: [logoSize, logoSize] });
+          logoDrawn = true;
+        } else if (fs.existsSync(pngLogoPath)) {
+          doc.image(pngLogoPath, MARGIN, headerY, { fit: [logoSize, logoSize] });
+          logoDrawn = true;
+        }
+      } catch (e) {
+        console.log('[PDF] Logo render failed:', e);
+      }
+      if (!logoDrawn) {
+        doc.rect(MARGIN, headerY, 48, 48).fill('#000000');
+        doc.fillColor('#ffffff').font(fontBold).fontSize(14).text('HANK', MARGIN, headerY + 16, { width: 48, align: 'center' });
+      }
       // Title: TEKLİF + quote number
       doc.fillColor('#000000').font(fontBold).fontSize(20).text('TEKLİF', MARGIN + 60, headerY + 6);
       doc.fillColor('#666666').font(fontRegular).fontSize(10).text(quote.quoteNumber, MARGIN + 60, headerY + 32);
@@ -195,38 +216,43 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
       // Header bottom rule
       doc.moveTo(MARGIN, headerY + headerH).lineTo(PAGE_W - MARGIN, headerY + headerH).strokeColor('#d4d4d4').lineWidth(0.5).stroke();
 
-      // ===== INFO BOXES (Bayi + Teklif Detayları) =====
+      // ===== COMBINED INFO CARD (Bayi + Teklif Detayları, single card with vertical divider) =====
       const infoY = headerY + headerH + 12;
-      const infoH = 100;
-      const boxGap = 10;
-      const boxW = (CONTENT_W - boxGap) / 2;
+      const infoH = 110;
+      const halfW = CONTENT_W / 2;
+      const padX = 14;
+      const padY = 12;
 
-      // Bayi Bilgileri
-      doc.roundedRect(MARGIN, infoY, boxW, infoH, 4).fillAndStroke('#f7f7f7', '#d4d4d4');
-      doc.fillColor('#333333').font(fontBold).fontSize(9).text('BAYİ BİLGİLERİ', MARGIN + 10, infoY + 10);
-      let by = infoY + 26;
-      doc.fillColor('#000000').font(fontBold).fontSize(11).text(dealer?.name || 'Bilinmeyen Bayi', MARGIN + 10, by, { width: boxW - 20, ellipsis: true });
+      // Outer single card
+      doc.roundedRect(MARGIN, infoY, CONTENT_W, infoH, 4).fillAndStroke('#f7f7f7', '#d4d4d4');
+      // Vertical divider in the middle
+      doc.moveTo(MARGIN + halfW, infoY + 10).lineTo(MARGIN + halfW, infoY + infoH - 10)
+        .strokeColor('#d4d4d4').lineWidth(0.5).stroke();
+
+      // --- Left: Bayi Bilgileri ---
+      doc.fillColor('#333333').font(fontBold).fontSize(9).text('BAYİ BİLGİLERİ', MARGIN + padX, infoY + padY);
+      let by = infoY + padY + 16;
+      doc.fillColor('#000000').font(fontBold).fontSize(11).text(dealer?.name || 'Bilinmeyen Bayi', MARGIN + padX, by, { width: halfW - padX * 2, ellipsis: true });
       by += 16;
       doc.fillColor('#444444').font(fontRegular).fontSize(8.5);
-      if (dealer?.contactPerson) { doc.text(dealer.contactPerson, MARGIN + 10, by, { width: boxW - 20, ellipsis: true }); by += 11; }
-      if (dealer?.email) { doc.text(dealer.email, MARGIN + 10, by, { width: boxW - 20, ellipsis: true }); by += 11; }
-      if (dealer?.phone) { doc.text(dealer.phone, MARGIN + 10, by, { width: boxW - 20, ellipsis: true }); by += 11; }
-      if (dealer?.address) { doc.fillColor('#666666').fontSize(7.5).text(dealer.address, MARGIN + 10, by, { width: boxW - 20, height: infoH - (by - infoY) - 6, ellipsis: true }); }
+      if (dealer?.contactPerson) { doc.text(dealer.contactPerson, MARGIN + padX, by, { width: halfW - padX * 2, ellipsis: true }); by += 11; }
+      if (dealer?.email) { doc.text(dealer.email, MARGIN + padX, by, { width: halfW - padX * 2, ellipsis: true }); by += 11; }
+      if (dealer?.phone) { doc.text(dealer.phone, MARGIN + padX, by, { width: halfW - padX * 2, ellipsis: true }); by += 11; }
+      if (dealer?.address) { doc.fillColor('#666666').fontSize(7.5).text(dealer.address, MARGIN + padX, by, { width: halfW - padX * 2, height: infoY + infoH - by - 6, ellipsis: true }); }
 
-      // Teklif Detayları
-      const dx = MARGIN + boxW + boxGap;
-      doc.roundedRect(dx, infoY, boxW, infoH, 4).fillAndStroke('#f7f7f7', '#d4d4d4');
-      doc.fillColor('#333333').font(fontBold).fontSize(9).text('TEKLİF DETAYLARI', dx + 10, infoY + 10);
+      // --- Right: Teklif Detayları ---
+      const dx = MARGIN + halfW;
+      doc.fillColor('#333333').font(fontBold).fontSize(9).text('TEKLİF DETAYLARI', dx + padX, infoY + padY);
       const paymentLabels: Record<string, string> = { cash: 'Peşin', credit_card: 'Kredi Kartı', eft: 'Havale/EFT', net15: '15 Gün Vadeli', net30: '30 Gün Vadeli', net45: '45 Gün Vadeli', net60: '60 Gün Vadeli', net90: '90 Gün Vadeli', installment_3: '3 Taksit', installment_6: '6 Taksit', installment_9: '9 Taksit', installment_12: '12 Taksit' };
       const rows: Array<[string, string]> = [
         ['Geçerlilik Tarihi', quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Belirtilmemiş'],
         ['Ödeme Koşulu', paymentLabels[quote.paymentTerms || ''] || 'Belirtilmemiş'],
         ['KDV', quote.includesVat ? 'Dahil' : 'Hariç'],
       ];
-      let dy = infoY + 30;
+      let dy = infoY + padY + 20;
       rows.forEach(([k, v]) => {
-        doc.fillColor('#666666').font(fontRegular).fontSize(9).text(k, dx + 10, dy, { width: 100 });
-        doc.fillColor('#000000').font(fontBold).fontSize(9).text(v, dx + boxW - 10 - 130, dy, { width: 130, align: 'right' });
+        doc.fillColor('#666666').font(fontRegular).fontSize(9).text(k, dx + padX, dy, { width: 110 });
+        doc.fillColor('#000000').font(fontBold).fontSize(9).text(v, dx + padX + 110, dy, { width: halfW - padX * 2 - 110, align: 'right' });
         dy += 18;
       });
 
