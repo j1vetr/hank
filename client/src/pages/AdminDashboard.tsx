@@ -184,6 +184,7 @@ interface QuoteItem {
   productId: string;
   variantId: string | null;
   productName: string;
+  productSku: string | null;
   productImage: string | null;
   variantDetails: string | null;
   quantity: number;
@@ -6866,6 +6867,7 @@ function QuotesPanel() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editQuoteId, setEditQuoteId] = useState<string | null>(null);
 
   const { data: quotes = [], isLoading } = useQuery<Quote[]>({
     queryKey: ['admin', 'quotes'],
@@ -7039,6 +7041,16 @@ function QuotesPanel() {
                             </button>
                           </>
                         )}
+                        {quote.status === 'draft' && (
+                          <button
+                            onClick={() => setEditQuoteId(quote.id)}
+                            className="p-2 text-zinc-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                            title="Düzenle"
+                            data-testid={`button-edit-quote-${quote.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setLocation(`/toov-admin/quotes/${quote.id}`)}
                           className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
@@ -7074,12 +7086,14 @@ function QuotesPanel() {
         </div>
       )}
 
-      {showCreateModal && (
+      {(showCreateModal || editQuoteId) && (
         <CreateQuoteModal
           dealers={dealers}
-          onClose={() => setShowCreateModal(false)}
+          editQuoteId={editQuoteId}
+          onClose={() => { setShowCreateModal(false); setEditQuoteId(null); }}
           onSuccess={() => {
             setShowCreateModal(false);
+            setEditQuoteId(null);
             queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
           }}
         />
@@ -7088,15 +7102,18 @@ function QuotesPanel() {
   );
 }
 
-function CreateQuoteModal({ 
+export function CreateQuoteModal({ 
   dealers, 
+  editQuoteId,
   onClose, 
   onSuccess 
 }: { 
   dealers: Dealer[]; 
+  editQuoteId?: string | null;
   onClose: () => void; 
   onSuccess: () => void;
 }) {
+  const isEdit = !!editQuoteId;
   const [selectedDealerId, setSelectedDealerId] = useState('');
   const [validUntil, setValidUntil] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('');
@@ -7113,9 +7130,58 @@ function CreateQuoteModal({
     discountPercent: number;
   }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingQuote, setIsLoadingQuote] = useState(isEdit);
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [productVariantsMap, setProductVariantsMap] = useState<Record<string, ProductVariant[]>>({});
+
+  // Load existing quote when editing
+  useEffect(() => {
+    if (!isEdit || !editQuoteId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/quotes/${editQuoteId}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Quote fetch failed');
+        const q = await res.json();
+        if (cancelled) return;
+        setSelectedDealerId(q.dealerId || '');
+        setValidUntil(q.validUntil ? q.validUntil.slice(0, 10) : '');
+        setPaymentTerms(q.paymentTerms || '');
+        setNotes(q.notes || '');
+        const loadedItems = (q.items || []).map((it: any) => ({
+          productId: it.productId,
+          variantId: it.variantId || null,
+          productName: it.productName,
+          productSku: it.productSku || null,
+          productImage: it.productImage || null,
+          variantDetails: it.variantDetails || null,
+          quantity: it.quantity,
+          unitPrice: String(it.unitPrice),
+          discountPercent: parseFloat(it.discountPercent || '0'),
+        }));
+        setItems(loadedItems);
+        // Pre-fetch variants for items that have variants
+        const uniqueProductIds = Array.from(new Set(loadedItems.map((i: any) => i.productId))) as string[];
+        await Promise.all(uniqueProductIds.map(async (pid) => {
+          try {
+            const r = await fetch(`/api/products/${pid}/variants`, { credentials: 'include' });
+            if (r.ok) {
+              const variants = await r.json();
+              setProductVariantsMap(prev => ({ ...prev, [pid]: variants }));
+            }
+          } catch {}
+        }));
+      } catch (e) {
+        console.error('Edit quote load error:', e);
+        alert('Teklif yüklenemedi');
+        onClose();
+      } finally {
+        if (!cancelled) setIsLoadingQuote(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isEdit, editQuoteId]);
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['admin', 'products'],
@@ -7209,26 +7275,30 @@ function CreateQuoteModal({
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/quotes', {
-        method: 'POST',
+      const url = isEdit ? `/api/admin/quotes/${editQuoteId}` : '/api/admin/quotes';
+      const method = isEdit ? 'PUT' : 'POST';
+      const body: any = {
+        dealerId: selectedDealerId,
+        validUntil: validUntil || null,
+        paymentTerms: paymentTerms || null,
+        notes: notes || null,
+        includesVat: true,
+        items
+      };
+      if (!isEdit) body.status = 'draft';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          dealerId: selectedDealerId,
-          status: 'draft',
-          validUntil: validUntil || null,
-          paymentTerms: paymentTerms || null,
-          notes: notes || null,
-          includesVat: true,
-          items
-        })
+        body: JSON.stringify(body)
       });
 
-      if (!res.ok) throw new Error('Create failed');
+      if (!res.ok) throw new Error('Save failed');
       onSuccess();
     } catch (error) {
-      console.error('Error creating quote:', error);
-      alert('Teklif oluşturulamadı');
+      console.error('Error saving quote:', error);
+      alert(isEdit ? 'Teklif güncellenemedi' : 'Teklif oluşturulamadı');
     } finally {
       setIsLoading(false);
     }
@@ -7245,8 +7315,8 @@ function CreateQuoteModal({
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl my-8 flex flex-col max-h-[92vh] shadow-2xl">
         <div className="p-6 border-b border-zinc-800 flex items-center justify-between shrink-0">
           <div>
-            <h3 className="text-xl font-bold text-white">Yeni Teklif Oluştur</h3>
-            <p className="text-sm text-zinc-500 mt-1">Teklif taslak olarak kaydedilecektir</p>
+            <h3 className="text-xl font-bold text-white">{isEdit ? 'Teklifi Düzenle' : 'Yeni Teklif Oluştur'}</h3>
+            <p className="text-sm text-zinc-500 mt-1">{isEdit ? 'Değişiklikler kaydedilecektir' : 'Teklif taslak olarak kaydedilecektir'}</p>
           </div>
           <button onClick={onClose} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
             <X className="w-5 h-5" />
@@ -7254,6 +7324,12 @@ function CreateQuoteModal({
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          {isLoadingQuote && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+              <span className="ml-3 text-zinc-400 text-sm">Teklif yükleniyor...</span>
+            </div>
+          )}
           <div className="bg-zinc-800/30 border border-zinc-800 rounded-xl p-5">
             <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Teklif Bilgileri</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -7491,7 +7567,7 @@ function CreateQuoteModal({
               data-testid="button-submit-quote"
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Taslak Olarak Kaydet
+              {isEdit ? 'Değişiklikleri Kaydet' : 'Taslak Olarak Kaydet'}
             </button>
           </div>
         </div>

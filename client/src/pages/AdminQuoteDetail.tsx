@@ -1,6 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { ArrowLeft, Building2, Calendar, CreditCard, FileText, Download, Send, Check, X, Package, Loader2, Printer } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Building2, Calendar, CreditCard, FileText, Download, Send, Check, X, Package, Loader2, Printer, Edit } from "lucide-react";
+import { CreateQuoteModal } from "./AdminDashboard";
+
+interface DealerLite {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  contactPerson: string;
+  address: string | null;
+  status: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface Dealer {
   id: string;
@@ -50,6 +65,16 @@ export default function AdminQuoteDetail() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const { data: dealersForEdit = [] } = useQuery<DealerLite[]>({
+    queryKey: ['admin', 'dealers'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/dealers', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch dealers');
+      return res.json();
+    }
+  });
 
   const { data: quote, isLoading, error } = useQuery<Quote>({
     queryKey: ['admin', 'quote', params.id],
@@ -166,6 +191,16 @@ export default function AdminQuoteDetail() {
             <span>Tekliflere Dön</span>
           </button>
           <div className="flex items-center gap-3">
+            {quote.status === 'draft' && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                data-testid="button-edit-quote"
+              >
+                <Edit className="w-4 h-4" />
+                Düzenle
+              </button>
+            )}
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors"
@@ -184,21 +219,21 @@ export default function AdminQuoteDetail() {
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden print:border-none print:rounded-none print:bg-white">
-          <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 p-8 border-b border-zinc-800 print:from-white print:to-white print:border-zinc-200">
+          <div className="print-header bg-gradient-to-r from-zinc-900 to-zinc-800 p-8 border-b border-zinc-800 print:from-white print:to-white print:border-zinc-200">
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center print:bg-black">
+                  <div className="print-logo w-16 h-16 bg-white rounded-xl flex items-center justify-center print:bg-black">
                     <span className="text-2xl font-black text-black print:text-white tracking-tighter">HANK</span>
                   </div>
                   <div>
                     <h1 className="text-3xl font-bold text-white print:text-black">TEKLİF</h1>
-                    <p className="text-zinc-400 font-mono text-lg print:text-zinc-600">{quote.quoteNumber}</p>
+                    <p className="quote-number text-zinc-400 font-mono text-lg print:text-zinc-600">{quote.quoteNumber}</p>
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <span className={`inline-flex px-4 py-2 text-sm font-semibold rounded-full border ${status.color} print:bg-zinc-100 print:text-zinc-800 print:border-zinc-300`}>
+                <span className={`status-badge inline-flex px-4 py-2 text-sm font-semibold rounded-full border ${status.color} print:bg-zinc-100 print:text-zinc-800 print:border-zinc-300`}>
                   {status.label}
                 </span>
                 <p className="text-zinc-500 text-sm mt-2 print:text-zinc-600">
@@ -212,11 +247,11 @@ export default function AdminQuoteDetail() {
             </div>
           </div>
 
-          <div className="p-8 space-y-8">
+          <div className="print-body p-8 space-y-8">
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
+              <div className="print-info-card bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
+                  <div className="print-info-icon w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
                     <Building2 className="w-5 h-5 text-zinc-300 print:text-zinc-600" />
                   </div>
                   <h3 className="text-lg font-semibold text-white print:text-black">Bayi Bilgileri</h3>
@@ -238,9 +273,9 @@ export default function AdminQuoteDetail() {
                 </div>
               </div>
 
-              <div className="bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
+              <div className="print-info-card bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
+                  <div className="print-info-icon w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center print:bg-zinc-200">
                     <FileText className="w-5 h-5 text-zinc-300 print:text-zinc-600" />
                   </div>
                   <h3 className="text-lg font-semibold text-white print:text-black">Teklif Detayları</h3>
@@ -289,15 +324,15 @@ export default function AdminQuoteDetail() {
                               <img 
                                 src={item.productImage} 
                                 alt={item.productName} 
-                                className="w-16 h-16 object-cover rounded-lg border border-zinc-700 print:border-zinc-300"
+                                className="print-prod-img w-16 h-16 object-cover rounded-lg border border-zinc-700 print:border-zinc-300"
                               />
                             ) : (
-                              <div className="w-16 h-16 bg-zinc-800 rounded-lg flex items-center justify-center border border-zinc-700 print:bg-zinc-100 print:border-zinc-300">
+                              <div className="print-prod-img w-16 h-16 bg-zinc-800 rounded-lg flex items-center justify-center border border-zinc-700 print:bg-zinc-100 print:border-zinc-300">
                                 <Package className="w-6 h-6 text-zinc-500" />
                               </div>
                             )}
-                            <div>
-                              <p className="text-white font-medium print:text-black">{item.productName}</p>
+                            <div className="min-w-0">
+                              <p className="print-prod-name text-white font-medium print:text-black break-words">{item.productName}</p>
                             </div>
                           </div>
                         </td>
@@ -323,7 +358,7 @@ export default function AdminQuoteDetail() {
                   </tbody>
                 </table>
 
-                <div className="bg-zinc-800/50 px-6 py-4 print:bg-zinc-50">
+                <div className="print-totals bg-zinc-800/50 px-6 py-4 print:bg-zinc-50">
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex justify-between w-64">
                       <span className="text-zinc-400 print:text-zinc-600">Ara Toplam:</span>
@@ -340,8 +375,8 @@ export default function AdminQuoteDetail() {
                       </div>
                     )}
                     <div className="flex justify-between w-64 pt-2 border-t border-zinc-700 print:border-zinc-300">
-                      <span className="text-white font-semibold text-lg print:text-black">Genel Toplam:</span>
-                      <span className="text-white font-bold text-xl print:text-black">
+                      <span className="grand text-white font-semibold text-lg print:text-black">Genel Toplam:</span>
+                      <span className="grand text-white font-bold text-xl print:text-black">
                         {parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                       </span>
                     </div>
@@ -351,7 +386,7 @@ export default function AdminQuoteDetail() {
             </div>
 
             {quote.notes && (
-              <div className="bg-zinc-800/30 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
+              <div className="print-notes bg-zinc-800/30 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
                 <h3 className="text-sm font-semibold text-zinc-400 mb-3 print:text-zinc-600">Notlar</h3>
                 <p className="text-zinc-300 whitespace-pre-wrap print:text-zinc-700">{quote.notes}</p>
               </div>
@@ -420,22 +455,103 @@ export default function AdminQuoteDetail() {
           </div>
         </div>
 
-        <div className="mt-8 text-center text-zinc-600 text-sm print:mt-12">
+        <div className="print-footer mt-8 text-center text-zinc-600 text-sm print:mt-12">
           <p>HANK Spor Giyim</p>
           <p>www.hank.com.tr • info@hank.com.tr</p>
         </div>
       </div>
 
+      {showEditModal && (
+        <CreateQuoteModal
+          dealers={dealersForEdit as any}
+          editQuoteId={params.id}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false);
+            queryClient.invalidateQueries({ queryKey: ['admin', 'quote', params.id] });
+            queryClient.invalidateQueries({ queryKey: ['admin', 'quotes'] });
+          }}
+        />
+      )}
+
       <style>{`
         @media print {
-          body {
+          @page {
+            size: A4;
+            margin: 12mm 10mm;
+          }
+          html, body {
             background: white !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            color: #000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-size: 10pt;
           }
-          .print\\:hidden {
-            display: none !important;
-          }
+          .print\\:hidden { display: none !important; }
+          /* Container reset */
+          .min-h-screen { min-height: 0 !important; background: white !important; }
+          .max-w-6xl { max-width: 100% !important; padding: 0 !important; }
+
+          /* Card frame */
+          .bg-zinc-900 { background: white !important; }
+          .bg-zinc-800\\/50, .bg-zinc-800\\/30, .bg-zinc-800\\/70 { background: #f7f7f7 !important; }
+          .border-zinc-800 { border-color: #d4d4d4 !important; }
+          .border-zinc-700 { border-color: #d4d4d4 !important; }
+          .text-white, .text-zinc-300, .text-zinc-400, .text-zinc-500 { color: #000 !important; }
+
+          /* Compact header */
+          .print-header { padding: 8mm !important; }
+          .print-header h1 { font-size: 18pt !important; }
+          .print-header .quote-number { font-size: 10pt !important; }
+          .print-logo { width: 48px !important; height: 48px !important; }
+          .print-logo span { font-size: 16pt !important; }
+
+          /* Body padding */
+          .print-body { padding: 6mm 8mm !important; }
+          .print-body > * + * { margin-top: 5mm !important; }
+
+          /* Info boxes */
+          .print-info-card { padding: 4mm !important; }
+          .print-info-card h3 { font-size: 10pt !important; }
+          .print-info-card p, .print-info-card span { font-size: 9pt !important; }
+          .print-info-icon { width: 24px !important; height: 24px !important; }
+          .print-info-icon svg { width: 12px !important; height: 12px !important; }
+
+          /* Product table */
+          table { width: 100% !important; table-layout: fixed; border-collapse: collapse; }
+          thead { display: table-header-group; }
+          tr { page-break-inside: avoid; }
+          th, td { padding: 4px 6px !important; font-size: 8.5pt !important; vertical-align: middle; }
+          th { background: #efefef !important; font-size: 7.5pt !important; }
+          .print-prod-img { width: 36px !important; height: 36px !important; }
+          .print-prod-name { font-size: 8.5pt !important; line-height: 1.2 !important; }
+
+          /* Column widths for product table */
+          th:nth-child(1), td:nth-child(1) { width: 42% !important; }
+          th:nth-child(2), td:nth-child(2) { width: 9% !important; }
+          th:nth-child(3), td:nth-child(3) { width: 7% !important; }
+          th:nth-child(4), td:nth-child(4) { width: 13% !important; }
+          th:nth-child(5), td:nth-child(5) { width: 9% !important; }
+          th:nth-child(6), td:nth-child(6) { width: 20% !important; }
+
+          /* Totals */
+          .print-totals { padding: 4mm !important; }
+          .print-totals span { font-size: 9.5pt !important; }
+          .print-totals .grand { font-size: 11pt !important; }
+
+          /* Notes */
+          .print-notes { padding: 3mm 4mm !important; }
+          .print-notes h3 { font-size: 9pt !important; }
+          .print-notes p { font-size: 9pt !important; }
+
+          /* Footer */
+          .print-footer { margin-top: 6mm !important; font-size: 8pt !important; color: #555 !important; }
+
+          /* Hide hover gradients */
+          .from-zinc-900, .to-zinc-800 { background: white !important; }
+
+          /* Status badge - keep on one page */
+          .status-badge { background: #f0f0f0 !important; color: #333 !important; border-color: #ccc !important; }
         }
       `}</style>
     </div>

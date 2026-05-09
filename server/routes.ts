@@ -119,173 +119,248 @@ const upload = multer({
 });
 
 // Helper function to generate quote PDF as buffer for email attachment
+// Resolve a product image URL/path to a local file path on disk for embedding in PDFs
+function resolveLocalImagePath(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  try {
+    let p = imageUrl;
+    if (p.startsWith('http://') || p.startsWith('https://')) {
+      try { p = new URL(p).pathname; } catch { return null; }
+    }
+    if (!p.startsWith('/')) p = '/' + p;
+    const candidates = [
+      path.join(process.cwd(), 'client', 'public', p.replace(/^\//, '')),
+      path.join(process.cwd(), 'public', p.replace(/^\//, '')),
+      path.join(process.cwd(), 'dist', 'public', p.replace(/^\//, '')),
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) return c;
+    }
+  } catch {}
+  return null;
+}
+
 async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
       const chunks: Buffer[] = [];
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
-      
+      // A4: 595.28 x 841.89 pt. Use 36pt (~12.7mm) margins to match print CSS.
+      const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
+
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
-      
+
       // Register Inter fonts for Turkish character support
       const fontPath = path.join(process.cwd(), 'public', 'fonts');
       const regularFontPath = path.join(fontPath, 'inter-regular.ttf');
       const boldFontPath = path.join(fontPath, 'inter-bold.ttf');
-      
       if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
         doc.registerFont('Inter', regularFontPath);
         doc.registerFont('Inter-Bold', boldFontPath);
       }
-      
       const fontRegular = fs.existsSync(regularFontPath) ? 'Inter' : 'Helvetica';
       const fontBold = fs.existsSync(boldFontPath) ? 'Inter-Bold' : 'Helvetica-Bold';
-      
-      // Header with HANK logo - convert SVG to PNG using sharp
-      const svgLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-logo.svg');
-      const pngLogoPath = path.join(process.cwd(), 'client', 'public', 'uploads', 'branding', 'hank-icon.png');
-      
-      let logoAdded = false;
-      if (fs.existsSync(svgLogoPath)) {
-        try {
-          const pngBuffer = await sharp(svgLogoPath).resize(120).png().toBuffer();
-          doc.image(pngBuffer, 50, 35, { width: 80 });
-          logoAdded = true;
-        } catch (e) {
-          console.log('[PDF] SVG to PNG conversion failed:', e);
-        }
-      }
-      
-      if (!logoAdded && fs.existsSync(pngLogoPath)) {
-        doc.image(pngLogoPath, 50, 40, { width: 60 });
-        logoAdded = true;
-      }
-      
-      if (!logoAdded) {
-        doc.fontSize(28).font(fontBold).fillColor('#000000').text('HANK', 50, 50);
-      }
-      
-      // Quote title
-      doc.fontSize(24).font(fontBold).fillColor('#000000').text('TEKLİF', 350, 50, { align: 'right' });
-      doc.fontSize(12).font(fontRegular).fillColor('#666666').text(quote.quoteNumber, 350, 80, { align: 'right' });
-      
-      doc.moveDown(2);
-      
-      // Dealer info box
-      const yStart = 120;
-      doc.rect(50, yStart, 250, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
-      doc.fontSize(10).font(fontBold).fillColor('#333333').text('BAYİ BİLGİLERİ', 60, yStart + 10);
-      doc.fontSize(11).font(fontRegular).fillColor('#000000').text(dealer?.name || 'Bilinmeyen', 60, yStart + 30);
-      if (dealer?.contactPerson) {
-        doc.fontSize(9).fillColor('#666666').text(dealer.contactPerson, 60, yStart + 45);
-      }
-      if (dealer?.email) {
-        doc.fontSize(9).text(dealer.email, 60, yStart + 60);
-      }
-      if (dealer?.phone) {
-        doc.fontSize(9).text(dealer.phone, 60, yStart + 75);
-      }
-      
-      // Quote details box
-      doc.rect(310, yStart, 235, 100).fillAndStroke('#f5f5f5', '#e0e0e0');
-      doc.fontSize(10).font(fontBold).fillColor('#333333').text('TEKLİF DETAYLARI', 320, yStart + 10);
-      doc.fontSize(9).font(fontRegular).fillColor('#666666');
-      doc.text('Oluşturulma:', 320, yStart + 30);
-      doc.fillColor('#000000').text(new Date(quote.createdAt).toLocaleDateString('tr-TR'), 420, yStart + 30);
-      doc.fillColor('#666666').text('Geçerlilik:', 320, yStart + 45);
-      doc.fillColor('#000000').text(quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR') : '-', 420, yStart + 45);
-      doc.fillColor('#666666').text('Ödeme:', 320, yStart + 60);
-      const paymentLabels: Record<string, string> = { cash: 'Peşin Ödeme', credit_card: 'Kredi Kartı', eft: 'Havale / EFT', net15: '15 Gün Vadeli', net30: '30 Gün Vadeli', net45: '45 Gün Vadeli', net60: '60 Gün Vadeli', net90: '90 Gün Vadeli', installment_3: '3 Taksit', installment_6: '6 Taksit', installment_9: '9 Taksit', installment_12: '12 Taksit' };
-      const paymentLabel = paymentLabels[quote.paymentTerms || ''] || '-';
-      doc.fillColor('#000000').text(paymentLabel, 420, yStart + 60);
-      doc.fillColor('#666666').text('KDV:', 320, yStart + 75);
-      doc.fillColor('#000000').text(quote.includesVat ? 'Dahil' : 'Hariç', 420, yStart + 75);
-      
-      // Products table
-      const tableTop = yStart + 130;
-      doc.fontSize(12).font(fontBold).fillColor('#000000').text('ÜRÜNLER', 50, tableTop);
-      
-      // Table header
-      const headerY = tableTop + 25;
-      doc.rect(50, headerY, 495, 22).fillAndStroke('#333333', '#333333');
-      doc.fontSize(7).font(fontBold).fillColor('#ffffff');
-      doc.text('Ürün', 55, headerY + 7, { width: 220 });
-      doc.text('Beden', 275, headerY + 7, { width: 40, align: 'center' });
-      doc.text('Adet', 315, headerY + 7, { width: 30, align: 'center' });
-      doc.text('Birim Fiyat', 345, headerY + 7, { width: 55, align: 'right' });
-      doc.text('İsk.', 400, headerY + 7, { width: 30, align: 'center' });
-      doc.text('Toplam', 430, headerY + 7, { width: 110, align: 'right' });
-      
-      // Table rows - compact layout
-      let currentY = headerY + 22;
-      const rowHeight = 22;
-      
-      for (let itemIdx = 0; itemIdx < items.length; itemIdx++) {
-        const item = items[itemIdx];
-        if (currentY > 740) {
+
+      const PAGE_W = 595.28;
+      const PAGE_H = 841.89;
+      const MARGIN = 36;
+      const CONTENT_W = PAGE_W - MARGIN * 2; // 523.28
+
+      // ===== HEADER (mirrors print-header) =====
+      const headerY = MARGIN;
+      const headerH = 70;
+      // Logo: black square with white "HANK" text
+      doc.rect(MARGIN, headerY, 48, 48).fill('#000000');
+      doc.fillColor('#ffffff').font(fontBold).fontSize(14).text('HANK', MARGIN, headerY + 16, { width: 48, align: 'center' });
+      // Title: TEKLİF + quote number
+      doc.fillColor('#000000').font(fontBold).fontSize(20).text('TEKLİF', MARGIN + 60, headerY + 6);
+      doc.fillColor('#666666').font(fontRegular).fontSize(10).text(quote.quoteNumber, MARGIN + 60, headerY + 32);
+
+      // Status badge (right side)
+      const statusLabels: Record<string, string> = {
+        draft: 'Taslak', sent: 'Gönderildi', accepted: 'Kabul Edildi',
+        rejected: 'Reddedildi', expired: 'Süresi Doldu',
+      };
+      const statusLabel = statusLabels[quote.status] || quote.status;
+      const badgeText = statusLabel;
+      const badgeW = 80;
+      const badgeX = PAGE_W - MARGIN - badgeW;
+      doc.roundedRect(badgeX, headerY + 4, badgeW, 18, 9).fillAndStroke('#f0f0f0', '#cccccc');
+      doc.fillColor('#333333').font(fontBold).fontSize(8.5).text(badgeText, badgeX, headerY + 9, { width: badgeW, align: 'center' });
+      // Created date under badge
+      const createdStr = new Date(quote.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+      doc.fillColor('#666666').font(fontRegular).fontSize(8).text(`Oluşturulma: ${createdStr}`, badgeX - 60, headerY + 28, { width: badgeW + 60, align: 'right' });
+
+      // Header bottom rule
+      doc.moveTo(MARGIN, headerY + headerH).lineTo(PAGE_W - MARGIN, headerY + headerH).strokeColor('#d4d4d4').lineWidth(0.5).stroke();
+
+      // ===== INFO BOXES (Bayi + Teklif Detayları) =====
+      const infoY = headerY + headerH + 12;
+      const infoH = 100;
+      const boxGap = 10;
+      const boxW = (CONTENT_W - boxGap) / 2;
+
+      // Bayi Bilgileri
+      doc.roundedRect(MARGIN, infoY, boxW, infoH, 4).fillAndStroke('#f7f7f7', '#d4d4d4');
+      doc.fillColor('#333333').font(fontBold).fontSize(9).text('BAYİ BİLGİLERİ', MARGIN + 10, infoY + 10);
+      let by = infoY + 26;
+      doc.fillColor('#000000').font(fontBold).fontSize(11).text(dealer?.name || 'Bilinmeyen Bayi', MARGIN + 10, by, { width: boxW - 20, ellipsis: true });
+      by += 16;
+      doc.fillColor('#444444').font(fontRegular).fontSize(8.5);
+      if (dealer?.contactPerson) { doc.text(dealer.contactPerson, MARGIN + 10, by, { width: boxW - 20, ellipsis: true }); by += 11; }
+      if (dealer?.email) { doc.text(dealer.email, MARGIN + 10, by, { width: boxW - 20, ellipsis: true }); by += 11; }
+      if (dealer?.phone) { doc.text(dealer.phone, MARGIN + 10, by, { width: boxW - 20, ellipsis: true }); by += 11; }
+      if (dealer?.address) { doc.fillColor('#666666').fontSize(7.5).text(dealer.address, MARGIN + 10, by, { width: boxW - 20, height: infoH - (by - infoY) - 6, ellipsis: true }); }
+
+      // Teklif Detayları
+      const dx = MARGIN + boxW + boxGap;
+      doc.roundedRect(dx, infoY, boxW, infoH, 4).fillAndStroke('#f7f7f7', '#d4d4d4');
+      doc.fillColor('#333333').font(fontBold).fontSize(9).text('TEKLİF DETAYLARI', dx + 10, infoY + 10);
+      const paymentLabels: Record<string, string> = { cash: 'Peşin', credit_card: 'Kredi Kartı', eft: 'Havale/EFT', net15: '15 Gün Vadeli', net30: '30 Gün Vadeli', net45: '45 Gün Vadeli', net60: '60 Gün Vadeli', net90: '90 Gün Vadeli', installment_3: '3 Taksit', installment_6: '6 Taksit', installment_9: '9 Taksit', installment_12: '12 Taksit' };
+      const rows: Array<[string, string]> = [
+        ['Geçerlilik Tarihi', quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Belirtilmemiş'],
+        ['Ödeme Koşulu', paymentLabels[quote.paymentTerms || ''] || 'Belirtilmemiş'],
+        ['KDV', quote.includesVat ? 'Dahil' : 'Hariç'],
+      ];
+      let dy = infoY + 30;
+      rows.forEach(([k, v]) => {
+        doc.fillColor('#666666').font(fontRegular).fontSize(9).text(k, dx + 10, dy, { width: 100 });
+        doc.fillColor('#000000').font(fontBold).fontSize(9).text(v, dx + boxW - 10 - 130, dy, { width: 130, align: 'right' });
+        dy += 18;
+      });
+
+      // ===== PRODUCTS TABLE =====
+      let currentY = infoY + infoH + 16;
+      doc.fillColor('#000000').font(fontBold).fontSize(11).text('ÜRÜNLER', MARGIN, currentY);
+      currentY += 18;
+
+      // Column layout (matches print CSS proportions)
+      // Image (40) + Name area, then Beden, Adet, Birim, İsk, Toplam
+      const imgW = 32;
+      const colImg = MARGIN + 4;
+      const colName = colImg + imgW + 6;
+      const colBeden = MARGIN + Math.round(CONTENT_W * 0.42);
+      const colAdet = MARGIN + Math.round(CONTENT_W * 0.51);
+      const colBirim = MARGIN + Math.round(CONTENT_W * 0.58);
+      const colIsk = MARGIN + Math.round(CONTENT_W * 0.71);
+      const colTop = MARGIN + Math.round(CONTENT_W * 0.80);
+      const tableRight = MARGIN + CONTENT_W;
+
+      const drawHeader = (y: number) => {
+        doc.rect(MARGIN, y, CONTENT_W, 18).fillAndStroke('#efefef', '#d4d4d4');
+        doc.fillColor('#444444').font(fontBold).fontSize(7.5);
+        doc.text('ÜRÜN', colImg, y + 6, { width: colBeden - colImg - 6 });
+        doc.text('BEDEN', colBeden, y + 6, { width: colAdet - colBeden, align: 'center' });
+        doc.text('ADET', colAdet, y + 6, { width: colBirim - colAdet, align: 'center' });
+        doc.text('BİRİM FİYAT', colBirim, y + 6, { width: colIsk - colBirim, align: 'right' });
+        doc.text('İSK.', colIsk, y + 6, { width: colTop - colIsk, align: 'center' });
+        doc.text('TOPLAM', colTop, y + 6, { width: tableRight - colTop - 4, align: 'right' });
+      };
+
+      drawHeader(currentY);
+      currentY += 18;
+
+      const rowHeight = 40; // accommodate image
+      const bottomLimit = PAGE_H - MARGIN - 90; // reserve space for totals/footer
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+
+        if (currentY + rowHeight > bottomLimit) {
           doc.addPage();
-          currentY = 50;
+          currentY = MARGIN;
+          drawHeader(currentY);
+          currentY += 18;
         }
-        
-        const bgColor = itemIdx % 2 === 0 ? '#ffffff' : '#f8f8f8';
-        doc.rect(50, currentY, 495, rowHeight).fillAndStroke(bgColor, '#e0e0e0');
-        
-        doc.fontSize(7).font(fontRegular).fillColor('#000000');
-        const skuPrefix = item.productSku ? `[${item.productSku}] ` : '';
-        doc.text(`${skuPrefix}${item.productName}`, 55, currentY + 7, { width: 220, lineBreak: false, ellipsis: true });
-        
-        doc.fontSize(7).fillColor('#333333');
-        doc.text(item.variantDetails || '-', 275, currentY + 7, { width: 40, align: 'center' });
-        
-        doc.fillColor('#000000');
-        doc.text(item.quantity.toString(), 315, currentY + 7, { width: 30, align: 'center' });
-        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 345, currentY + 7, { width: 55, align: 'right' });
-        
-        if (parseFloat(item.discountPercent) > 0) {
-          doc.fillColor('#22c55e').text(`%${item.discountPercent}`, 400, currentY + 7, { width: 30, align: 'center' });
+
+        // Row background (alternating)
+        const bg = i % 2 === 0 ? '#ffffff' : '#fafafa';
+        doc.rect(MARGIN, currentY, CONTENT_W, rowHeight).fillAndStroke(bg, '#e5e5e5');
+
+        // Product image
+        const localImg = resolveLocalImagePath(item.productImage);
+        const imgY = currentY + (rowHeight - imgW) / 2;
+        if (localImg) {
+          try {
+            const buf = await sharp(localImg).resize(96, 96, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer();
+            doc.image(buf, colImg, imgY, { width: imgW, height: imgW });
+          } catch {
+            doc.rect(colImg, imgY, imgW, imgW).fillAndStroke('#f0f0f0', '#cccccc');
+          }
         } else {
-          doc.fillColor('#999999').text('-', 400, currentY + 7, { width: 30, align: 'center' });
+          doc.rect(colImg, imgY, imgW, imgW).fillAndStroke('#f0f0f0', '#cccccc');
         }
-        
-        doc.font(fontBold).fillColor('#000000');
-        doc.text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, 430, currentY + 7, { width: 110, align: 'right' });
-        
+
+        // Product name
+        const nameW = colBeden - colName - 6;
+        const skuPrefix = item.productSku ? `[${item.productSku}] ` : '';
+        const nameText = `${skuPrefix}${item.productName}`;
+        doc.fillColor('#000000').font(fontBold).fontSize(8.5).text(nameText, colName, currentY + 8, { width: nameW, height: rowHeight - 12, ellipsis: true, lineGap: 1 });
+
+        // Beden / Adet / Birim Fiyat / İskonto / Toplam
+        const cellMidY = currentY + rowHeight / 2 - 5;
+        doc.fillColor('#000000').font(fontRegular).fontSize(8.5);
+        doc.text(item.variantDetails || '-', colBeden, cellMidY, { width: colAdet - colBeden, align: 'center' });
+        doc.text(String(item.quantity), colAdet, cellMidY, { width: colBirim - colAdet, align: 'center' });
+        doc.text(`${parseFloat(item.unitPrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, colBirim, cellMidY, { width: colIsk - colBirim, align: 'right' });
+        if (parseFloat(item.discountPercent) > 0) {
+          doc.fillColor('#16a34a').text(`%${item.discountPercent}`, colIsk, cellMidY, { width: colTop - colIsk, align: 'center' });
+        } else {
+          doc.fillColor('#999999').text('-', colIsk, cellMidY, { width: colTop - colIsk, align: 'center' });
+        }
+        doc.fillColor('#000000').font(fontBold).text(`${parseFloat(item.lineTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, colTop, cellMidY, { width: tableRight - colTop - 4, align: 'right' });
+
         currentY += rowHeight;
       }
-      
-      // Totals section
+
+      // ===== TOTALS =====
       currentY += 10;
-      doc.rect(350, currentY, 195, 80).fillAndStroke('#f5f5f5', '#e0e0e0');
-      
-      doc.fontSize(10).font(fontRegular).fillColor('#666666');
-      doc.text('Ara Toplam:', 360, currentY + 15);
-      doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 15, { width: 75, align: 'right' });
-      
+      const totalsW = 230;
+      const totalsH = parseFloat(quote.discountTotal) > 0 ? 76 : 56;
+      const totalsX = PAGE_W - MARGIN - totalsW;
+      if (currentY + totalsH > PAGE_H - MARGIN - 40) {
+        doc.addPage();
+        currentY = MARGIN;
+      }
+      doc.roundedRect(totalsX, currentY, totalsW, totalsH, 4).fillAndStroke('#f7f7f7', '#d4d4d4');
+      let ty = currentY + 10;
+      doc.fillColor('#666666').font(fontRegular).fontSize(9.5).text('Ara Toplam:', totalsX + 12, ty);
+      doc.fillColor('#000000').text(`${parseFloat(quote.subtotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, totalsX + 12, ty, { width: totalsW - 24, align: 'right' });
+      ty += 16;
       if (parseFloat(quote.discountTotal) > 0) {
-        doc.fillColor('#22c55e').text('İskonto:', 360, currentY + 35);
-        doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 35, { width: 75, align: 'right' });
+        doc.fillColor('#16a34a').text('Toplam İskonto:', totalsX + 12, ty);
+        doc.text(`-${parseFloat(quote.discountTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, totalsX + 12, ty, { width: totalsW - 24, align: 'right' });
+        ty += 16;
       }
-      
-      doc.fontSize(12).font(fontBold).fillColor('#000000');
-      doc.text('GENEL TOPLAM:', 360, currentY + 55);
-      doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`, 460, currentY + 55, { width: 75, align: 'right' });
-      
-      // Notes
+      // Divider
+      doc.moveTo(totalsX + 12, ty + 2).lineTo(totalsX + totalsW - 12, ty + 2).strokeColor('#cccccc').lineWidth(0.5).stroke();
+      ty += 8;
+      doc.fillColor('#000000').font(fontBold).fontSize(11).text('Genel Toplam:', totalsX + 12, ty);
+      doc.text(`${parseFloat(quote.grandTotal).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺`, totalsX + 12, ty, { width: totalsW - 24, align: 'right' });
+
+      currentY += totalsH + 10;
+
+      // ===== NOTES =====
       if (quote.notes) {
-        currentY += 100;
-        if (currentY > 700) {
+        if (currentY + 60 > PAGE_H - MARGIN - 30) {
           doc.addPage();
-          currentY = 50;
+          currentY = MARGIN;
         }
-        doc.fontSize(10).font(fontBold).fillColor('#333333').text('NOTLAR', 50, currentY);
-        doc.fontSize(9).font(fontRegular).fillColor('#666666').text(quote.notes, 50, currentY + 15, { width: 495 });
+        doc.roundedRect(MARGIN, currentY, CONTENT_W, 50, 4).fillAndStroke('#f7f7f7', '#d4d4d4');
+        doc.fillColor('#666666').font(fontBold).fontSize(8.5).text('NOTLAR', MARGIN + 10, currentY + 8);
+        doc.fillColor('#333333').font(fontRegular).fontSize(9).text(quote.notes, MARGIN + 10, currentY + 22, { width: CONTENT_W - 20, height: 24, ellipsis: true });
+        currentY += 60;
       }
-      
-      // Footer
-      doc.fontSize(8).font(fontRegular).fillColor('#999999');
-      doc.text('HANK Spor Giyim | www.hank.com.tr | info@hank.com.tr', 50, 780, { align: 'center', width: 495 });
-      
+
+      // ===== FOOTER (every page) =====
+      const range = (doc as any).bufferedPageRange ? (doc as any).bufferedPageRange() : { start: 0, count: 1 };
+      for (let p = range.start; p < range.start + range.count; p++) {
+        doc.switchToPage(p);
+        doc.fillColor('#888888').font(fontRegular).fontSize(8)
+          .text('HANK Spor Giyim  •  www.hank.com.tr  •  info@hank.com.tr', MARGIN, PAGE_H - MARGIN - 10, { width: CONTENT_W, align: 'center' });
+      }
+
       doc.end();
     } catch (error) {
       reject(error);
