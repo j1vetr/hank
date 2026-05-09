@@ -379,14 +379,6 @@ async function generateQuotePdfBuffer(quote: any, dealer: any, items: any[]): Pr
         currentY += 60;
       }
 
-      // ===== FOOTER (every page) =====
-      const range = (doc as any).bufferedPageRange ? (doc as any).bufferedPageRange() : { start: 0, count: 1 };
-      for (let p = range.start; p < range.start + range.count; p++) {
-        doc.switchToPage(p);
-        doc.fillColor('#888888').font(fontRegular).fontSize(8)
-          .text('HANK Spor Giyim  •  www.hank.com.tr  •  info@hank.com.tr', MARGIN, PAGE_H - MARGIN - 10, { width: CONTENT_W, align: 'center' });
-      }
-
       doc.end();
     } catch (error) {
       reject(error);

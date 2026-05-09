@@ -253,7 +253,7 @@ export default function AdminQuoteDetail() {
 
           <div className="print-body p-8 space-y-8">
             <div className="print-info-card bg-zinc-800/50 rounded-xl p-6 print:bg-zinc-50 print:border print:border-zinc-200">
-              <div className="grid md:grid-cols-2 gap-6 md:divide-x md:divide-zinc-700/50 print:md:divide-zinc-300">
+              <div className="print-info-grid grid md:grid-cols-2 gap-6 md:divide-x md:divide-zinc-700/50 print:md:divide-zinc-300">
                 {/* Bayi Bilgileri */}
                 <div className="md:pr-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -463,10 +463,6 @@ export default function AdminQuoteDetail() {
           </div>
         </div>
 
-        <div className="print-footer mt-8 text-center text-zinc-600 text-sm print:mt-12">
-          <p>HANK Spor Giyim</p>
-          <p>www.hank.com.tr • info@hank.com.tr</p>
-        </div>
       </div>
 
       {showEditModal && (
@@ -511,8 +507,28 @@ export default function AdminQuoteDetail() {
           .print-header { padding: 8mm !important; }
           .print-header h1 { font-size: 18pt !important; }
           .print-header .quote-number { font-size: 10pt !important; }
-          .print-logo { width: 60px !important; height: 60px !important; padding: 4px !important; background: white !important; }
-          .print-logo img { width: 100% !important; height: 100% !important; object-fit: contain; filter: invert(1); }
+          .print-logo { width: 64px !important; height: 64px !important; padding: 0 !important; background: transparent !important; border: none !important; }
+          .print-logo img { width: 100% !important; height: 100% !important; object-fit: contain; filter: none !important; }
+
+          /* FORCE bayi + teklif details side-by-side in print */
+          .print-info-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0 !important;
+          }
+          .print-info-grid > div:first-child {
+            padding-right: 6mm !important;
+            padding-top: 0 !important;
+            border-top: none !important;
+            margin-top: 0 !important;
+            border-right: 1px solid #d4d4d4 !important;
+          }
+          .print-info-grid > div:last-child {
+            padding-left: 6mm !important;
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            border-top: none !important;
+          }
 
           /* Body padding */
           .print-body { padding: 6mm 8mm !important; }
