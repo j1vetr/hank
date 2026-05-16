@@ -1348,7 +1348,11 @@ function BulkPriceModal({
 
   const affectedProducts = useMemo(() => {
     if (selectedCategory === 'all') return products;
-    return products.filter(p => p.categoryId === selectedCategory);
+    // Match both legacy single-category and the multi-category join field
+    return products.filter(p =>
+      p.categoryId === selectedCategory ||
+      (Array.isArray((p as any).categoryIds) && (p as any).categoryIds.includes(selectedCategory))
+    );
   }, [selectedCategory, products]);
 
   const calcNewPrice = (currentPriceStr: string): number => {
@@ -1437,7 +1441,10 @@ function BulkPriceModal({
             >
               <option value="all">Tüm Ürünler ({products.length} ürün)</option>
               {categories.map((cat) => {
-                const count = products.filter(p => p.categoryId === cat.id).length;
+                const count = products.filter(p =>
+                  p.categoryId === cat.id ||
+                  (Array.isArray((p as any).categoryIds) && (p as any).categoryIds.includes(cat.id))
+                ).length;
                 return (
                   <option key={cat.id} value={cat.id}>{cat.name} ({count} ürün)</option>
                 );

@@ -356,11 +356,22 @@ export default function ProductDetail() {
 
   const price = parseFloat(product.basePrice || '0');
   const originalPrice = getOriginalPrice(price, product.discountBadge);
+  // Multi-category aware: a product is "related" if it shares ANY category
+  // (legacy single categoryId OR any entry in categoryIds join field).
+  const productCatIds = new Set<string>([
+    ...(product.categoryId ? [product.categoryId] : []),
+    ...((product as any).categoryIds || []),
+  ]);
+  const shareCategory = (p: any) => {
+    if (p.categoryId && productCatIds.has(p.categoryId)) return true;
+    if (Array.isArray(p.categoryIds) && p.categoryIds.some((id: string) => productCatIds.has(id))) return true;
+    return false;
+  };
   const relatedProducts = allProducts
-    .filter(p => p.id !== product.id && p.categoryId === product.categoryId)
+    .filter(p => p.id !== product.id && shareCategory(p))
     .slice(0, 4);
-  const moreProducts = relatedProducts.length < 4 
-    ? [...relatedProducts, ...allProducts.filter(p => p.id !== product.id && p.categoryId !== product.categoryId).slice(0, 4 - relatedProducts.length)]
+  const moreProducts = relatedProducts.length < 4
+    ? [...relatedProducts, ...allProducts.filter(p => p.id !== product.id && !shareCategory(p)).slice(0, 4 - relatedProducts.length)]
     : relatedProducts;
 
   const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Ürünler';

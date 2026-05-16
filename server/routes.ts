@@ -1461,12 +1461,12 @@ export async function registerRoutes(
       
       const { style, categoryId, onlyEmpty, overwrite } = parseResult.data;
 
-      // Get products based on filters
-      let products = await storage.getProducts();
-      
-      if (categoryId) {
-        products = products.filter(p => p.categoryId === categoryId);
-      }
+      // Get products based on filters — use storage.getProducts({ categoryId }) which
+      // matches BOTH legacy products.categoryId AND the product_categories join table,
+      // so multi-category products aren't missed.
+      let products = categoryId
+        ? await storage.getProducts({ categoryId })
+        : await storage.getProducts();
       
       if (onlyEmpty) {
         products = products.filter(p => !p.description || p.description.trim() === '');
@@ -1559,11 +1559,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Geçersiz değer" });
       }
 
-      const allProducts = await storage.getProducts();
-      // If categoryId is null/empty → apply to all products
+      // Use storage.getProducts({ categoryId }) which matches BOTH legacy
+      // products.categoryId AND the product_categories join table — otherwise
+      // multi-category products would be skipped from the bulk price update.
       const targetProducts = categoryId
-        ? allProducts.filter(p => p.categoryId === categoryId)
-        : allProducts;
+        ? await storage.getProducts({ categoryId })
+        : await storage.getProducts();
       
       if (targetProducts.length === 0) {
         return res.status(400).json({ error: "Ürün bulunamadı" });
