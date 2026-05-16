@@ -27,42 +27,49 @@ export default function AnnouncementBar() {
 
   return (
     <div
-      className="relative w-full bg-gradient-to-r from-black via-zinc-900 to-black border-b border-white/10 text-white"
+      className="relative w-full bg-gradient-to-r from-black via-zinc-950 to-black border-b border-white/10 text-white overflow-hidden"
       data-testid="bar-winter-promo"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-center gap-2 sm:gap-3 text-center">
-        <Snowflake className="w-4 h-4 text-sky-300 shrink-0 animate-pulse hidden sm:block" />
+      {/* Subtle shine effect */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+
+      <div className="relative max-w-7xl mx-auto px-10 sm:px-12 py-2 sm:py-2.5 flex items-center justify-center gap-3 sm:gap-4">
         <Link
           href="/kategori/kis-koleksiyonu"
-          className="group flex items-center gap-2 sm:gap-3 text-[11px] sm:text-sm tracking-wide hover:opacity-90 transition-opacity"
+          className="group flex flex-col sm:flex-row items-center justify-center gap-y-0.5 gap-x-3 sm:gap-x-4 text-center hover:opacity-95 transition-opacity"
           data-testid="link-winter-promo"
         >
-          <span className="hidden sm:inline font-bold uppercase tracking-widest text-white">
-            KIŞ FIRSATI
+          {/* Line 1 — Headline */}
+          <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] text-white">
+            <Snowflake className="w-3.5 h-3.5 text-sky-300 animate-pulse" />
+            Kış Fırsatı
           </span>
-          <span className="sm:hidden font-bold">❄️ KIŞ</span>
-          <span className="hidden sm:inline text-white/30">•</span>
-          <span className="text-white/90">
-            Kış ürünlerinde{" "}
+
+          {/* Divider (desktop only) */}
+          <span className="hidden sm:inline-block h-3.5 w-px bg-white/20" />
+
+          {/* Line 2 — Offer details */}
+          <span className="inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-[13px] text-white/85 whitespace-nowrap">
             <span className="font-semibold text-white">%15 NET</span>
-            {" + "}
+            <span className="text-white/40">+</span>
             <span className="font-semibold text-white">%10 Sporcu Kodu</span>
-            {" = "}
-            <span className="font-extrabold text-white bg-white/10 px-1.5 py-0.5 rounded">
-              %25 İndirim
+            <span className="text-white/40">=</span>
+            <span className="font-extrabold text-black bg-white px-1.5 py-0.5 rounded text-[11px] sm:text-xs leading-none tracking-tight">
+              %25 İNDİRİM
+            </span>
+            <span className="hidden lg:inline-flex items-center gap-1 ml-1 text-white/80 underline underline-offset-4 decoration-white/30 group-hover:decoration-white/80 transition-all font-medium">
+              Keşfet →
             </span>
           </span>
-          <span className="hidden md:inline-flex items-center gap-1 underline underline-offset-2 group-hover:no-underline text-white/90 font-medium">
-            Hemen Keşfet →
-          </span>
         </Link>
+
         <button
           onClick={handleClose}
           aria-label="Kapat"
-          className="ml-2 sm:ml-4 shrink-0 p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
           data-testid="button-close-winter-promo-bar"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>
     </div>
