@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { SearchOverlay } from '@/components/SearchOverlay';
+import AnnouncementBar from '@/components/AnnouncementBar';
 
 import {
   DropdownMenu,
@@ -143,6 +144,7 @@ export function Header() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 lg:overflow-visible">
+        <AnnouncementBar />
         <div className="bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-xl border-b border-white/5 lg:overflow-visible">
           <div className="hidden lg:block border-b border-white/5 overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900">
             <div className="relative h-9 flex items-center">

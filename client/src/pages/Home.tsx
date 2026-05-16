@@ -1,5 +1,6 @@
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import WinterPromoPopup from '@/components/WinterPromoPopup';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
 import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
@@ -291,6 +292,7 @@ export default function Home() {
         url="/"
       />
       <Header />
+      <WinterPromoPopup />
 
       <section className="relative h-screen overflow-hidden noise-overlay" data-testid="section-hero">
         {heroImages.map((img, index) => (
