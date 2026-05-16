@@ -58,8 +58,8 @@ export default function WinterPromoPopup() {
         data-testid="button-backdrop-close"
       />
 
-      {/* Card — narrower on desktop since the image is portrait, prevents oversize */}
-      <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white animate-in zoom-in-95 duration-300 flex flex-col">
+      {/* Card — compact on desktop (image is portrait). Use fixed small width + height cap. */}
+      <div className="relative w-full max-w-[320px] sm:max-w-[340px] md:max-w-[360px] mx-auto max-h-[78vh] rounded-2xl overflow-hidden shadow-2xl bg-white animate-in zoom-in-95 duration-300 flex flex-col">
         <button
           onClick={() => setOpen(false)}
           aria-label="Kapat"
