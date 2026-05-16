@@ -98,7 +98,7 @@ function App() {
             <TooltipProvider>
               <Toaster />
               <Router />
-              <ChatbotWrapper />
+              {/* <ChatbotWrapper /> — geçici olarak gizlendi (kullanıcı isteği) */}
             </TooltipProvider>
           </CartModalProvider>
         </CartProvider>
