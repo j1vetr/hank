@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Link } from "wouter";
 
-const STORAGE_KEY = "hank_winter_promo_popup_shown_v1";
+const STORAGE_KEY = "hank_winter_promo_popup_shown_v2";
 const SHOW_DELAY_MS = 1800;
 
 export default function WinterPromoPopup() {
@@ -79,10 +79,10 @@ export default function WinterPromoPopup() {
           <picture>
             <source
               media="(min-width: 640px)"
-              srcSet="/uploads/promo/winter-promo.jpg"
+              srcSet="/uploads/promo/winter-promo.jpg?v=2"
             />
             <img
-              src="/uploads/promo/winter-promo-mobile.jpg"
+              src="/uploads/promo/winter-promo-mobile.jpg?v=2"
               alt="HANK Kış Kampanyası — %25 toplam indirim"
               loading="eager"
               className="w-full h-auto block group-hover:scale-[1.01] transition-transform duration-500"
