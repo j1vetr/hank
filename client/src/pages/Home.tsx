@@ -67,7 +67,7 @@ type FeaturedCollectionData = {
   title: string;
   subtitle: string;
   categorySlug: string;
-  products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }>;
+  products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[]; discountBadge?: string | null; isNew?: boolean; stockQuantity?: number }>;
 };
 
 const FeaturedCollectionSection = memo(function FeaturedCollectionSection() {

@@ -1199,6 +1199,9 @@ export async function registerRoutes(
         slug: p.slug,
         basePrice: p.basePrice,
         images: p.images,
+        discountBadge: p.discountBadge,
+        isNew: p.isNew,
+        stockQuantity: p.stockQuantity,
       }));
 
       res.json({
