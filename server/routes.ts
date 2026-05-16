@@ -1170,6 +1170,50 @@ export async function registerRoutes(
     }
   });
 
+  // Featured Collection — public homepage section configurable from admin settings
+  app.get("/api/featured-collection", async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      const enabled = settings.featured_collection_enabled === 'true';
+      const categoryId = settings.featured_collection_category_id || '';
+      const title = settings.featured_collection_title || '';
+      const subtitle = settings.featured_collection_subtitle || '';
+
+      if (!enabled || !categoryId) {
+        return res.json({ enabled: false, title: '', subtitle: '', categorySlug: '', products: [] });
+      }
+
+      const allCategories = await storage.getCategories();
+      const cat = allCategories.find(c => c.id === categoryId);
+      if (!cat) {
+        return res.json({ enabled: false, title: '', subtitle: '', categorySlug: '', products: [] });
+      }
+
+      // Use getProducts() which matches both the legacy products.categoryId column
+      // AND the product_categories join table — getProductsByCategoryIds() only
+      // checks the join table and would miss legacy single-category products.
+      const products = await storage.getProducts({ categoryId });
+      const slim = products.slice(0, 8).map(p => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        basePrice: p.basePrice,
+        images: p.images,
+      }));
+
+      res.json({
+        enabled: true,
+        title: title || cat.name,
+        subtitle,
+        categorySlug: cat.slug,
+        products: slim,
+      });
+    } catch (error) {
+      console.error('[FeaturedCollection] error:', error);
+      res.status(500).json({ error: 'Failed to fetch featured collection' });
+    }
+  });
+
   // Products API
   app.get("/api/products", async (req, res) => {
     try {

@@ -3,9 +3,10 @@ import { Footer } from '@/components/Footer';
 import WinterPromoPopup from '@/components/WinterPromoPopup';
 import { ProductCard } from '@/components/ProductCard';
 import { SEO } from '@/components/SEO';
-import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap } from 'lucide-react';
+import { ArrowRight, ChevronRight, Truck, RotateCcw, Shield, Zap, Sparkles } from 'lucide-react';
 import { Link } from 'wouter';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
 import heroImage1 from '@assets/hero-1.webp';
 import heroImage2 from '@assets/hero-2.webp';
@@ -58,6 +59,77 @@ const HeroProductSlider = memo(function HeroProductSlider({ products }: { produc
         ))}
       </div>
     </div>
+  );
+});
+
+type FeaturedCollectionData = {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  categorySlug: string;
+  products: Array<{ id: string; name: string; slug: string; basePrice: string; images: string[] }>;
+};
+
+const FeaturedCollectionSection = memo(function FeaturedCollectionSection() {
+  const { data } = useQuery<FeaturedCollectionData>({
+    queryKey: ['/api/featured-collection'],
+    queryFn: async () => {
+      const res = await fetch('/api/featured-collection');
+      if (!res.ok) throw new Error('Failed to load featured collection');
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (!data || !data.enabled || data.products.length === 0) return null;
+
+  return (
+    <section className="py-20 lg:py-28 px-6 relative bg-black" data-testid="section-featured-collection">
+      <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-black to-zinc-950" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+      <div className="max-w-[1400px] mx-auto relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 mb-10 lg:mb-14"
+        >
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs sm:text-sm tracking-[0.3em] uppercase text-white/60 mb-4">
+              <Sparkles className="w-3.5 h-3.5 text-sky-300" />
+              {data.subtitle || 'Öne Çıkan Koleksiyon'}
+            </span>
+            <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-wide text-white">
+              {data.title}
+            </h2>
+          </div>
+          <Link
+            href={`/kategori/${data.categorySlug}`}
+            className="group flex items-center gap-3 px-6 py-3 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all"
+            data-testid="link-featured-collection-all"
+          >
+            <span className="text-sm font-medium tracking-wider uppercase">Tümünü Gör</span>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </motion.div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          {data.products.map((product, index) => (
+            <motion.div
+              key={product.id}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, delay: (index % 4) * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+            >
+              <ProductCard product={product as any} />
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 });
 
@@ -575,6 +647,8 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      <FeaturedCollectionSection />
 
       <section ref={productsRef} className="py-24 lg:py-32 px-6 relative" data-testid="section-products">
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-background to-zinc-900/50" />

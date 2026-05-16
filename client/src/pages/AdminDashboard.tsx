@@ -6277,6 +6277,19 @@ function SettingsPanel() {
     smtp_secure: 'false',
     admin_email: '',
     site_url: '',
+    featured_collection_enabled: 'false',
+    featured_collection_category_id: '',
+    featured_collection_title: '',
+    featured_collection_subtitle: '',
+  });
+
+  const { data: allCategories = [] } = useQuery<Array<{ id: string; name: string; slug: string }>>({
+    queryKey: ['/api/categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      if (!res.ok) throw new Error('Failed to fetch categories');
+      return res.json();
+    },
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -6291,6 +6304,10 @@ function SettingsPanel() {
     smtp_secure?: string;
     admin_email?: string;
     site_url?: string;
+    featured_collection_enabled?: string;
+    featured_collection_category_id?: string;
+    featured_collection_title?: string;
+    featured_collection_subtitle?: string;
   }>({
     queryKey: ['/api/admin/settings'],
   });
@@ -6516,6 +6533,74 @@ function SettingsPanel() {
             {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             Test Gönder
           </button>
+        </div>
+      </div>
+
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-zinc-800 rounded-lg">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-white">Anasayfa Öne Çıkan Koleksiyon</h3>
+            <p className="text-sm text-zinc-400">"Popüler Ürünler" bölümünün üzerinde gösterilecek kampanya koleksiyonu</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.featured_collection_enabled === 'true'}
+              onChange={(e) => setSettings(s => ({ ...s, featured_collection_enabled: e.target.checked ? 'true' : 'false' }))}
+              className="w-5 h-5 rounded bg-zinc-800 border-zinc-700"
+              data-testid="checkbox-featured-collection-enabled"
+            />
+            <span className="text-sm text-white font-medium">Bu bölümü anasayfada göster</span>
+          </label>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Kategori</label>
+            <select
+              value={settings.featured_collection_category_id}
+              onChange={(e) => setSettings(s => ({ ...s, featured_collection_category_id: e.target.value }))}
+              className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+              data-testid="select-featured-collection-category"
+            >
+              <option value="">— Kategori seçin —</option>
+              {allCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-zinc-500 mt-1">Seçilen kategoriden ilk 8 ürün gösterilir</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Başlık</label>
+              <input
+                type="text"
+                value={settings.featured_collection_title}
+                onChange={(e) => setSettings(s => ({ ...s, featured_collection_title: e.target.value }))}
+                placeholder="KIŞ KOLEKSİYONU"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                data-testid="input-featured-collection-title"
+              />
+              <p className="text-xs text-zinc-500 mt-1">Boş bırakılırsa kategori adı kullanılır</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">Üst Başlık (küçük yazı)</label>
+              <input
+                type="text"
+                value={settings.featured_collection_subtitle}
+                onChange={(e) => setSettings(s => ({ ...s, featured_collection_subtitle: e.target.value }))}
+                placeholder="Sezonun En İyileri"
+                className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:border-white transition-colors"
+                data-testid="input-featured-collection-subtitle"
+              />
+              <p className="text-xs text-zinc-500 mt-1">Başlığın üzerinde küçük etiket olarak görünür</p>
+            </div>
+          </div>
         </div>
       </div>
 
