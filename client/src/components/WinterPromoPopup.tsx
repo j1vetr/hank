@@ -58,8 +58,8 @@ export default function WinterPromoPopup() {
         data-testid="button-backdrop-close"
       />
 
-      {/* Card */}
-      <div className="relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-2xl bg-white animate-in zoom-in-95 duration-300">
+      {/* Card — narrower on desktop since the image is portrait, prevents oversize */}
+      <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white animate-in zoom-in-95 duration-300 flex flex-col">
         <button
           onClick={() => setOpen(false)}
           aria-label="Kapat"
@@ -73,7 +73,7 @@ export default function WinterPromoPopup() {
         <Link
           href="/kategori/kis-koleksiyonu"
           onClick={() => setOpen(false)}
-          className="block group"
+          className="block group flex-1 min-h-0 overflow-hidden"
           data-testid="link-winter-promo-image"
         >
           <picture>
@@ -85,7 +85,7 @@ export default function WinterPromoPopup() {
               src="/uploads/promo/winter-promo-mobile.jpg?v=2"
               alt="HANK Kış Kampanyası — %25 toplam indirim"
               loading="eager"
-              className="w-full h-auto block group-hover:scale-[1.01] transition-transform duration-500"
+              className="w-full h-full object-contain block group-hover:scale-[1.01] transition-transform duration-500"
             />
           </picture>
         </Link>
