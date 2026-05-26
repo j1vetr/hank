@@ -91,10 +91,7 @@ export default function WinterPromoPopup() {
         </Link>
 
         {/* CTA bar below image */}
-        <div className="bg-white px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-zinc-100">
-          <p className="text-zinc-700 text-xs sm:text-sm text-center sm:text-left">
-            Sporcu kodunu sepette gir, <strong className="text-black">+%10 ek indirim</strong> kazan!
-          </p>
+        <div className="bg-white px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-center border-t border-zinc-100">
           <Link
             href="/magaza"
             onClick={() => setOpen(false)}
