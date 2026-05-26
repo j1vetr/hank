@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Link } from "wouter";
 
-const STORAGE_KEY = "hank_winter_promo_popup_shown_v2";
+const STORAGE_KEY = "hank_winter_promo_popup_shown_v3";
 const SHOW_DELAY_MS = 1800;
 
 export default function WinterPromoPopup() {
@@ -71,7 +71,7 @@ export default function WinterPromoPopup() {
 
         {/* Responsive image: aspect 3:2 desktop, 4:3 mobile */}
         <Link
-          href="/kategori/kis-koleksiyonu"
+          href="/magaza"
           onClick={() => setOpen(false)}
           className="block group flex-1 min-h-0 overflow-hidden"
           data-testid="link-winter-promo-image"
@@ -83,7 +83,7 @@ export default function WinterPromoPopup() {
             />
             <img
               src="/uploads/promo/winter-promo-mobile.jpg?v=2"
-              alt="HANK Kış Kampanyası — %25 toplam indirim"
+              alt="HANK Kampanyası — Tüm ürünlerde %30 toplam indirim"
               loading="eager"
               className="w-full h-full object-contain block group-hover:scale-[1.01] transition-transform duration-500"
             />
@@ -96,7 +96,7 @@ export default function WinterPromoPopup() {
             Sporcu kodunu sepette gir, <strong className="text-black">+%10 ek indirim</strong> kazan!
           </p>
           <Link
-            href="/kategori/kis-koleksiyonu"
+            href="/magaza"
             onClick={() => setOpen(false)}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-black hover:bg-zinc-800 text-white font-semibold rounded-full text-sm transition-colors whitespace-nowrap"
             data-testid="button-winter-popup-cta"
