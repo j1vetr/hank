@@ -77,7 +77,7 @@ export function Footer() {
 
         <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-white/40">
-            © 2025 HANK. Tüm hakları saklıdır.
+            © 2026 HANK | Tüm Hakları Saklıdır.
           </p>
           <div className="flex items-center gap-3 text-sm text-white/40">
             <span>Geliştirici & Tasarım:</span>
