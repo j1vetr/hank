@@ -41,7 +41,6 @@ export default function AnnouncementBar() {
         >
           {/* Line 1 — Headline */}
           <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] text-white">
-            <Snowflake className="w-3.5 h-3.5 text-sky-300 animate-pulse" />
             Tüm Ürünlerde
           </span>
 
