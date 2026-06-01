@@ -79,10 +79,10 @@ export default function WinterPromoPopup() {
           <picture>
             <source
               media="(min-width: 640px)"
-              srcSet="/uploads/promo/winter-promo.jpg?v=3"
+              srcSet="/uploads/promo/winter-promo.jpg?v=4"
             />
             <img
-              src="/uploads/promo/winter-promo-mobile.jpg?v=3"
+              src="/uploads/promo/winter-promo-mobile.jpg?v=4"
               alt="HANK Kampanyası — Tüm ürünlerde %30 toplam indirim"
               loading="eager"
               className="w-full h-full object-contain block group-hover:scale-[1.01] transition-transform duration-500"
