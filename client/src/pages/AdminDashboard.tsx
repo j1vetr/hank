@@ -4030,12 +4030,33 @@ function influencerInitials(name: string) {
 }
 
 function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; onBack: () => void; onPay: (id: string) => void }) {
+  const queryClient = useQueryClient();
+  const [adjustingId, setAdjustingId] = useState<string | null>(null);
+
   const { data, isLoading } = useQuery({
     queryKey: ['influencer-detail', couponId],
     queryFn: async () => {
       const res = await fetch(`/api/admin/influencer/${couponId}/detail`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch');
       return res.json();
+    },
+  });
+
+  const adjustCommissionMutation = useMutation({
+    mutationFn: async ({ amount }: { amount: number }) => {
+      const res = await fetch(`/api/admin/influencer-coupons/${couponId}/adjust-commission`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ amount }),
+      });
+      if (!res.ok) throw new Error('Komisyon düzeltilemedi');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['influencer-detail', couponId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+      setAdjustingId(null);
     },
   });
 
@@ -4247,11 +4268,27 @@ function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; o
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wider">Durum</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">Tutar</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">İndirim</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wider">İşlem</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
                 {redemptions.map((r: any) => {
                   const sc = STATUS_CFG[r.orderStatus] || { label: r.orderStatus, cls: 'bg-zinc-700 text-zinc-400' };
+                  const isCancelled = r.orderStatus === 'cancelled';
+
+                  // Calculate the commission this order generated
+                  let orderCommission = 0;
+                  if (isCancelled) {
+                    const orderTotal = parseFloat(r.orderTotal || '0');
+                    if (influencer.commissionType === 'percentage') {
+                      orderCommission = (orderTotal * parseFloat(influencer.commissionValue || '0')) / 100;
+                    } else if (influencer.commissionType === 'per_use') {
+                      orderCommission = parseFloat(influencer.commissionValue || '0');
+                    }
+                  }
+
+                  const isAdjusting = adjustingId === r.id;
+
                   return (
                     <tr key={r.id} className="hover:bg-zinc-800/30 transition-colors">
                       <td className="px-6 py-3.5 text-sm text-zinc-400">
@@ -4263,6 +4300,37 @@ function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; o
                       </td>
                       <td className="px-6 py-3.5 text-sm text-white text-right font-medium">{fp(r.orderTotal || 0)}</td>
                       <td className="px-6 py-3.5 text-sm text-green-400 text-right">{fp(r.discountAmount || 0)}</td>
+                      <td className="px-6 py-3.5 text-right">
+                        {isCancelled && orderCommission > 0 ? (
+                          isAdjusting ? (
+                            <span className="inline-flex items-center gap-2">
+                              <span className="text-xs text-zinc-400">{fp(orderCommission)} düşülecek</span>
+                              <button
+                                onClick={() => adjustCommissionMutation.mutate({ amount: orderCommission })}
+                                disabled={adjustCommissionMutation.isPending}
+                                className="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {adjustCommissionMutation.isPending ? '...' : 'Onayla'}
+                              </button>
+                              <button
+                                onClick={() => setAdjustingId(null)}
+                                className="px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs rounded-lg transition-colors"
+                              >
+                                İptal
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setAdjustingId(r.id)}
+                              className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/40 border border-red-600/30 text-red-400 text-xs font-medium rounded-lg transition-colors"
+                            >
+                              Komisyon Düşür
+                            </button>
+                          )
+                        ) : (
+                          <span className="text-zinc-700 text-xs">—</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

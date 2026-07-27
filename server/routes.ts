@@ -3774,6 +3774,27 @@ export async function registerRoutes(
     }
   });
 
+  // Manual commission adjustment (deduct a specific amount)
+  app.post("/api/admin/influencer-coupons/:id/adjust-commission", requireAdmin, async (req, res) => {
+    try {
+      const { amount } = req.body;
+      if (typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ error: "Geçersiz tutar" });
+      }
+      const coupon = await storage.getCoupon(req.params.id);
+      if (!coupon || !coupon.isInfluencerCode) {
+        return res.status(404).json({ error: "Influencer kodu bulunamadı" });
+      }
+      const current = parseFloat(coupon.totalCommissionEarned || '0');
+      const newValue = Math.max(0, current - amount).toFixed(2);
+      const updated = await storage.updateCoupon(coupon.id, { totalCommissionEarned: newValue });
+      res.json({ ok: true, previous: current.toFixed(2), current: newValue, coupon: updated });
+    } catch (error) {
+      console.error('Commission adjust error:', error);
+      res.status(500).json({ error: "Komisyon düzeltilemedi" });
+    }
+  });
+
   // Bulk add influencers
   app.post("/api/admin/influencer-coupons/bulk", requireAdmin, async (req, res) => {
     try {
