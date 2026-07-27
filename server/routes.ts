@@ -3954,18 +3954,24 @@ export async function registerRoutes(
         }
 
         const orderTotal = parseFloat(r.order?.total || '0');
-        monthlyMap[monthKey].count += 1;
-        monthlyMap[monthKey].revenue += orderTotal;
-        totalRevenue += orderTotal;
+        const isCancelled = r.order?.status === 'cancelled';
 
-        let commission = 0;
-        if (coupon.commissionType === 'percentage') {
-          commission = orderTotal * (parseFloat(coupon.commissionValue || '0') / 100);
-        } else if (coupon.commissionType === 'per_use') {
-          commission = parseFloat(coupon.commissionValue || '0');
+        monthlyMap[monthKey].count += 1;
+
+        // Only count revenue and commission for non-cancelled orders
+        if (!isCancelled) {
+          monthlyMap[monthKey].revenue += orderTotal;
+          totalRevenue += orderTotal;
+
+          let commission = 0;
+          if (coupon.commissionType === 'percentage') {
+            commission = orderTotal * (parseFloat(coupon.commissionValue || '0') / 100);
+          } else if (coupon.commissionType === 'per_use') {
+            commission = parseFloat(coupon.commissionValue || '0');
+          }
+          monthlyMap[monthKey].commission += commission;
+          totalCommissionAllTime += commission;
         }
-        monthlyMap[monthKey].commission += commission;
-        totalCommissionAllTime += commission;
       }
 
       const monthlyData = Object.values(monthlyMap).sort((a, b) => b.month.localeCompare(a.month));

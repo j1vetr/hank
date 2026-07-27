@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import OrdersPanel from './AdminOrdersPanel';
 import { 
   LayoutDashboard, 
@@ -4031,6 +4032,7 @@ function influencerInitials(name: string) {
 
 function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; onBack: () => void; onPay: (id: string) => void }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -4053,9 +4055,23 @@ function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; o
       if (!res.ok) throw new Error('Komisyon düzeltilemedi');
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['influencer-detail', couponId] });
       queryClient.invalidateQueries({ queryKey: ['admin-influencer-coupons'] });
+      setAdjustingId(null);
+      const fp2 = (v: number) =>
+        new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(v);
+      toast({
+        title: 'Komisyon düzeltildi',
+        description: `${fp2(parseFloat(data.previous))} → ${fp2(parseFloat(data.current))} (−${fp2(parseFloat(data.previous) - parseFloat(data.current))})`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Hata',
+        description: err?.message || 'Komisyon düzeltilemedi',
+        variant: 'destructive',
+      });
       setAdjustingId(null);
     },
   });
