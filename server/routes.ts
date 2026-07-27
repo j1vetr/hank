@@ -3708,6 +3708,32 @@ export async function registerRoutes(
         isPrivate: false,
       });
 
+      // Deduct influencer commission if this order used an influencer coupon
+      if (order.couponCode) {
+        const coupon = await storage.getCouponByCode(order.couponCode);
+        if (coupon && coupon.isInfluencerCode) {
+          // Decrement usage count
+          await db.execute(sql`UPDATE coupons SET usage_count = GREATEST(0, usage_count - 1) WHERE id = ${coupon.id}`);
+
+          // Recalculate and deduct the commission that was added for this order
+          let commission = 0;
+          const orderTotal = parseFloat(order.total);
+          switch (coupon.commissionType) {
+            case 'percentage':
+              commission = (orderTotal * parseFloat(coupon.commissionValue || '0')) / 100;
+              break;
+            case 'per_use':
+              commission = parseFloat(coupon.commissionValue || '0');
+              break;
+          }
+          if (commission > 0) {
+            const currentCommission = parseFloat(coupon.totalCommissionEarned || '0');
+            const newCommission = Math.max(0, currentCommission - commission).toFixed(2);
+            await storage.updateCoupon(coupon.id, { totalCommissionEarned: newCommission });
+          }
+        }
+      }
+
       res.json(updatedOrder);
     } catch (error) {
       console.error('Order cancellation error:', error);
