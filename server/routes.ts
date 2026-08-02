@@ -4145,6 +4145,7 @@ export async function registerRoutes(
   });
 
   // Abandoned Cart Reminder - Get users with cart items
+  // Basic list (kept for backward compat)
   app.get("/api/admin/abandoned-carts", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getUsersWithCartItems();
@@ -4152,6 +4153,56 @@ export async function registerRoutes(
     } catch (error) {
       console.error('[Admin] Abandoned carts error:', error);
       res.status(500).json({ error: "Sepet bilgileri alınamadı" });
+    }
+  });
+
+  // Enriched: users + their cart items + product details in one call
+  app.get("/api/admin/abandoned-carts/details", requireAdmin, async (req, res) => {
+    try {
+      const usersRaw = await storage.getUsersWithCartItems();
+      const result = await Promise.all(
+        usersRaw.map(async (user) => {
+          const items = await storage.getCartItems(user.id);
+          const enrichedItems = await Promise.all(
+            items.map(async (item) => {
+              const variant = item.variantId ? await storage.getProductVariant(item.variantId) : null;
+              const actualProductId = variant?.productId || item.productId;
+              const product = await storage.getProduct(actualProductId);
+              return {
+                id: item.id,
+                productId: actualProductId,
+                productName: product?.name || 'Bilinmeyen Ürün',
+                productImage: product?.images?.[0] || null,
+                variantDetails: variant ? `${variant.size || ''}${variant.color ? ' · ' + variant.color : ''}`.trim() : null,
+                price: variant?.price || product?.basePrice || '0',
+                quantity: item.quantity,
+                addedAt: item.createdAt,
+              };
+            })
+          );
+          const cartTotal = enrichedItems.reduce(
+            (sum, i) => sum + parseFloat(i.price) * i.quantity, 0
+          );
+          return {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+            cartTotal,
+            itemCount: enrichedItems.length,
+            items: enrichedItems,
+            oldestItemAt: enrichedItems.reduce((oldest, i) =>
+              !oldest || new Date(i.addedAt) < new Date(oldest) ? i.addedAt : oldest, null as any),
+          };
+        })
+      );
+      // Sort by oldest cart first (longest waiting)
+      result.sort((a, b) => new Date(a.oldestItemAt).getTime() - new Date(b.oldestItemAt).getTime());
+      res.json(result);
+    } catch (error) {
+      console.error('[Admin] Abandoned carts details error:', error);
+      res.status(500).json({ error: "Sepet detayları alınamadı" });
     }
   });
 
