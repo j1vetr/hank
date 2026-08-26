@@ -402,13 +402,14 @@ export default function Cart() {
                  {recommendations?.sections.complementary.length ? (
                    <RecommendationSection
                      title="BUNLAR DA İYİ GİDER"
-                     description="Sepetinizdeki ürünlerle birlikte sık tercih edilen seçimler"
+                     description=""
                      products={recommendations.sections.complementary}
                      addingProductId={addingProductId}
                      onAdd={handleRecommendationAdd}
                      onNotify={setNotifyTarget}
                      accent="neutral"
                      showIcon={false}
+                     titleSize="large"
                    />
                  ) : null}
 
@@ -588,6 +589,7 @@ function RecommendationSection({
   onNotify,
   accent = 'emerald',
   showIcon = true,
+  titleSize = 'default',
 }: {
   title: string;
   description: string;
@@ -597,6 +599,7 @@ function RecommendationSection({
   onNotify: (product: RecommendationProduct) => void;
   accent?: 'emerald' | 'violet' | 'amber' | 'neutral';
   showIcon?: boolean;
+  titleSize?: 'default' | 'large';
 }) {
   const accentClasses = {
     emerald: 'border-emerald-400/20 from-emerald-500/10',
@@ -614,13 +617,13 @@ function RecommendationSection({
           </div>
         )}
         <div>
-          <h2 className="font-display tracking-wide text-lg">{title}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+          <h2 className={`font-display tracking-wide ${titleSize === 'large' ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-lg'}`}>{title}</h2>
+          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
         {products.map(product => (
-          <article key={product.id} className="rounded-xl bg-black/25 border border-white/5 p-3 min-w-0">
+          <article key={product.id} className="min-w-[82%] snap-start rounded-xl bg-black/25 border border-white/5 p-3 sm:min-w-0">
             <Link href={`/urun/${product.slug}`}>
               <div className="aspect-square overflow-hidden rounded-lg bg-zinc-800">
                 {product.images[0] ? (
