@@ -45,6 +45,15 @@ function productCategoriesFor(product: Product, categoryMap: Map<string, Set<str
   return categories;
 }
 
+function shuffle<T>(items: T[]): T[] {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 function toCard(product: Product, variants: Array<typeof productVariants.$inferSelect>, source: RecommendationSource): RecommendationCard {
   const activeVariants = variants.filter(variant => variant.isActive);
   const inStockVariant = activeVariants.find(variant => variant.stock > 0) || null;
@@ -112,14 +121,15 @@ export async function getCartRecommendations(
   const byId = new Map(allProducts.map(product => [product.id, product]));
   const cartProductIds = new Set(cartItems.map(item => item.productId));
   const usedIds = new Set(cartProductIds);
-  const addCandidates = (ids: string[], source: RecommendationSource, limit: number) => {
+  const addCandidates = (ids: string[], source: RecommendationSource, limit: number, inStockOnly = false) => {
     const cards: RecommendationCard[] = [];
     for (const id of ids) {
       if (cards.length >= limit || usedIds.has(id)) continue;
       const product = byId.get(id);
       if (!product) continue;
-      usedIds.add(id);
       const card = toCard(product, variantsByProduct.get(id) || [], source);
+      if (inStockOnly && card.isOutOfStock) continue;
+      usedIds.add(id);
       cards.push(card);
     }
     return cards;
@@ -132,10 +142,16 @@ export async function getCartRecommendations(
     .filter(product => Array.from(productCategoriesFor(product, categoryMap)).some(id => cartCategories.has(id)))
     .sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured) || b.createdAt.getTime() - a.createdAt.getTime())
     .map(product => product.id);
+  const complementaryCandidateIds = shuffle([
+    ...relatedIds,
+    ...sameCategoryIds,
+    ...allProducts.filter(product => product.isFeatured).map(product => product.id),
+  ]);
   const complementary = addCandidates(
-    [...relatedIds, ...sameCategoryIds, ...allProducts.filter(product => product.isFeatured).map(product => product.id)],
+    complementaryCandidateIds,
     "complementary",
     3,
+    true,
   );
 
   const groupSize = campaign ? campaign.buyQuantity + campaign.rewardQuantity : 0;

@@ -407,6 +407,8 @@ export default function Cart() {
                      addingProductId={addingProductId}
                      onAdd={handleRecommendationAdd}
                      onNotify={setNotifyTarget}
+                     accent="neutral"
+                     showIcon={false}
                    />
                  ) : null}
 
@@ -585,6 +587,7 @@ function RecommendationSection({
   onAdd,
   onNotify,
   accent = 'emerald',
+  showIcon = true,
 }: {
   title: string;
   description: string;
@@ -592,20 +595,24 @@ function RecommendationSection({
   addingProductId: string | null;
   onAdd: (product: RecommendationProduct) => Promise<void>;
   onNotify: (product: RecommendationProduct) => void;
-  accent?: 'emerald' | 'violet' | 'amber';
+  accent?: 'emerald' | 'violet' | 'amber' | 'neutral';
+  showIcon?: boolean;
 }) {
   const accentClasses = {
     emerald: 'border-emerald-400/20 from-emerald-500/10',
     violet: 'border-violet-400/20 from-violet-500/10',
     amber: 'border-amber-400/20 from-amber-500/10',
+    neutral: 'border-white/10 from-white/[0.04]',
   }[accent];
 
   return (
     <section className={`rounded-2xl border bg-gradient-to-br ${accentClasses} to-zinc-900/60 p-4 sm:p-5`} data-testid={`recommendation-section-${accent}`}>
       <div className="flex gap-3 mb-4">
-        <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-white/80" />
-        </div>
+        {showIcon && (
+          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-white/80" />
+          </div>
+        )}
         <div>
           <h2 className="font-display tracking-wide text-lg">{title}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
