@@ -34,21 +34,23 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="fixed inset-0 bg-black/80 z-[100]"
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg px-4"
+            style={{ willChange: 'transform, opacity' }}
           >
             <div className="relative pt-8">
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: [0, 1.2, 1] }}
-                transition={{ delay: 0.2, duration: 0.5 }}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.16, ease: 'easeOut' }}
                 className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 z-10"
               >
                 <Check className="w-6 h-6 text-white" strokeWidth={3} />
@@ -67,27 +69,14 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
               </button>
 
               <div className="pt-10 pb-6 px-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-center mb-6"
-                >
+                <div className="text-center mb-6">
                   <h3 className="font-display text-xl tracking-wide mb-1">SEPETE EKLENDİ</h3>
                   <p className="text-sm text-muted-foreground">Harika seçim!</p>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex gap-4 bg-black/30 rounded-xl p-4 border border-white/5"
-                >
+                <div className="flex gap-4 bg-black/30 rounded-xl p-4 border border-white/5">
                   <div className="relative w-24 h-28 rounded-lg overflow-hidden shrink-0 bg-zinc-800">
-                    <motion.img
-                      initial={{ scale: 1.2 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.5, duration: 0.6 }}
+                    <img
                       src={product.image}
                       alt={product.name}
                       className="w-full h-full object-cover"
@@ -108,14 +97,9 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                       {product.price.toLocaleString('tr-TR')} ₺
                     </p>
                   </div>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="mt-4"
-                >
+                <div className="mt-4">
                   {remainingForFreeShipping > 0 ? (
                     <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-lg p-3">
                       <div className="flex items-center gap-2 mb-2">
@@ -143,27 +127,17 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                       </div>
                     </div>
                   )}
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex items-center justify-between mt-4 py-3 border-t border-white/5"
-                >
+                <div className="flex items-center justify-between mt-4 py-3 border-t border-white/5">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ShoppingBag className="w-4 h-4" />
                     <span>Sepetinizde {cartItemCount} ürün</span>
                   </div>
                   <span className="font-bold">{cartTotal.toLocaleString('tr-TR')} ₺</span>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="flex gap-3 mt-4"
-                >
+                <div className="flex gap-3 mt-4">
                   <Button
                     variant="outline"
                     onClick={onClose}
@@ -181,14 +155,9 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                       <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </Link>
-                </motion.div>
+                </div>
                 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                  className="mt-3"
-                >
+                <div className="mt-3">
                   <Link href="/odeme" onClick={onClose} className="block">
                     <Button
                       variant="ghost"
@@ -199,15 +168,10 @@ export function CartSuccessModal({ isOpen, onClose, product, cartTotal, cartItem
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </Link>
-                </motion.div>
+                </div>
               </div>
 
-              <motion.div
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-                className="h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent origin-left"
-              />
+              <div className="h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               </div>
             </div>
           </motion.div>
