@@ -53,7 +53,7 @@ export interface CartCampaignPricing {
 interface CartContextType {
   items: CartItem[];
   isLoading: boolean;
-  addToCart: (productId: string, variantId?: string, quantity?: number) => Promise<void>;
+  addToCart: (productId: string, variantId?: string, quantity?: number, source?: "complementary" | "campaign" | "free_shipping") => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -99,11 +99,16 @@ export function useCartProvider() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async ({ productId, variantId, quantity = 1 }: { productId: string; variantId?: string; quantity?: number }) => {
+    mutationFn: async ({ productId, variantId, quantity = 1, source }: {
+      productId: string;
+      variantId?: string;
+      quantity?: number;
+      source?: "complementary" | "campaign" | "free_shipping";
+    }) => {
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, variantId, quantity }),
+        body: JSON.stringify({ productId, variantId, quantity, source }),
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Sepete eklenemedi');
@@ -169,8 +174,8 @@ export function useCartProvider() {
   return {
     items,
     isLoading,
-    addToCart: async (productId: string, variantId?: string, quantity = 1) => {
-      await addMutation.mutateAsync({ productId, variantId, quantity });
+    addToCart: async (productId: string, variantId?: string, quantity = 1, source?: "complementary" | "campaign" | "free_shipping") => {
+      await addMutation.mutateAsync({ productId, variantId, quantity, source });
       await queryClient.refetchQueries({ queryKey: ['cart'] });
       await queryClient.refetchQueries({ queryKey: ['cart-pricing'] });
     },

@@ -1,8 +1,9 @@
 import { Link } from 'wouter';
+import { useEffect, useRef, useState } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
-import { Minus, Plus, Trash2, ShoppingBag, Truck, Shield, RotateCcw, ArrowRight, Package, BadgePercent } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, Truck, Shield, RotateCcw, ArrowRight, Package, BadgePercent, Bell, Loader2, Sparkles } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -14,10 +15,44 @@ interface Product {
   images: string[];
 }
 
+type RecommendationSource = 'complementary' | 'campaign' | 'free_shipping';
+
+interface RecommendationProduct {
+  id: string;
+  name: string;
+  slug: string;
+  basePrice: string;
+  images: string[];
+  stock: number;
+  isOutOfStock: boolean;
+  requiresVariant: boolean;
+  defaultVariantId: string | null;
+  defaultVariantLabel: string | null;
+  source: RecommendationSource;
+}
+
+interface CartRecommendations {
+  sections: {
+    complementary: RecommendationProduct[];
+    campaign: RecommendationProduct[];
+    freeShipping: RecommendationProduct[];
+  };
+  freeShipping: {
+    threshold: number;
+    remaining: number;
+  };
+}
+
 const FREE_SHIPPING_THRESHOLD = 2500;
 
 export default function Cart() {
-  const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal, pricing } = useCart();
+  const { items, isLoading, updateQuantity, removeItem, addToCart, totalItems, subtotal, pricing } = useCart();
+  const [addingProductId, setAddingProductId] = useState<string | null>(null);
+  const [notifyTarget, setNotifyTarget] = useState<RecommendationProduct | null>(null);
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifyStatus, setNotifyStatus] = useState<string | null>(null);
+  const [isSubmittingNotification, setIsSubmittingNotification] = useState(false);
+  const seenRecommendationViews = useRef(new Set<string>());
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -25,6 +60,17 @@ export default function Cart() {
       const res = await fetch('/api/products');
       return res.json();
     },
+  });
+
+  const { data: recommendations } = useQuery<CartRecommendations>({
+    queryKey: ['cart-recommendations'],
+    queryFn: async () => {
+      const res = await fetch('/api/cart/recommendations', { credentials: 'include' });
+      if (!res.ok) throw new Error('Öneriler alınamadı');
+      return res.json();
+    },
+    enabled: items.length > 0,
+    staleTime: 0,
   });
 
   const cartItemsWithProducts = items.map(item => {
@@ -38,6 +84,56 @@ export default function Cart() {
   const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
   const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
   const getPricingLine = (cartItemId: string) => pricing?.lines.find(line => line.cartItemId === cartItemId);
+
+  useEffect(() => {
+    if (!recommendations) return;
+    Object.values(recommendations.sections).flat().forEach(product => {
+      const key = `${product.source}:${product.id}`;
+      if (seenRecommendationViews.current.has(key)) return;
+      seenRecommendationViews.current.add(key);
+      fetch('/api/recommendations/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ eventType: 'view', productId: product.id, source: product.source }),
+      }).catch(() => undefined);
+    });
+  }, [recommendations]);
+
+  const handleRecommendationAdd = async (product: RecommendationProduct) => {
+    if (!product.defaultVariantId && product.requiresVariant) return;
+    setAddingProductId(product.id);
+    try {
+      await addToCart(product.id, product.defaultVariantId || undefined, 1, product.source);
+    } finally {
+      setAddingProductId(null);
+    }
+  };
+
+  const handleStockNotification = async () => {
+    if (!notifyTarget) return;
+    setNotifyStatus(null);
+    setIsSubmittingNotification(true);
+    try {
+      const res = await fetch('/api/stock-notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: notifyEmail,
+          productId: notifyTarget.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bildirim isteği kaydedilemedi');
+      setNotifyStatus('Stokta olduğunda size e-posta göndereceğiz.');
+      setNotifyEmail('');
+    } catch (error) {
+      setNotifyStatus(error instanceof Error ? error.message : 'Bildirim isteği kaydedilemedi');
+    } finally {
+      setIsSubmittingNotification(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -302,6 +398,43 @@ export default function Cart() {
                     </motion.div>
                   ))}
                 </AnimatePresence>
+
+                 {recommendations?.sections.complementary.length ? (
+                   <RecommendationSection
+                     title="BUNLAR DA İYİ GİDER"
+                     description="Sepetinizdeki ürünlerle birlikte sık tercih edilen seçimler"
+                     products={recommendations.sections.complementary}
+                     addingProductId={addingProductId}
+                     onAdd={handleRecommendationAdd}
+                     onNotify={setNotifyTarget}
+                   />
+                 ) : null}
+
+                 {recommendations?.sections.campaign.length ? (
+                   <RecommendationSection
+                     title="KAMPANYAYI TAMAMLA"
+                     description={pricing?.remainingItems
+                       ? `${pricing.remainingItems} uygun ürün daha ekleyerek kampanya avantajını yakalayın`
+                       : 'Kampanyaya uygun ürünleri keşfedin'}
+                     products={recommendations.sections.campaign}
+                     addingProductId={addingProductId}
+                     onAdd={handleRecommendationAdd}
+                     onNotify={setNotifyTarget}
+                     accent="violet"
+                   />
+                 ) : null}
+
+                 {recommendations?.sections.freeShipping.length ? (
+                   <RecommendationSection
+                     title="ÜCRETSİZ KARGOYA ULAŞ"
+                     description={`${recommendations.freeShipping.remaining.toLocaleString('tr-TR')} ₺ daha ekleyerek ücretsiz kargodan yararlanın`}
+                     products={recommendations.sections.freeShipping}
+                     addingProductId={addingProductId}
+                     onAdd={handleRecommendationAdd}
+                     onNotify={setNotifyTarget}
+                     accent="amber"
+                   />
+                 ) : null}
               </div>
 
               <div className="lg:col-span-1">
@@ -381,6 +514,145 @@ export default function Cart() {
           )}
         </div>
       </main>
+
+      <AnimatePresence>
+        {notifyTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stock-notification-title"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+            >
+              <div className="w-11 h-11 rounded-full bg-amber-500/15 text-amber-300 flex items-center justify-center mb-4">
+                <Bell className="w-5 h-5" />
+              </div>
+              <h2 id="stock-notification-title" className="font-display text-2xl tracking-wide">HABER VER</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                {notifyTarget.name} yeniden stokta olduğunda size e-posta gönderelim.
+              </p>
+              <input
+                type="email"
+                value={notifyEmail}
+                onChange={event => setNotifyEmail(event.target.value)}
+                placeholder="E-posta adresiniz"
+                className="w-full mt-5 h-11 px-3 rounded-lg bg-zinc-900 border border-white/10 text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/30"
+                data-testid="input-stock-notification-email"
+              />
+              {notifyStatus && (
+                <p className={`text-sm mt-3 ${notifyStatus.startsWith('Stokta') ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {notifyStatus}
+                </p>
+              )}
+              <div className="flex gap-3 mt-5">
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => { setNotifyTarget(null); setNotifyStatus(null); }}
+                >
+                  Vazgeç
+                </Button>
+                <Button
+                  className="flex-1 bg-white text-black hover:bg-white/90"
+                  disabled={isSubmittingNotification}
+                  onClick={handleStockNotification}
+                  data-testid="button-submit-stock-notification"
+                >
+                  {isSubmittingNotification ? <Loader2 className="w-4 h-4 animate-spin" /> : 'BİLDİRİM İSTE'}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function RecommendationSection({
+  title,
+  description,
+  products,
+  addingProductId,
+  onAdd,
+  onNotify,
+  accent = 'emerald',
+}: {
+  title: string;
+  description: string;
+  products: RecommendationProduct[];
+  addingProductId: string | null;
+  onAdd: (product: RecommendationProduct) => Promise<void>;
+  onNotify: (product: RecommendationProduct) => void;
+  accent?: 'emerald' | 'violet' | 'amber';
+}) {
+  const accentClasses = {
+    emerald: 'border-emerald-400/20 from-emerald-500/10',
+    violet: 'border-violet-400/20 from-violet-500/10',
+    amber: 'border-amber-400/20 from-amber-500/10',
+  }[accent];
+
+  return (
+    <section className={`rounded-2xl border bg-gradient-to-br ${accentClasses} to-zinc-900/60 p-4 sm:p-5`} data-testid={`recommendation-section-${accent}`}>
+      <div className="flex gap-3 mb-4">
+        <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-white/80" />
+        </div>
+        <div>
+          <h2 className="font-display tracking-wide text-lg">{title}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {products.map(product => (
+          <article key={product.id} className="rounded-xl bg-black/25 border border-white/5 p-3 min-w-0">
+            <Link href={`/urun/${product.slug}`}>
+              <div className="aspect-square overflow-hidden rounded-lg bg-zinc-800">
+                {product.images[0] ? (
+                  <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                ) : null}
+              </div>
+              <h3 className="text-sm font-medium mt-2 line-clamp-2 hover:text-white/80">{product.name}</h3>
+            </Link>
+            <p className="font-bold text-sm mt-1">{Number(product.basePrice).toLocaleString('tr-TR')} ₺</p>
+            {product.defaultVariantLabel && <p className="text-xs text-muted-foreground mt-1">{product.defaultVariantLabel}</p>}
+            {product.isOutOfStock ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onNotify(product)}
+                className="w-full mt-3 border-amber-400/30 text-amber-200 hover:bg-amber-400/10"
+                data-testid={`button-notify-${product.id}`}
+              >
+                <Bell className="w-3.5 h-3.5 mr-1.5" />
+                HABER VER
+              </Button>
+            ) : product.requiresVariant && !product.defaultVariantId ? (
+              <Link href={`/urun/${product.slug}`}>
+                <Button size="sm" variant="outline" className="w-full mt-3">İNCELE</Button>
+              </Link>
+            ) : (
+              <Button
+                size="sm"
+                onClick={() => onAdd(product)}
+                disabled={addingProductId === product.id}
+                className="w-full mt-3 bg-white text-black hover:bg-white/90"
+                data-testid={`button-add-recommendation-${product.id}`}
+              >
+                {addingProductId === product.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Plus className="w-3.5 h-3.5 mr-1.5" />SEPETE EKLE</>}
+              </Button>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }

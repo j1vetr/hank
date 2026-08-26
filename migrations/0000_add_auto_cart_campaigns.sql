@@ -45,3 +45,27 @@ BEGIN
       FOREIGN KEY ("campaign_id") REFERENCES "auto_cart_campaigns"("id") ON DELETE SET NULL;
   END IF;
 END $$;
+
+ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "related_product_ids" jsonb DEFAULT '[]'::jsonb NOT NULL;
+ALTER TABLE "cart_items" ADD COLUMN IF NOT EXISTS "recommendation_source" text;
+
+CREATE TABLE IF NOT EXISTS "stock_notifications" (
+  "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "email" text NOT NULL,
+  "product_id" varchar NOT NULL REFERENCES "products"("id") ON DELETE CASCADE,
+  "variant_id" varchar REFERENCES "product_variants"("id") ON DELETE CASCADE,
+  "user_id" varchar REFERENCES "users"("id") ON DELETE SET NULL,
+  "notified_at" timestamp,
+  "created_at" timestamp DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "recommendation_events" (
+  "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "session_id" text NOT NULL,
+  "event_type" text NOT NULL,
+  "product_id" varchar REFERENCES "products"("id") ON DELETE SET NULL,
+  "source" text,
+  "order_id" varchar REFERENCES "orders"("id") ON DELETE SET NULL,
+  "value" numeric(10, 2),
+  "created_at" timestamp DEFAULT now() NOT NULL
+);

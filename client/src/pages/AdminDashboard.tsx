@@ -89,6 +89,7 @@ interface Product {
   isActive: boolean;
   isFeatured: boolean;
   isNew: boolean;
+  relatedProductIds?: string[];
   createdAt: string;
 }
 
@@ -5445,7 +5446,7 @@ function InventoryPanel() {
 
 function MarketingPanel() {
   const queryClient = useQueryClient();
-  const [activeSubTab, setActiveSubTab] = useState<'coupons' | 'campaigns' | 'influencers'>('coupons');
+  const [activeSubTab, setActiveSubTab] = useState<'coupons' | 'campaigns' | 'recommendations' | 'influencers'>('coupons');
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
   const [showInfluencerModal, setShowInfluencerModal] = useState(false);
@@ -5666,6 +5667,15 @@ function MarketingPanel() {
         >
           <Users className="w-4 h-4" />
           Influencerlar
+        </button>
+        <button
+          onClick={() => setActiveSubTab('recommendations')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            activeSubTab === 'recommendations' ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-400 hover:text-white'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          Ürün Önerileri
         </button>
       </div>
 
@@ -6016,6 +6026,10 @@ function MarketingPanel() {
         </div>
       )}
 
+      {activeSubTab === 'recommendations' && (
+        <ProductRecommendationsPanel products={campaignProducts} />
+      )}
+
       {showCouponModal && (
         <CouponModal
           coupon={editingCoupon}
@@ -6044,6 +6058,147 @@ function MarketingPanel() {
           isSaving={saveAutoCampaignMutation.isPending}
         />
       )}
+    </div>
+  );
+}
+
+function ProductRecommendationsPanel({ products }: { products: Product[] }) {
+  const queryClient = useQueryClient();
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const selectedProduct = products.find(product => product.id === selectedProductId);
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>([]);
+  const { data: performance = [] } = useQuery<Array<{
+    source: string;
+    views: number;
+    adds: number;
+    notifications: number;
+    conversions: number;
+    averageCartValue: number;
+  }>>({
+    queryKey: ['admin-recommendation-performance'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/analytics/recommendations', { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    setRelatedProductIds(selectedProduct?.relatedProductIds || []);
+  }, [selectedProduct?.id, selectedProduct?.relatedProductIds]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedProduct) throw new Error('Ürün seçin');
+      const res = await fetch(`/api/admin/products/${selectedProduct.id}/recommendations`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ relatedProductIds }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Öneriler kaydedilemedi');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    },
+  });
+
+  const toggleRelatedProduct = (productId: string) => {
+    setRelatedProductIds(current =>
+      current.includes(productId)
+        ? current.filter(id => id !== productId)
+        : [...current, productId],
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'Görüntülenme', value: performance.reduce((sum, item) => sum + item.views, 0) },
+          { label: 'Sepete ekleme', value: performance.reduce((sum, item) => sum + item.adds, 0) },
+          { label: 'Haber ver isteği', value: performance.reduce((sum, item) => sum + item.notifications, 0) },
+          { label: 'Öneriden sipariş', value: performance.reduce((sum, item) => sum + item.conversions, 0) },
+        ].map(metric => (
+          <div key={metric.label} className="rounded-xl bg-zinc-900/50 border border-zinc-800 p-4">
+            <p className="text-xs text-zinc-500">{metric.label}</p>
+            <p className="text-2xl font-semibold text-white mt-1">{metric.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="p-6 border-b border-zinc-800">
+          <h3 className="text-lg font-semibold text-white">Tamamlayıcı Ürün Eşleştirmeleri</h3>
+          <p className="text-sm text-zinc-500 mt-1">
+            Bir ürün sepetteyken gösterilecek ilgili ürünleri seçin. Sepette bulunan ürünler müşteriye tekrar önerilmez.
+          </p>
+        </div>
+        <div className="p-6 grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+          <div>
+            <label className="block text-sm text-zinc-400 mb-2">Ana ürün</label>
+            <select
+              value={selectedProductId}
+              onChange={event => setSelectedProductId(event.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white text-sm"
+              data-testid="select-recommendation-product"
+            >
+              <option value="">Ürün seçin</option>
+              {products.map(product => (
+                <option key={product.id} value={product.id}>{product.name}</option>
+              ))}
+            </select>
+            {selectedProduct && (
+              <div className="mt-4 p-4 rounded-lg bg-zinc-800/60 border border-zinc-700">
+                <p className="text-xs text-zinc-500">Seçili ürün</p>
+                <p className="text-sm text-white font-medium mt-1">{selectedProduct.name}</p>
+                <p className="text-xs text-zinc-500 mt-2">{relatedProductIds.length} tamamlayıcı ürün seçildi</p>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm text-zinc-400 mb-2">Sepette önerilecek ürünler</label>
+            {selectedProduct ? (
+              <>
+                <div className="max-h-72 overflow-y-auto border border-zinc-700 rounded-lg divide-y divide-zinc-800">
+                  {products.filter(product => product.id !== selectedProduct.id).map(product => (
+                    <label key={product.id} className="flex items-center gap-3 p-3 cursor-pointer hover:bg-zinc-800/70">
+                      <input
+                        type="checkbox"
+                        checked={relatedProductIds.includes(product.id)}
+                        onChange={() => toggleRelatedProduct(product.id)}
+                        data-testid={`checkbox-related-product-${product.id}`}
+                      />
+                      {product.images?.[0] && <img src={product.images[0]} alt="" className="w-9 h-9 rounded object-cover" />}
+                      <span className="text-sm text-zinc-200">{product.name}</span>
+                    </label>
+                  ))}
+                </div>
+                {saveMutation.error && (
+                  <p className="text-sm text-red-400 mt-3">{saveMutation.error.message}</p>
+                )}
+                <button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                  className="mt-4 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 disabled:opacity-60"
+                  data-testid="button-save-product-recommendations"
+                >
+                  {saveMutation.isPending ? 'Kaydediliyor...' : 'Önerileri Kaydet'}
+                </button>
+              </>
+            ) : (
+              <div className="h-40 rounded-lg border border-dashed border-zinc-700 flex items-center justify-center text-sm text-zinc-500">
+                Eşleştirmeleri düzenlemek için bir ürün seçin
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

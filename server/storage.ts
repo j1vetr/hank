@@ -21,6 +21,8 @@ import {
   lowStockAlerts,
   campaigns,
   autoCartCampaigns,
+  stockNotifications,
+  recommendationEvents,
   emailJobs,
   siteSettings,
   passwordResetTokens,
@@ -65,6 +67,8 @@ import {
   type InsertCampaign,
   type AutoCartCampaign,
   type InsertAutoCartCampaign,
+  type StockNotification,
+  type RecommendationEvent,
   type EmailJob,
   type SiteSetting,
   type PasswordResetToken,
@@ -189,6 +193,21 @@ export interface IStorage {
   createAutoCartCampaign(campaign: InsertAutoCartCampaign): Promise<AutoCartCampaign>;
   updateAutoCartCampaign(id: string, campaign: Partial<InsertAutoCartCampaign>): Promise<AutoCartCampaign | undefined>;
   deleteAutoCartCampaign(id: string): Promise<void>;
+
+  createStockNotification(data: {
+    email: string;
+    productId: string;
+    variantId?: string | null;
+    userId?: string | null;
+  }): Promise<StockNotification>;
+  createRecommendationEvent(data: {
+    sessionId: string;
+    eventType: string;
+    productId?: string | null;
+    source?: string | null;
+    orderId?: string | null;
+    value?: string | null;
+  }): Promise<RecommendationEvent>;
 
   getOrders(): Promise<Order[]>;
   getOrder(id: string): Promise<Order | undefined>;
@@ -632,7 +651,10 @@ export class DbStorage implements IStorage {
     if (existing.length > 0) {
       const newQuantity = (existing[0].quantity || 0) + (item.quantity || 1);
       const [updated] = await db.update(cartItems)
-        .set({ quantity: newQuantity })
+        .set({
+          quantity: newQuantity,
+          recommendationSource: existing[0].recommendationSource || item.recommendationSource || null,
+        })
         .where(eq(cartItems.id, existing[0].id))
         .returning();
       return updated;
@@ -1317,6 +1339,40 @@ export class DbStorage implements IStorage {
 
   async deleteAutoCartCampaign(id: string): Promise<void> {
     await db.delete(autoCartCampaigns).where(eq(autoCartCampaigns.id, id));
+  }
+
+  async createStockNotification(data: {
+    email: string;
+    productId: string;
+    variantId?: string | null;
+    userId?: string | null;
+  }): Promise<StockNotification> {
+    const [notification] = await db.insert(stockNotifications).values({
+      email: data.email,
+      productId: data.productId,
+      variantId: data.variantId || null,
+      userId: data.userId || null,
+    }).returning();
+    return notification;
+  }
+
+  async createRecommendationEvent(data: {
+    sessionId: string;
+    eventType: string;
+    productId?: string | null;
+    source?: string | null;
+    orderId?: string | null;
+    value?: string | null;
+  }): Promise<RecommendationEvent> {
+    const [event] = await db.insert(recommendationEvents).values({
+      sessionId: data.sessionId,
+      eventType: data.eventType,
+      productId: data.productId || null,
+      source: data.source || null,
+      orderId: data.orderId || null,
+      value: data.value || null,
+    }).returning();
+    return event;
   }
 
   // Email job methods

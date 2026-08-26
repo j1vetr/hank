@@ -30,6 +30,7 @@ import { generateProductDescription, styleNames, type DescriptionStyle } from ".
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
 import { calculateCartCampaign, getCampaignEligibleProductIds } from "./cartCampaign";
+import { getCartRecommendations } from "./recommendations";
 import {
   calculateCheckoutPricing,
   campaignFieldsFromPendingPayment,
@@ -1416,6 +1417,30 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/admin/products/:id/recommendations", requireAdmin, async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      if (!product) {
+        return res.status(404).json({ error: "Ürün bulunamadı" });
+      }
+      const candidateIds: unknown[] = Array.isArray(req.body?.relatedProductIds)
+        ? req.body.relatedProductIds
+        : [];
+      const relatedProductIds: string[] = Array.from(new Set(
+        candidateIds.filter((id): id is string => typeof id === "string" && id !== product.id),
+      ));
+      const relatedProducts = await Promise.all(relatedProductIds.map(id => storage.getProduct(id)));
+      if (relatedProducts.some(related => !related)) {
+        return res.status(400).json({ error: "Geçersiz önerilen ürün" });
+      }
+      const updated = await storage.updateProduct(product.id, { relatedProductIds });
+      res.json(updated);
+    } catch (error) {
+      console.error("Product recommendations update error:", error);
+      res.status(500).json({ error: "Ürün önerileri güncellenemedi" });
+    }
+  });
+
   app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
     try {
       await storage.deleteProduct(req.params.id);
@@ -1769,6 +1794,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/cart/recommendations", async (req: Request, res) => {
+    try {
+      const cartToken = getOrCreateCartToken(req, res);
+      const [cartItems, campaign] = await Promise.all([
+        storage.getCartItems(cartToken),
+        storage.getActiveAutoCartCampaign(),
+      ]);
+      const pricing = await calculateCartCampaign(cartItems, campaign);
+      res.json(await getCartRecommendations(cartItems, pricing, campaign));
+    } catch (error) {
+      console.error("Cart recommendations error:", error);
+      res.status(500).json({ error: "Öneriler alınamadı" });
+    }
+  });
+
   app.get("/api/campaigns/active", async (_req, res) => {
     try {
       const campaign = await storage.getActiveAutoCartCampaign();
@@ -1791,7 +1831,10 @@ export async function registerRoutes(
   app.post("/api/cart", async (req: Request, res) => {
     try {
       const cartToken = getOrCreateCartToken(req, res);
-      const { productId, variantId, quantity } = req.body;
+      const { productId, variantId, quantity, source } = req.body;
+      const recommendationSource = ["complementary", "campaign", "free_shipping"].includes(source)
+        ? source
+        : null;
       
       // Check if product requires variant selection
       const product = await storage.getProduct(productId);
@@ -1822,13 +1865,87 @@ export async function registerRoutes(
         productId,
         variantId,
         quantity: quantity || 1,
+        recommendationSource,
         sessionId: cartToken,
       });
       const item = await storage.addToCart(validated);
+      if (recommendationSource) {
+        await storage.createRecommendationEvent({
+          sessionId: cartToken,
+          eventType: "add",
+          productId,
+          source: recommendationSource,
+        });
+      }
       res.status(201).json(item);
     } catch (error) {
       console.error('Add to cart error:', error);
       res.status(400).json({ error: "Sepete eklenemedi" });
+    }
+  });
+
+  app.post("/api/stock-notifications", async (req: Request, res) => {
+    try {
+      const { email, productId, variantId } = req.body;
+      const normalizedEmail = z.string().email("Geçerli bir e-posta adresi girin").parse(String(email || "").trim().toLowerCase());
+      const product = await storage.getProduct(productId);
+      if (!product || !product.isActive) {
+        return res.status(404).json({ error: "Ürün bulunamadı" });
+      }
+
+      let selectedVariantId: string | null = variantId || null;
+      if (selectedVariantId) {
+        const variant = await storage.getProductVariant(selectedVariantId);
+        if (!variant || variant.productId !== productId) {
+          return res.status(400).json({ error: "Geçersiz varyant" });
+        }
+      } else if ((product.availableSizes || []).length > 0) {
+        const variants = await storage.getProductVariants(productId);
+        selectedVariantId = variants.find(variant => variant.stock <= 0)?.id || variants[0]?.id || null;
+      }
+
+      const payload = await getAuthPayload(req, res);
+      const userId = payload?.type === "user" ? payload.userId || null : null;
+      const notification = await storage.createStockNotification({
+        email: normalizedEmail,
+        productId,
+        variantId: selectedVariantId,
+        userId,
+      });
+      const cartToken = getOrCreateCartToken(req, res);
+      await storage.createRecommendationEvent({
+        sessionId: cartToken,
+        eventType: "notify",
+        productId,
+        source: "stock_notification",
+      });
+      res.status(201).json({ success: true, id: notification.id });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.issues[0]?.message || "Geçersiz e-posta" });
+      }
+      console.error("Stock notification error:", error);
+      res.status(500).json({ error: "Bildirim isteği kaydedilemedi" });
+    }
+  });
+
+  app.post("/api/recommendations/events", async (req: Request, res) => {
+    try {
+      const { eventType, productId, source } = req.body;
+      if (eventType !== "view" || !productId || !["complementary", "campaign", "free_shipping"].includes(source)) {
+        return res.status(400).json({ error: "Geçersiz öneri etkinliği" });
+      }
+      const cartToken = getOrCreateCartToken(req, res);
+      await storage.createRecommendationEvent({
+        sessionId: cartToken,
+        eventType,
+        productId,
+        source,
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Recommendation event error:", error);
+      res.status(500).json({ error: "Öneri etkinliği kaydedilemedi" });
     }
   });
 
@@ -2045,6 +2162,7 @@ export async function registerRoutes(
         productName: string;
         variantDetails: string | null;
         price: string;
+        recommendationSource?: string | null;
       }> = [];
 
       for (const cartItem of cartItems) {
@@ -2060,6 +2178,7 @@ export async function registerRoutes(
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
             price: line.unitPrice.toFixed(2),
+            recommendationSource: cartItem.recommendationSource || null,
           });
 
         }
@@ -2233,6 +2352,17 @@ export async function registerRoutes(
             quantity: item.quantity,
             subtotal: (parseFloat(item.price) * item.quantity).toFixed(2),
           });
+
+          if (item.recommendationSource) {
+            await storage.createRecommendationEvent({
+              sessionId: pendingPayment.sessionId,
+              eventType: "conversion",
+              productId: item.productId,
+              source: item.recommendationSource,
+              orderId: order.id,
+              value: pendingPayment.total,
+            });
+          }
 
           // Reduce stock for the variant
           if (item.variantId) {
@@ -2603,6 +2733,17 @@ export async function registerRoutes(
             quantity: cartItem.quantity,
             subtotal: line.lineSubtotal.toFixed(2),
           });
+
+          if (cartItem.recommendationSource) {
+            await storage.createRecommendationEvent({
+              sessionId: cartToken,
+              eventType: "conversion",
+              productId: product.id,
+              source: cartItem.recommendationSource,
+              orderId: order.id,
+              value: serverTotal.toFixed(2),
+            });
+          }
 
           // Reduce stock for the variant
           if (variant && variant.id) {
@@ -3180,6 +3321,34 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch KPI data" });
+    }
+  });
+
+  app.get("/api/admin/analytics/recommendations", requireAdmin, async (_req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT
+          COALESCE(source, 'other') AS source,
+          COUNT(*) FILTER (WHERE event_type = 'view')::int AS views,
+          COUNT(*) FILTER (WHERE event_type = 'add')::int AS adds,
+          COUNT(*) FILTER (WHERE event_type = 'notify')::int AS notifications,
+          COUNT(*) FILTER (WHERE event_type = 'conversion')::int AS conversions,
+          COALESCE(AVG(value) FILTER (WHERE event_type = 'conversion'), 0) AS average_cart_value
+        FROM recommendation_events
+        GROUP BY source
+        ORDER BY source
+      `);
+      res.json((result.rows || []).map((row: any) => ({
+        source: row.source,
+        views: Number(row.views || 0),
+        adds: Number(row.adds || 0),
+        notifications: Number(row.notifications || 0),
+        conversions: Number(row.conversions || 0),
+        averageCartValue: Number(row.average_cart_value || 0),
+      })));
+    } catch (error) {
+      console.error("Recommendation analytics error:", error);
+      res.status(500).json({ error: "Öneri performansı alınamadı" });
     }
   });
 

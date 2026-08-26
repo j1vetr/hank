@@ -102,6 +102,7 @@ export const products = pgTable("products", {
   isFeatured: boolean("is_featured").default(false).notNull(),
   isNew: boolean("is_new").default(false).notNull(),
   discountBadge: text("discount_badge"),
+  relatedProductIds: jsonb("related_product_ids").$type<string[]>().default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -174,6 +175,7 @@ export const cartItems = pgTable("cart_items", {
   productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
   variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "cascade" }),
   quantity: integer("quantity").default(1).notNull(),
+  recommendationSource: text("recommendation_source"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -184,6 +186,19 @@ export const insertCartItemSchema = createInsertSchema(cartItems).omit({
 
 export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
 export type CartItem = typeof cartItems.$inferSelect;
+
+// Stock availability notification requests
+export const stockNotifications = pgTable("stock_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  productId: varchar("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+  variantId: varchar("variant_id").references(() => productVariants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  notifiedAt: timestamp("notified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type StockNotification = typeof stockNotifications.$inferSelect;
 
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -248,6 +263,20 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
 
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
+
+// Events used to measure recommendation performance
+export const recommendationEvents = pgTable("recommendation_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull(),
+  eventType: text("event_type").notNull(), // view, add, notify, conversion
+  productId: varchar("product_id").references(() => products.id, { onDelete: "set null" }),
+  source: text("source"),
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: "set null" }),
+  value: decimal("value", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type RecommendationEvent = typeof recommendationEvents.$inferSelect;
 
 // WooCommerce Integration
 export const woocommerceSettings = pgTable("woocommerce_settings", {
@@ -594,6 +623,7 @@ export const pendingPayments = pgTable("pending_payments", {
     productName: string;
     variantDetails: string | null;
     price: string;
+    recommendationSource?: string | null;
   }>>().notNull(),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).notNull(),
