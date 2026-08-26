@@ -11,7 +11,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { cache, CACHE_KEYS, CACHE_TTL } from "./cache";
 import { eq, desc, sql } from "drizzle-orm";
-import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, couponRedemptions, orders, coupons, products, productEmbeddings, productAttributes, stockAdjustments } from "@shared/schema";
+import { insertAdminUserSchema, insertCategorySchema, insertProductSchema, insertProductVariantSchema, insertCartItemSchema, insertOrderSchema, insertOrderItemSchema, insertUserSchema, insertAutoCartCampaignSchema, couponRedemptions, orders, coupons, products, productEmbeddings, productAttributes, stockAdjustments } from "@shared/schema";
 import { optimizeImage, optimizeImageBuffer, optimizeUploadedFiles } from "./imageOptimizer";
 import { 
   sendWelcomeEmail, 
@@ -29,6 +29,7 @@ import { sendInvoiceToBizimHesap } from "./bizimhesap";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
+import { calculateCartCampaign, getCampaignEligibleProductIds } from "./cartCampaign";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -69,6 +70,34 @@ async function getAuthPayload(req: Request, res: Response): Promise<JwtPayload |
   }
   
   return null;
+}
+
+function parseAutoCartCampaignPayload(payload: any) {
+  const arrayValue = (value: unknown) =>
+    Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
+  const dateValue = (value: unknown) => {
+    if (!value) return null;
+    const parsed = new Date(String(value));
+    if (Number.isNaN(parsed.getTime())) throw new Error("Geçersiz kampanya tarihi");
+    return parsed;
+  };
+  const scopeType = payload?.scopeType || "all";
+  if (!["all", "categories", "products"].includes(scopeType)) {
+    throw new Error("Geçersiz kampanya kapsamı");
+  }
+  return insertAutoCartCampaignSchema.parse({
+    ...payload,
+    startsAt: dateValue(payload?.startsAt),
+    endsAt: dateValue(payload?.endsAt),
+    maxApplications: payload?.maxApplications === "" || payload?.maxApplications === undefined
+      ? null
+      : payload.maxApplications,
+    scopeType,
+    includedCategoryIds: arrayValue(payload?.includedCategoryIds),
+    includedProductIds: arrayValue(payload?.includedProductIds),
+    excludedCategoryIds: arrayValue(payload?.excludedCategoryIds),
+    excludedProductIds: arrayValue(payload?.excludedProductIds),
+  });
 }
 
 // Configure multer for file uploads
@@ -1720,6 +1749,40 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/cart/pricing", async (req: Request, res) => {
+    try {
+      const cartToken = getOrCreateCartToken(req, res);
+      const [cartItems, campaign] = await Promise.all([
+        storage.getCartItems(cartToken),
+        storage.getActiveAutoCartCampaign(),
+      ]);
+      const pricing = await calculateCartCampaign(cartItems, campaign);
+      res.json(pricing);
+    } catch (error) {
+      console.error("Cart pricing error:", error);
+      res.status(500).json({ error: "Sepet hesaplanamadı" });
+    }
+  });
+
+  app.get("/api/campaigns/active", async (_req, res) => {
+    try {
+      const campaign = await storage.getActiveAutoCartCampaign();
+      if (!campaign) return res.json(null);
+      const eligibleProductIds = await getCampaignEligibleProductIds(campaign);
+      res.json({
+        id: campaign.id,
+        name: campaign.name,
+        customerMessage: campaign.customerMessage,
+        buyQuantity: campaign.buyQuantity,
+        rewardQuantity: campaign.rewardQuantity,
+        discountPercentage: Number(campaign.discountPercentage),
+        eligibleProductIds,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Kampanya bilgisi alınamadı" });
+    }
+  });
+
   app.post("/api/cart", async (req: Request, res) => {
     try {
       const cartToken = getOrCreateCartToken(req, res);
@@ -1966,8 +2029,10 @@ export async function registerRoutes(
         accountPasswordHash = await bcrypt.hash(accountPassword, 10);
       }
 
-      // Calculate actual subtotal from cart items (server-side verification)
-      let serverSubtotal = 0;
+      // Calculate the cart and automatic campaign on the server
+      const autoCampaign = await storage.getActiveAutoCartCampaign();
+      const campaignPricing = await calculateCartCampaign(cartItems, autoCampaign);
+      const serverSubtotal = campaignPricing.subtotal;
       const cartItemsForStorage: Array<{
         productId: string;
         variantId: string | null;
@@ -1977,20 +2042,13 @@ export async function registerRoutes(
         price: string;
       }> = [];
 
-      const userBasket: Array<[string, string, number]> = [];
+      const basketUnits: Array<{ name: string; priceCents: number; isProduct: boolean }> = [];
 
       for (const cartItem of cartItems) {
-        const variant = cartItem.variantId 
-          ? await storage.getProductVariant(cartItem.variantId)
-          : null;
-        
-        // If variant exists, get the product from variant's productId to ensure consistency
-        const actualProductId = variant?.productId || cartItem.productId;
-        const product = await storage.getProduct(actualProductId);
-        
-        if (product) {
-          const itemPrice = parseFloat(product.basePrice);
-          serverSubtotal += itemPrice * cartItem.quantity;
+        const line = campaignPricing.lines.find(item => item.cartItemId === cartItem.id);
+        const product = cartItem.product;
+        const variant = cartItem.variant;
+        if (product && line) {
           
           cartItemsForStorage.push({
             productId: product.id,
@@ -1998,15 +2056,20 @@ export async function registerRoutes(
             quantity: cartItem.quantity,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: product.basePrice,
+            price: line.unitPrice.toFixed(2),
           });
 
-          // PayTR basket format: [name, price in kuruş, quantity]
-          userBasket.push([
-            product.name.substring(0, 50), // Max 50 chars for product name
-            Math.round(itemPrice * 100).toString(), // Price in kuruş
-            cartItem.quantity
-          ]);
+          const fullPriceQuantity = cartItem.quantity - line.discountedQuantity;
+          for (let unit = 0; unit < fullPriceQuantity; unit += 1) {
+            basketUnits.push({ name: product.name.substring(0, 50), priceCents: Math.round(line.unitPrice * 100), isProduct: true });
+          }
+          for (let unit = 0; unit < line.discountedQuantity; unit += 1) {
+            basketUnits.push({
+              name: `${product.name.substring(0, 42)} (kampanya)`,
+              priceCents: Math.round(line.discountedUnitPrice * 100),
+              isProduct: true,
+            });
+          }
         }
       }
 
@@ -2016,19 +2079,19 @@ export async function registerRoutes(
       let couponFreeShipping = false;
       
       if (couponCode) {
-        const couponResult = await storage.validateCoupon(couponCode, serverSubtotal, userId || undefined);
+        const couponResult = await storage.validateCoupon(couponCode, campaignPricing.discountedSubtotal, userId || undefined);
         if (couponResult.valid && couponResult.coupon) {
           validatedCoupon = couponResult.coupon;
           couponFreeShipping = validatedCoupon.freeShipping || false;
           if (validatedCoupon.discountType === 'percentage') {
-            discountAmount = (serverSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
+            discountAmount = (campaignPricing.discountedSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
           } else {
             discountAmount = parseFloat(validatedCoupon.discountValue);
           }
           if (validatedCoupon.maxDiscountAmount) {
             discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
           }
-          discountAmount = Math.min(discountAmount, serverSubtotal);
+          discountAmount = Math.min(discountAmount, campaignPricing.discountedSubtotal);
         }
       }
 
@@ -2042,7 +2105,7 @@ export async function registerRoutes(
       const isDomestic = selectedCountry === 'Türkiye';
       const isIraq = selectedCountry === 'Irak';
       const isGreece = selectedCountry === 'Yunanistan';
-      let shippingCost = isDomestic 
+      let shippingCost = isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
         : isIraq ? IRAQ_SHIPPING_COST 
         : isGreece ? GREECE_SHIPPING_COST 
@@ -2053,7 +2116,7 @@ export async function registerRoutes(
       }
 
       if (validatedCoupon?.appliesToShipping && shippingCost > 0) {
-        const totalWithShipping = serverSubtotal + shippingCost;
+        const totalWithShipping = campaignPricing.discountedSubtotal + shippingCost;
         if (validatedCoupon.discountType === 'percentage') {
           discountAmount = (totalWithShipping * parseFloat(validatedCoupon.discountValue)) / 100;
         } else {
@@ -2065,7 +2128,43 @@ export async function registerRoutes(
         discountAmount = Math.min(discountAmount, totalWithShipping);
       }
 
-      const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
+      const discountedSubtotalCents = Math.round(campaignPricing.discountedSubtotal * 100);
+      const discountCents = Math.min(Math.round(discountAmount * 100), discountedSubtotalCents + Math.round(shippingCost * 100));
+      const shippingCents = Math.round(shippingCost * 100);
+      const paymentAmount = Math.max(0, discountedSubtotalCents - discountCents + shippingCents);
+      discountAmount = discountCents / 100;
+      const serverTotal = paymentAmount / 100;
+
+      if (shippingCents > 0) {
+        basketUnits.push({ name: "Kargo", priceCents: shippingCents, isProduct: false });
+      }
+      let remainingDiscountCents = discountCents;
+      const discountableUnits = basketUnits.filter(unit => unit.isProduct || validatedCoupon?.appliesToShipping);
+      for (const unit of [...discountableUnits].sort((a, b) => b.priceCents - a.priceCents)) {
+        const unitDiscount = Math.min(unit.priceCents, remainingDiscountCents);
+        unit.priceCents -= unitDiscount;
+        remainingDiscountCents -= unitDiscount;
+        if (remainingDiscountCents === 0) break;
+      }
+      if (remainingDiscountCents > 0) {
+        return res.status(400).json({ error: "Kupon indirimi sepet tutarını aşıyor" });
+      }
+      const basketTotal = basketUnits.reduce((total, unit) => total + unit.priceCents, 0);
+      if (basketTotal !== paymentAmount) {
+        throw new Error("PayTR sepet tutarı ödeme tutarıyla eşleşmiyor");
+      }
+      const basketGroups = new Map<string, { name: string; priceCents: number; quantity: number }>();
+      basketUnits.forEach(unit => {
+        const key = `${unit.name}|${unit.priceCents}`;
+        const group = basketGroups.get(key) || { name: unit.name, priceCents: unit.priceCents, quantity: 0 };
+        group.quantity += 1;
+        basketGroups.set(key, group);
+      });
+      const userBasket: Array<[string, string, number]> = Array.from(basketGroups.values()).map(group => [
+        group.name,
+        group.priceCents.toString(),
+        group.quantity,
+      ]);
 
       // Generate unique merchant order ID
       const merchantOid = `HNK${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
@@ -2098,6 +2197,9 @@ export async function registerRoutes(
         shippingCost: shippingCost.toFixed(2),
         discountAmount: discountAmount.toFixed(2),
         couponCode: validatedCoupon?.code || null,
+        campaignId: campaignPricing.campaign?.id || null,
+        campaignDiscountAmount: campaignPricing.campaignDiscount.toFixed(2),
+        campaignDiscountDetails: campaignPricing.campaignDiscountDetails,
         total: serverTotal.toFixed(2),
         status: 'pending',
         paytrToken: null,
@@ -2115,7 +2217,7 @@ export async function registerRoutes(
         merchantOid,
         userIp,
         email: customerEmail,
-        paymentAmount: Math.round(serverTotal * 100), // Convert to kuruş
+        paymentAmount,
         userName: customerName,
         userAddress: `${address}, ${district}, ${city}`,
         userPhone: customerPhone,
@@ -2136,6 +2238,7 @@ export async function registerRoutes(
           success: true,
           token: paytrResponse.token,
           merchantOid,
+          total: serverTotal.toFixed(2),
           iframeUrl: `https://www.paytr.com/odeme/guvenli/${paytrResponse.token}`,
         });
       } else {
@@ -2197,6 +2300,9 @@ export async function registerRoutes(
           shippingCost: pendingPayment.shippingCost,
           discountAmount: pendingPayment.discountAmount || '0',
           couponCode: pendingPayment.couponCode,
+          campaignId: pendingPayment.campaignId,
+          campaignDiscountAmount: pendingPayment.campaignDiscountAmount || '0',
+          campaignDiscountDetails: pendingPayment.campaignDiscountDetails,
           total: pendingPayment.total,
           status: 'confirmed',
           paymentMethod: 'credit_card',
@@ -2499,43 +2605,38 @@ export async function registerRoutes(
       // Generate order number
       const orderNumber = `HNK${Date.now()}`;
       
-      // Calculate actual subtotal from cart items (server-side verification)
-      let serverSubtotal = 0;
-      for (const cartItem of cartItems) {
-        const variant = cartItem.variantId 
-          ? await storage.getProductVariant(cartItem.variantId)
-          : null;
-        // Use variant's productId if available to ensure consistency
-        const actualProductId = variant?.productId || cartItem.productId;
-        const product = await storage.getProduct(actualProductId);
-        if (product) {
-          const itemPrice = parseFloat(product.basePrice);
-          serverSubtotal += itemPrice * cartItem.quantity;
-        }
-      }
+      // Calculate campaign and prices from current cart data on the server
+      const autoCampaign = await storage.getActiveAutoCartCampaign();
+      const campaignPricing = await calculateCartCampaign(cartItems, autoCampaign);
+      const serverSubtotal = campaignPricing.subtotal;
       
       // Handle coupon validation and redemption - recalculate discount on server
       let validatedCoupon = null;
       let discountAmount = 0;
+      let couponFreeShipping = false;
       
       if (req.body.couponCode) {
         const couponResult = await storage.validateCoupon(
           req.body.couponCode,
-          serverSubtotal,
+          campaignPricing.discountedSubtotal,
           userId || undefined
         );
         
         if (couponResult.valid && couponResult.coupon) {
           validatedCoupon = couponResult.coupon;
+          couponFreeShipping = validatedCoupon.freeShipping || false;
           
           // Recalculate discount on server to prevent tampering
           if (validatedCoupon.discountType === 'percentage') {
-            discountAmount = (serverSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
+            discountAmount = (campaignPricing.discountedSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
           } else {
             discountAmount = parseFloat(validatedCoupon.discountValue);
           }
+          if (validatedCoupon.maxDiscountAmount) {
+            discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
+          }
           // Clamp discount to subtotal
-          discountAmount = Math.min(discountAmount, serverSubtotal);
+          discountAmount = Math.min(discountAmount, campaignPricing.discountedSubtotal);
         }
       }
       
@@ -2550,12 +2651,32 @@ export async function registerRoutes(
       const isDomestic = orderCountry === 'Türkiye';
       const isIraq = orderCountry === 'Irak';
       const isGreece = orderCountry === 'Yunanistan';
-      const shippingCost = isDomestic 
+      let shippingCost = isDomestic
         ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST 
-        : isGreece ? GREECE_SHIPPING_COST 
+        : isIraq ? IRAQ_SHIPPING_COST
+        : isGreece ? GREECE_SHIPPING_COST
         : INTERNATIONAL_SHIPPING_COST;
-      const serverTotal = Math.max(0, serverSubtotal - discountAmount + shippingCost);
+      if (couponFreeShipping) {
+        shippingCost = 0;
+      }
+      if (validatedCoupon?.appliesToShipping && shippingCost > 0) {
+        const totalWithShipping = campaignPricing.discountedSubtotal + shippingCost;
+        discountAmount = validatedCoupon.discountType === 'percentage'
+          ? (totalWithShipping * parseFloat(validatedCoupon.discountValue)) / 100
+          : parseFloat(validatedCoupon.discountValue);
+        if (validatedCoupon.maxDiscountAmount) {
+          discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
+        }
+        discountAmount = Math.min(discountAmount, totalWithShipping);
+      }
+      const discountedSubtotalCents = Math.round(campaignPricing.discountedSubtotal * 100);
+      const shippingCents = Math.round(shippingCost * 100);
+      const discountCents = Math.min(
+        Math.round(discountAmount * 100),
+        discountedSubtotalCents + shippingCents,
+      );
+      discountAmount = discountCents / 100;
+      const serverTotal = Math.max(0, discountedSubtotalCents - discountCents + shippingCents) / 100;
       
       const validated = insertOrderSchema.parse({
         ...req.body,
@@ -2564,6 +2685,9 @@ export async function registerRoutes(
         shippingCost: shippingCost.toFixed(2),
         couponCode: validatedCoupon?.code || null,
         discountAmount: discountAmount.toFixed(2),
+        campaignId: campaignPricing.campaign?.id || null,
+        campaignDiscountAmount: campaignPricing.campaignDiscount.toFixed(2),
+        campaignDiscountDetails: campaignPricing.campaignDiscountDetails,
         total: serverTotal.toFixed(2),
       });
 
@@ -2601,34 +2725,32 @@ export async function registerRoutes(
 
       // Create order items and reduce stock
       for (const cartItem of cartItems) {
-        const variant = cartItem.variantId 
-          ? await storage.getProductVariant(cartItem.variantId)
-          : null;
-        // Use variant's productId if available to ensure consistency
-        const actualProductId = variant?.productId || cartItem.productId;
-        const product = await storage.getProduct(actualProductId);
+        const variant = cartItem.variant;
+        const product = cartItem.product;
+        const line = campaignPricing.lines.find(item => item.cartItemId === cartItem.id);
 
-        if (product) {
+        if (product && line) {
           await storage.createOrderItem({
             orderId: order.id,
             productId: product.id,
             variantId: variant?.id,
             productName: product.name,
             variantDetails: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-            price: product.basePrice,
+            price: line.unitPrice.toFixed(2),
             quantity: cartItem.quantity,
-            subtotal: ((parseFloat(product.basePrice) * cartItem.quantity).toFixed(2)),
+            subtotal: line.lineSubtotal.toFixed(2),
           });
 
           // Reduce stock for the variant
           if (variant && variant.id) {
-            const newStock = Math.max(0, variant.stock - cartItem.quantity);
+            const currentVariant = await storage.getProductVariant(variant.id);
+            const newStock = Math.max(0, (currentVariant?.stock || 0) - cartItem.quantity);
             await storage.updateProductVariant(variant.id, { stock: newStock });
             
             // Log stock adjustment
             await storage.createStockAdjustment({
               variantId: variant.id,
-              previousStock: variant.stock,
+              previousStock: currentVariant?.stock || 0,
               newStock: newStock,
               adjustmentType: 'sale',
               reason: `Sipariş: ${orderNumber}`,
@@ -4089,6 +4211,43 @@ export async function registerRoutes(
       res.json(emails);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch campaign emails" });
+    }
+  });
+
+  // Automatic cart campaign routes
+  app.get("/api/admin/auto-cart-campaigns", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await storage.getAutoCartCampaigns());
+    } catch (error) {
+      res.status(500).json({ error: "Sepet kampanyaları alınamadı" });
+    }
+  });
+
+  app.post("/api/admin/auto-cart-campaigns", requireAdmin, async (req, res) => {
+    try {
+      const campaign = await storage.createAutoCartCampaign(parseAutoCartCampaignPayload(req.body));
+      res.status(201).json(campaign);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Sepet kampanyası kaydedilemedi" });
+    }
+  });
+
+  app.put("/api/admin/auto-cart-campaigns/:id", requireAdmin, async (req, res) => {
+    try {
+      const campaign = await storage.updateAutoCartCampaign(req.params.id, parseAutoCartCampaignPayload(req.body));
+      if (!campaign) return res.status(404).json({ error: "Sepet kampanyası bulunamadı" });
+      res.json(campaign);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Sepet kampanyası güncellenemedi" });
+    }
+  });
+
+  app.delete("/api/admin/auto-cart-campaigns/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteAutoCartCampaign(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Sepet kampanyası silinemedi" });
     }
   });
 

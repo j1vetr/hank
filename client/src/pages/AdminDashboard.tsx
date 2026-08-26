@@ -5450,6 +5450,8 @@ function MarketingPanel() {
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
   const [showInfluencerModal, setShowInfluencerModal] = useState(false);
   const [editingInfluencer, setEditingInfluencer] = useState<any>(null);
+  const [showAutoCampaignModal, setShowAutoCampaignModal] = useState(false);
+  const [editingAutoCampaign, setEditingAutoCampaign] = useState<any>(null);
 
   const { data: coupons = [], isLoading: couponsLoading } = useQuery({
     queryKey: ['admin-coupons'],
@@ -5466,6 +5468,31 @@ function MarketingPanel() {
       const res = await fetch('/api/admin/campaigns', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch campaigns');
       return res.json();
+    },
+  });
+
+  const { data: autoCampaigns = [], isLoading: autoCampaignsLoading } = useQuery({
+    queryKey: ['admin-auto-cart-campaigns'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/auto-cart-campaigns', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch cart campaigns');
+      return res.json();
+    },
+  });
+
+  const { data: campaignProducts = [] } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const res = await fetch('/api/products');
+      return res.ok ? res.json() : [];
+    },
+  });
+
+  const { data: campaignCategories = [] } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      return res.ok ? res.json() : [];
     },
   });
 
@@ -5507,6 +5534,43 @@ function MarketingPanel() {
       queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
       setShowCouponModal(false);
       setEditingCoupon(null);
+    },
+  });
+
+  const saveAutoCampaignMutation = useMutation({
+    mutationFn: async (campaign: any) => {
+      const isEdit = Boolean(campaign.id);
+      const res = await fetch(`/api/admin/auto-cart-campaigns${isEdit ? `/${campaign.id}` : ''}`, {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(campaign),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Sepet kampanyası kaydedilemedi');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-auto-cart-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['active-cart-campaign'] });
+      setShowAutoCampaignModal(false);
+      setEditingAutoCampaign(null);
+    },
+  });
+
+  const deleteAutoCampaignMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/auto-cart-campaigns/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Sepet kampanyası silinemedi');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-auto-cart-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['active-cart-campaign'] });
     },
   });
 
@@ -5693,7 +5757,74 @@ function MarketingPanel() {
       )}
 
       {activeSubTab === 'campaigns' && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="space-y-6">
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="p-6 border-b border-zinc-800 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Otomatik Sepet Kampanyaları</h3>
+                <p className="text-sm text-zinc-500 mt-1">Örneğin 2 ürün alana 3. ürün %50 indirimli</p>
+              </div>
+              <button
+                onClick={() => { setEditingAutoCampaign(null); setShowAutoCampaignModal(true); }}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Yeni Sepet Kampanyası
+              </button>
+            </div>
+            {autoCampaignsLoading ? (
+              <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-zinc-500" /></div>
+            ) : autoCampaigns.length > 0 ? (
+              <div className="divide-y divide-zinc-800">
+                {autoCampaigns.map((campaign: any) => (
+                  <div key={campaign.id} className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-medium text-white">{campaign.name}</h4>
+                        <span className={`px-2 py-0.5 text-xs rounded ${campaign.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-700 text-zinc-400'}`}>
+                          {campaign.isActive ? 'Aktif' : 'Pasif'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-zinc-400 mt-1">
+                        {campaign.buyQuantity}+{campaign.rewardQuantity} • En ucuz uygun üründe %{campaign.discountPercentage} indirim
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        {campaign.scopeType === 'all' ? 'Tüm ürünler' : campaign.scopeType === 'categories' ? 'Seçili kategoriler' : 'Seçili ürünler'}
+                        {campaign.maxApplications ? ` • En fazla ${campaign.maxApplications} uygulama` : ' • Tekrarlanabilir'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setEditingAutoCampaign(campaign); setShowAutoCampaignModal(true); }}
+                        className="p-2 hover:bg-zinc-700 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                        aria-label="Kampanyayı düzenle"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Bu sepet kampanyasını silmek istediğinize emin misiniz?')) {
+                            deleteAutoCampaignMutation.mutate(campaign.id);
+                          }
+                        }}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-zinc-400 hover:text-red-400"
+                        aria-label="Kampanyayı sil"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-zinc-500">
+                <BadgePercent className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                Henüz otomatik sepet kampanyası oluşturulmamış
+              </div>
+            )}
+          </div>
+
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
           <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">E-posta Kampanyaları</h3>
             <div className="text-sm text-zinc-500">
@@ -5742,6 +5873,7 @@ function MarketingPanel() {
               <p className="text-xs mt-2">E-posta kampanyaları için önce bir e-posta servisi entegrasyonu yapmanız gerekiyor</p>
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -5901,6 +6033,179 @@ function MarketingPanel() {
           isSaving={saveInfluencerMutation.isPending}
         />
       )}
+
+      {showAutoCampaignModal && (
+        <AutoCartCampaignModal
+          campaign={editingAutoCampaign}
+          products={campaignProducts}
+          categories={campaignCategories}
+          onClose={() => { setShowAutoCampaignModal(false); setEditingAutoCampaign(null); }}
+          onSave={(campaign) => saveAutoCampaignMutation.mutate(campaign)}
+          isSaving={saveAutoCampaignMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function AutoCartCampaignModal({
+  campaign,
+  products,
+  categories,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  campaign: any;
+  products: Product[];
+  categories: Category[];
+  onClose: () => void;
+  onSave: (campaign: any) => void;
+  isSaving: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    name: campaign?.name || '',
+    description: campaign?.description || '',
+    customerMessage: campaign?.customerMessage || '',
+    buyQuantity: String(campaign?.buyQuantity || 2),
+    rewardQuantity: String(campaign?.rewardQuantity || 1),
+    discountPercentage: String(campaign?.discountPercentage || 50),
+    scopeType: campaign?.scopeType || 'all',
+    includedCategoryIds: campaign?.includedCategoryIds || [],
+    includedProductIds: campaign?.includedProductIds || [],
+    excludedCategoryIds: campaign?.excludedCategoryIds || [],
+    excludedProductIds: campaign?.excludedProductIds || [],
+    maxApplications: campaign?.maxApplications ? String(campaign.maxApplications) : '',
+    startsAt: campaign?.startsAt ? new Date(campaign.startsAt).toISOString().slice(0, 10) : '',
+    endsAt: campaign?.endsAt ? new Date(campaign.endsAt).toISOString().slice(0, 10) : '',
+    isActive: campaign?.isActive ?? true,
+  });
+  const toggle = (field: 'includedCategoryIds' | 'includedProductIds' | 'excludedCategoryIds' | 'excludedProductIds', id: string) => {
+    setFormData(current => ({
+      ...current,
+      [field]: current[field].includes(id)
+        ? current[field].filter((value: string) => value !== id)
+        : [...current[field], id],
+    }));
+  };
+  const handleSubmit = () => {
+    onSave({
+      ...(campaign?.id ? { id: campaign.id } : {}),
+      ...formData,
+      buyQuantity: Number(formData.buyQuantity),
+      rewardQuantity: Number(formData.rewardQuantity),
+      discountPercentage: Number(formData.discountPercentage),
+      maxApplications: formData.maxApplications ? Number(formData.maxApplications) : null,
+      startsAt: formData.startsAt || null,
+      endsAt: formData.endsAt || null,
+    });
+  };
+  const SelectionList = ({
+    title,
+    items,
+    selected,
+    onToggle,
+  }: {
+    title: string;
+    items: Array<{ id: string; name: string }>;
+    selected: string[];
+    onToggle: (id: string) => void;
+  }) => (
+    <div>
+      <p className="text-xs font-medium text-zinc-400 mb-2">{title}</p>
+      <div className="max-h-32 overflow-y-auto space-y-1 border border-zinc-700 rounded-lg p-2">
+        {items.map(item => (
+          <label key={item.id} className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white cursor-pointer p-1">
+            <input type="checkbox" checked={selected.includes(item.id)} onChange={() => onToggle(item.id)} />
+            <span className="truncate">{item.name}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">{campaign ? 'Sepet Kampanyasını Düzenle' : 'Yeni Sepet Kampanyası'}</h3>
+            <p className="text-sm text-zinc-500 mt-1">İndirim uygun ürünler arasındaki en ucuz ürüne uygulanır.</p>
+          </div>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-5">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Kampanya Adı *</label>
+              <input value={formData.name} onChange={e => setFormData(current => ({ ...current, name: e.target.value }))} placeholder="2 al 3. ürün %50" className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Müşteri Mesajı</label>
+              <input value={formData.customerMessage} onChange={e => setFormData(current => ({ ...current, customerMessage: e.target.value }))} placeholder="3. ürününde avantaj seni bekliyor" className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Alınacak Adet *</label>
+              <input type="number" min="1" value={formData.buyQuantity} onChange={e => setFormData(current => ({ ...current, buyQuantity: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">İndirimli Adet *</label>
+              <input type="number" min="1" value={formData.rewardQuantity} onChange={e => setFormData(current => ({ ...current, rewardQuantity: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">İndirim (%) *</label>
+              <input type="number" min="0" max="100" value={formData.discountPercentage} onChange={e => setFormData(current => ({ ...current, discountPercentage: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Kapsam</label>
+              <select value={formData.scopeType} onChange={e => setFormData(current => ({ ...current, scopeType: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white">
+                <option value="all">Tüm ürünler</option>
+                <option value="categories">Seçili kategoriler</option>
+                <option value="products">Seçili ürünler</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">En Fazla Uygulama</label>
+              <input type="number" min="1" value={formData.maxApplications} onChange={e => setFormData(current => ({ ...current, maxApplications: e.target.value }))} placeholder="Boşsa tekrar eder" className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+            <label className="flex items-end gap-3 pb-2 text-sm text-zinc-300 cursor-pointer">
+              <input type="checkbox" checked={formData.isActive} onChange={e => setFormData(current => ({ ...current, isActive: e.target.checked }))} />
+              Kampanya aktif
+            </label>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Başlangıç Tarihi</label>
+              <input type="date" value={formData.startsAt} onChange={e => setFormData(current => ({ ...current, startsAt: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Bitiş Tarihi</label>
+              <input type="date" value={formData.endsAt} onChange={e => setFormData(current => ({ ...current, endsAt: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+            </div>
+          </div>
+          {formData.scopeType === 'categories' && (
+            <SelectionList title="Dahil Edilen Kategoriler" items={categories} selected={formData.includedCategoryIds} onToggle={id => toggle('includedCategoryIds', id)} />
+          )}
+          {formData.scopeType === 'products' && (
+            <SelectionList title="Dahil Edilen Ürünler" items={products} selected={formData.includedProductIds} onToggle={id => toggle('includedProductIds', id)} />
+          )}
+          <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-zinc-800">
+            <SelectionList title="Hariç Tutulan Kategoriler" items={categories} selected={formData.excludedCategoryIds} onToggle={id => toggle('excludedCategoryIds', id)} />
+            <SelectionList title="Hariç Tutulan Ürünler" items={products} selected={formData.excludedProductIds} onToggle={id => toggle('excludedProductIds', id)} />
+          </div>
+        </div>
+        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-zinc-400 hover:text-white">İptal</button>
+          <button onClick={handleSubmit} disabled={isSaving || !formData.name || Number(formData.buyQuantity) < 1 || Number(formData.rewardQuantity) < 1} className="flex items-center gap-2 px-5 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 disabled:opacity-50">
+            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {campaign ? 'Güncelle' : 'Oluştur'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

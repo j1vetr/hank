@@ -202,6 +202,12 @@ export const orders = pgTable("orders", {
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).default("0").notNull(),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
   couponCode: text("coupon_code"),
+  campaignId: varchar("campaign_id").references(() => autoCartCampaigns.id, { onDelete: "set null" }),
+  campaignDiscountAmount: decimal("campaign_discount_amount", { precision: 10, scale: 2 }).default("0"),
+  campaignDiscountDetails: jsonb("campaign_discount_details").$type<{
+    campaignName: string;
+    discountedItems: Array<{ productId: string; quantity: number; discountAmount: string }>;
+  }>(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").default("pending").notNull(),
   paymentMethod: text("payment_method"),
@@ -461,6 +467,46 @@ export const insertCampaignSchema = createInsertSchema(campaigns).omit({
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type Campaign = typeof campaigns.$inferSelect;
 
+// Automatic buy-X-get-Y cart campaigns
+export const autoCartCampaigns = pgTable("auto_cart_campaigns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  customerMessage: text("customer_message"),
+  isActive: boolean("is_active").default(false).notNull(),
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  buyQuantity: integer("buy_quantity").notNull(),
+  rewardQuantity: integer("reward_quantity").notNull(),
+  discountPercentage: decimal("discount_percentage", { precision: 5, scale: 2 }).notNull(),
+  scopeType: text("scope_type").default("all").notNull(), // 'all' | 'categories' | 'products'
+  includedCategoryIds: jsonb("included_category_ids").$type<string[]>().default([]).notNull(),
+  includedProductIds: jsonb("included_product_ids").$type<string[]>().default([]).notNull(),
+  excludedCategoryIds: jsonb("excluded_category_ids").$type<string[]>().default([]).notNull(),
+  excludedProductIds: jsonb("excluded_product_ids").$type<string[]>().default([]).notNull(),
+  maxApplications: integer("max_applications"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAutoCartCampaignSchema = createInsertSchema(autoCartCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  buyQuantity: z.coerce.number().int().min(1),
+  rewardQuantity: z.coerce.number().int().min(1),
+  discountPercentage: z.coerce.number().min(0).max(100),
+  maxApplications: z.coerce.number().int().min(1).nullable().optional(),
+  includedCategoryIds: z.array(z.string()).default([]),
+  includedProductIds: z.array(z.string()).default([]),
+  excludedCategoryIds: z.array(z.string()).default([]),
+  excludedProductIds: z.array(z.string()).default([]),
+});
+
+export type InsertAutoCartCampaign = z.infer<typeof insertAutoCartCampaignSchema>;
+export type AutoCartCampaign = typeof autoCartCampaigns.$inferSelect;
+
 // Email Jobs for bulk email tracking
 export const emailJobs = pgTable("email_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -553,6 +599,12 @@ export const pendingPayments = pgTable("pending_payments", {
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }).notNull(),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
   couponCode: text("coupon_code"),
+  campaignId: varchar("campaign_id").references(() => autoCartCampaigns.id, { onDelete: "set null" }),
+  campaignDiscountAmount: decimal("campaign_discount_amount", { precision: 10, scale: 2 }).default("0"),
+  campaignDiscountDetails: jsonb("campaign_discount_details").$type<{
+    campaignName: string;
+    discountedItems: Array<{ productId: string; quantity: number; discountAmount: string }>;
+  }>(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").default("pending").notNull(),
   paytrToken: text("paytr_token"),

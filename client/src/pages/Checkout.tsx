@@ -13,7 +13,7 @@ import {
   User, Mail, Phone, MapPin, CreditCard, Truck, Shield, 
   RotateCcw, Check, ArrowRight, ShoppingBag, ChevronRight,
   Package, Lock, ClipboardCheck, Edit3, AlertCircle, Loader2,
-  CheckCircle2, UserPlus, Tag, X, Instagram
+  CheckCircle2, UserPlus, Tag, X, Instagram, BadgePercent
 } from 'lucide-react';
 import { COUNTRIES } from '@/lib/countries';
 import { trackInitiateCheckout, trackAddPaymentInfo, trackPurchase } from '@/lib/metaPixel';
@@ -54,7 +54,7 @@ const steps = [
 
 export default function Checkout() {
   const [, navigate] = useLocation();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, pricing } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -227,7 +227,8 @@ export default function Checkout() {
   // Calculate discount based on coupon
   const calculateDiscount = () => {
     if (!appliedCoupon) return 0;
-    const discountBase = appliedCoupon.appliesToShipping ? subtotal + shippingCost : subtotal;
+    const campaignAdjustedSubtotal = pricing?.discountedSubtotal ?? subtotal;
+    const discountBase = appliedCoupon.appliesToShipping ? campaignAdjustedSubtotal + shippingCost : campaignAdjustedSubtotal;
     let disc = 0;
     if (appliedCoupon.discountType === 'percentage') {
       disc = (discountBase * parseFloat(appliedCoupon.discountValue)) / 100;
@@ -241,7 +242,8 @@ export default function Checkout() {
   };
   
   const discount = calculateDiscount();
-  const total = subtotal - discount + shippingCost;
+  const campaignDiscount = pricing?.campaignDiscount || 0;
+  const total = (pricing?.discountedSubtotal ?? subtotal) - discount + shippingCost;
 
   // Coupon validation handler
   const handleApplyCoupon = async () => {
@@ -257,7 +259,7 @@ export default function Checkout() {
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponCode, orderTotal: subtotal }),
+          body: JSON.stringify({ code: couponCode, orderTotal: pricing?.discountedSubtotal ?? subtotal }),
         credentials: 'include',
       });
       
@@ -394,7 +396,7 @@ export default function Checkout() {
 
       setPaytrToken(data.token);
       setMerchantOid(data.merchantOid);
-      setSavedOrderTotal(total);
+        setSavedOrderTotal(Number(data.total ?? total));
       setCurrentStep(3);
 
       const trackContentIds = cartItemsWithProducts.map(item => item.productId);
@@ -405,7 +407,7 @@ export default function Checkout() {
       }));
       trackAddPaymentInfo({
         contentIds: trackContentIds,
-        value: total,
+          value: Number(data.total ?? total),
         numItems: items.reduce((sum, item) => sum + item.quantity, 0),
         contents: trackContents,
         userData: getTrackUserData(),
@@ -1254,6 +1256,23 @@ export default function Checkout() {
                     <span className="text-muted-foreground">Ara Toplam</span>
                     <span data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
                   </div>
+                  {campaignDiscount > 0 && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span className="flex items-center gap-1">
+                        <BadgePercent className="w-3 h-3" />
+                        {pricing?.campaign?.name || 'Sepet kampanyası'}
+                      </span>
+                      <span data-testid="text-campaign-discount">-{campaignDiscount.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                  )}
+                  {pricing?.campaign && campaignDiscount === 0 && (
+                    <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
+                      <div className="flex gap-2">
+                        <BadgePercent className="w-4 h-4 text-violet-300 shrink-0 mt-0.5" />
+                        <p className="text-xs text-violet-100">{pricing.progressMessage}</p>
+                      </div>
+                    </div>
+                  )}
                   {discount > 0 && (
                     <div className="flex justify-between text-green-400">
                       <span className="flex items-center gap-1">

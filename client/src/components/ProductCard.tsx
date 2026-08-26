@@ -5,6 +5,7 @@ import { Link } from 'wouter';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { QuickViewModal } from './QuickViewModal';
 import { getOriginalPrice } from '@/lib/discountPrice';
+import { useQuery } from '@tanstack/react-query';
 
 interface ProductVariant {
   id: string;
@@ -40,6 +41,21 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const { toggleFavorite, isLoading: isFavoriteLoading } = useToggleFavorite();
   
   const isLiked = favoriteIds.includes(product.id);
+  const { data: campaign } = useQuery<{
+    name: string;
+    buyQuantity: number;
+    rewardQuantity: number;
+    discountPercentage: number;
+    eligibleProductIds: string[];
+  } | null>({
+    queryKey: ['active-cart-campaign'],
+    queryFn: async () => {
+      const res = await fetch('/api/campaigns/active');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 60_000,
+  });
+  const isCampaignEligible = Boolean(campaign?.eligibleProductIds.includes(product.id));
 
   const price = parseFloat(product.basePrice || '0') || 0;
   const originalPrice = getOriginalPrice(price, product.discountBadge);
@@ -117,6 +133,12 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
                 >
                   YENİ
                 </motion.span>
+              )}
+
+              {isCampaignEligible && !isOutOfStock && (
+                <span className="absolute bottom-2 left-2 z-10 bg-violet-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg">
+                  {campaign?.buyQuantity}+{campaign?.rewardQuantity} % {campaign?.discountPercentage} İNDİRİM
+                </span>
               )}
 
               {isOutOfStock && (

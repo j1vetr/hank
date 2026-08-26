@@ -35,6 +35,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useProductReviews, useProductRating, useUserReview, useCreateReview } from '@/hooks/useReviews';
 import { useAuth } from '@/hooks/useAuth';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
+import { useQuery } from '@tanstack/react-query';
 
 const FREE_SHIPPING_THRESHOLD = 2500;
 
@@ -74,6 +75,21 @@ export default function ProductDetail() {
   const { showModal } = useCartModal();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { data: activeCampaign } = useQuery<{
+    name: string;
+    customerMessage: string | null;
+    buyQuantity: number;
+    rewardQuantity: number;
+    discountPercentage: number;
+    eligibleProductIds: string[];
+  } | null>({
+    queryKey: ['active-cart-campaign'],
+    queryFn: async () => {
+      const res = await fetch('/api/campaigns/active');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 60_000,
+  });
 
   const { data: reviews = [] } = useProductReviews(product?.id || '');
   const { data: ratingData } = useProductRating(product?.id || '');
@@ -776,6 +792,17 @@ export default function ProductDetail() {
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                 </span>
               </div>
+
+              {activeCampaign?.eligibleProductIds.includes(product.id) && (
+                <div className="mb-6 p-3.5 bg-gradient-to-r from-violet-500/15 to-fuchsia-500/10 border border-violet-400/25 rounded-lg">
+                  <p className="text-sm font-semibold text-violet-100">
+                    {activeCampaign.name}
+                  </p>
+                  <p className="text-xs text-violet-200/80 mt-1">
+                    {activeCampaign.customerMessage || `${activeCampaign.buyQuantity} ürün al, ${activeCampaign.rewardQuantity}. üründe %${activeCampaign.discountPercentage} indirim fırsatı.`}
+                  </p>
+                </div>
+              )}
 
               {product.description && (
                 <div 

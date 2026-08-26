@@ -2,7 +2,7 @@ import { Link } from 'wouter';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart';
-import { Minus, Plus, Trash2, ShoppingBag, Truck, Shield, RotateCcw, ArrowRight, Package } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingBag, Truck, Shield, RotateCcw, ArrowRight, Package, BadgePercent } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,7 +17,7 @@ interface Product {
 const FREE_SHIPPING_THRESHOLD = 2500;
 
 export default function Cart() {
-  const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal } = useCart();
+  const { items, isLoading, updateQuantity, removeItem, totalItems, subtotal, pricing } = useCart();
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ['products'],
@@ -33,9 +33,11 @@ export default function Cart() {
   });
 
   const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 200;
-  const total = subtotal + shippingCost;
+  const campaignDiscount = pricing?.campaignDiscount || 0;
+  const total = (pricing?.discountedSubtotal ?? subtotal) + shippingCost;
   const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
   const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+  const getPricingLine = (cartItemId: string) => pricing?.lines.find(line => line.cartItemId === cartItemId);
 
   if (isLoading) {
     return (
@@ -149,6 +151,44 @@ export default function Cart() {
                   </motion.div>
                 )}
 
+                {pricing?.campaign && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`rounded-xl p-4 border ${
+                      campaignDiscount > 0
+                        ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/25'
+                        : 'bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border-violet-500/25'
+                    }`}
+                    data-testid="cart-campaign-progress"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                        campaignDiscount > 0 ? 'bg-emerald-500/20' : 'bg-violet-500/20'
+                      }`}>
+                        <BadgePercent className={`w-5 h-5 ${campaignDiscount > 0 ? 'text-emerald-400' : 'text-violet-300'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`font-medium ${campaignDiscount > 0 ? 'text-emerald-300' : 'text-violet-200'}`}>
+                          {pricing.campaign.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {pricing.progressMessage}
+                        </p>
+                        {campaignDiscount === 0 && pricing.requiredItemCount > 0 && (
+                          <div className="h-1.5 bg-black/30 rounded-full overflow-hidden mt-3">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min((pricing.eligibleItemCount / pricing.requiredItemCount) * 100, 100)}%` }}
+                              className="h-full bg-gradient-to-r from-violet-400 to-fuchsia-400 rounded-full"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Shipping Info Notice */}
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
@@ -236,9 +276,16 @@ export default function Cart() {
                               </motion.button>
                             </div>
 
-                            <p className="font-bold text-base sm:text-lg shrink-0" data-testid={`text-price-${item.id}`}>
-                              {(parseFloat(item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
-                            </p>
+                            <div className="text-right shrink-0">
+                              <p className="font-bold text-base sm:text-lg" data-testid={`text-price-${item.id}`}>
+                                {(getPricingLine(item.id)?.lineSubtotal ?? (parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity)).toLocaleString('tr-TR')} ₺
+                              </p>
+                              {(getPricingLine(item.id)?.discountAmount || 0) > 0 && (
+                                <p className="text-xs text-emerald-400 mt-0.5">
+                                  Kampanya indirimi: -{getPricingLine(item.id)?.discountAmount.toLocaleString('tr-TR')} ₺
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -274,6 +321,15 @@ export default function Cart() {
                       <span className="text-muted-foreground">Ara Toplam ({totalItems} ürün)</span>
                       <span className="font-medium" data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
                     </div>
+                    {campaignDiscount > 0 && (
+                      <div className="flex justify-between text-emerald-400">
+                        <span className="flex items-center gap-1">
+                          <BadgePercent className="w-3.5 h-3.5" />
+                          {pricing?.campaign?.name || 'Sepet kampanyası'}
+                        </span>
+                        <span data-testid="text-campaign-discount">-{campaignDiscount.toLocaleString('tr-TR')} ₺</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Kargo</span>
                       <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-green-400 font-medium' : ''}>

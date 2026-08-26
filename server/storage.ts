@@ -20,6 +20,7 @@ import {
   stockAdjustments,
   lowStockAlerts,
   campaigns,
+  autoCartCampaigns,
   emailJobs,
   siteSettings,
   passwordResetTokens,
@@ -62,6 +63,8 @@ import {
   type LowStockAlert,
   type Campaign,
   type InsertCampaign,
+  type AutoCartCampaign,
+  type InsertAutoCartCampaign,
   type EmailJob,
   type SiteSetting,
   type PasswordResetToken,
@@ -178,6 +181,14 @@ export interface IStorage {
   removeFromCart(id: string): Promise<void>;
   clearCart(sessionId: string): Promise<void>;
   getUsersWithCartItems(): Promise<User[]>;
+
+  // Automatic cart campaigns
+  getAutoCartCampaigns(): Promise<AutoCartCampaign[]>;
+  getAutoCartCampaign(id: string): Promise<AutoCartCampaign | undefined>;
+  getActiveAutoCartCampaign(): Promise<AutoCartCampaign | undefined>;
+  createAutoCartCampaign(campaign: InsertAutoCartCampaign): Promise<AutoCartCampaign>;
+  updateAutoCartCampaign(id: string, campaign: Partial<InsertAutoCartCampaign>): Promise<AutoCartCampaign | undefined>;
+  deleteAutoCartCampaign(id: string): Promise<void>;
 
   getOrders(): Promise<Order[]>;
   getOrder(id: string): Promise<Order | undefined>;
@@ -583,6 +594,7 @@ export class DbStorage implements IStorage {
         name: products.name,
         slug: products.slug,
         basePrice: products.basePrice,
+        categoryId: products.categoryId,
         images: products.images,
       }).from(products).where(eq(products.id, item.productId));
       
@@ -1267,6 +1279,44 @@ export class DbStorage implements IStorage {
 
   async deleteCampaign(id: string): Promise<void> {
     await db.delete(campaigns).where(eq(campaigns.id, id));
+  }
+
+  // Automatic cart campaign methods
+  async getAutoCartCampaigns(): Promise<AutoCartCampaign[]> {
+    return db.select().from(autoCartCampaigns).orderBy(desc(autoCartCampaigns.createdAt));
+  }
+
+  async getAutoCartCampaign(id: string): Promise<AutoCartCampaign | undefined> {
+    const [campaign] = await db.select().from(autoCartCampaigns).where(eq(autoCartCampaigns.id, id));
+    return campaign;
+  }
+
+  async getActiveAutoCartCampaign(): Promise<AutoCartCampaign | undefined> {
+    const now = new Date();
+    const campaigns = await db.select().from(autoCartCampaigns)
+      .where(eq(autoCartCampaigns.isActive, true))
+      .orderBy(desc(autoCartCampaigns.createdAt));
+    return campaigns.find(campaign =>
+      (!campaign.startsAt || campaign.startsAt <= now) &&
+      (!campaign.endsAt || campaign.endsAt >= now)
+    );
+  }
+
+  async createAutoCartCampaign(campaign: InsertAutoCartCampaign): Promise<AutoCartCampaign> {
+    const [created] = await db.insert(autoCartCampaigns).values(campaign).returning();
+    return created;
+  }
+
+  async updateAutoCartCampaign(id: string, campaign: Partial<InsertAutoCartCampaign>): Promise<AutoCartCampaign | undefined> {
+    const [updated] = await db.update(autoCartCampaigns)
+      .set({ ...campaign, updatedAt: new Date() })
+      .where(eq(autoCartCampaigns.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAutoCartCampaign(id: string): Promise<void> {
+    await db.delete(autoCartCampaigns).where(eq(autoCartCampaigns.id, id));
   }
 
   // Email job methods

@@ -23,6 +23,33 @@ interface CartItem {
   };
 }
 
+export interface CartCampaignPricing {
+  subtotal: number;
+  campaignDiscount: number;
+  discountedSubtotal: number;
+  campaign: {
+    id: string;
+    name: string;
+    customerMessage: string | null;
+    buyQuantity: number;
+    rewardQuantity: number;
+    discountPercentage: number;
+  } | null;
+  eligibleItemCount: number;
+  requiredItemCount: number;
+  applications: number;
+  remainingItems: number;
+  progressMessage: string | null;
+  lines: Array<{
+    cartItemId: string;
+    unitPrice: number;
+    lineSubtotal: number;
+    eligible: boolean;
+    discountedQuantity: number;
+    discountAmount: number;
+  }>;
+}
+
 interface CartContextType {
   items: CartItem[];
   isLoading: boolean;
@@ -32,6 +59,8 @@ interface CartContextType {
   clearCart: () => Promise<void>;
   totalItems: number;
   subtotal: number;
+  pricing: CartCampaignPricing | undefined;
+  isPricingLoading: boolean;
 }
 
 export const CartContext = createContext<CartContextType | null>(null);
@@ -52,6 +81,17 @@ export function useCartProvider() {
     queryFn: async () => {
       const res = await fetch('/api/cart', { credentials: 'include' });
       if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: pricing, isLoading: isPricingLoading } = useQuery<CartCampaignPricing>({
+    queryKey: ['cart-pricing'],
+    queryFn: async () => {
+      const res = await fetch('/api/cart/pricing', { credentials: 'include' });
+      if (!res.ok) throw new Error('Sepet hesaplanamadı');
       return res.json();
     },
     staleTime: 0,
@@ -84,6 +124,7 @@ export function useCartProvider() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['cart-pricing'] });
     },
   });
 
@@ -98,6 +139,7 @@ export function useCartProvider() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['cart-pricing'] });
     },
   });
 
@@ -112,15 +154,17 @@ export function useCartProvider() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['cart-pricing'] });
     },
   });
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
-  const subtotal = items.reduce((sum, item) => {
+  const localSubtotal = items.reduce((sum, item) => {
     const price = item.product?.basePrice || '0';
     return sum + parseFloat(price) * item.quantity;
   }, 0);
+  const subtotal = pricing?.subtotal ?? localSubtotal;
 
   return {
     items,
@@ -128,6 +172,7 @@ export function useCartProvider() {
     addToCart: async (productId: string, variantId?: string, quantity = 1) => {
       await addMutation.mutateAsync({ productId, variantId, quantity });
       await queryClient.refetchQueries({ queryKey: ['cart'] });
+      await queryClient.refetchQueries({ queryKey: ['cart-pricing'] });
     },
     updateQuantity: async (itemId: string, quantity: number) => {
       await updateMutation.mutateAsync({ itemId, quantity });
@@ -140,5 +185,7 @@ export function useCartProvider() {
     },
     totalItems,
     subtotal,
+    pricing,
+    isPricingLoading,
   };
 }
