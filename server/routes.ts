@@ -31,6 +31,11 @@ import { processMessage, getChatHistory, generateProductEmbedding, generateAllPr
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
 import { calculateCartCampaign, getCampaignEligibleProductIds } from "./cartCampaign";
 import {
+  calculateCheckoutPricing,
+  campaignFieldsFromPendingPayment,
+  campaignFieldsFromPricing,
+} from "./orderPricing";
+import {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
@@ -2042,8 +2047,6 @@ export async function registerRoutes(
         price: string;
       }> = [];
 
-      const basketUnits: Array<{ name: string; priceCents: number; isProduct: boolean }> = [];
-
       for (const cartItem of cartItems) {
         const line = campaignPricing.lines.find(item => item.cartItemId === cartItem.id);
         const product = cartItem.product;
@@ -2059,112 +2062,25 @@ export async function registerRoutes(
             price: line.unitPrice.toFixed(2),
           });
 
-          const fullPriceQuantity = cartItem.quantity - line.discountedQuantity;
-          for (let unit = 0; unit < fullPriceQuantity; unit += 1) {
-            basketUnits.push({ name: product.name.substring(0, 50), priceCents: Math.round(line.unitPrice * 100), isProduct: true });
-          }
-          for (let unit = 0; unit < line.discountedQuantity; unit += 1) {
-            basketUnits.push({
-              name: `${product.name.substring(0, 42)} (kampanya)`,
-              priceCents: Math.round(line.discountedUnitPrice * 100),
-              isProduct: true,
-            });
-          }
         }
       }
 
       // Handle coupon validation
       let validatedCoupon = null;
       let discountAmount = 0;
-      let couponFreeShipping = false;
       
       if (couponCode) {
         const couponResult = await storage.validateCoupon(couponCode, campaignPricing.discountedSubtotal, userId || undefined);
         if (couponResult.valid && couponResult.coupon) {
           validatedCoupon = couponResult.coupon;
-          couponFreeShipping = validatedCoupon.freeShipping || false;
-          if (validatedCoupon.discountType === 'percentage') {
-            discountAmount = (campaignPricing.discountedSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
-          } else {
-            discountAmount = parseFloat(validatedCoupon.discountValue);
-          }
-          if (validatedCoupon.maxDiscountAmount) {
-            discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
-          }
-          discountAmount = Math.min(discountAmount, campaignPricing.discountedSubtotal);
         }
       }
 
-      // Calculate shipping and total
-      const FREE_SHIPPING_THRESHOLD = 2500;
-      const DOMESTIC_SHIPPING_COST = 200;
-      const INTERNATIONAL_SHIPPING_COST = 2500;
-      const IRAQ_SHIPPING_COST = 5700;
-      const GREECE_SHIPPING_COST = 3000;
-      
-      const isDomestic = selectedCountry === 'Türkiye';
-      const isIraq = selectedCountry === 'Irak';
-      const isGreece = selectedCountry === 'Yunanistan';
-      let shippingCost = isDomestic
-        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST 
-        : isGreece ? GREECE_SHIPPING_COST 
-        : INTERNATIONAL_SHIPPING_COST;
-      
-      if (couponFreeShipping) {
-        shippingCost = 0;
-      }
-
-      if (validatedCoupon?.appliesToShipping && shippingCost > 0) {
-        const totalWithShipping = campaignPricing.discountedSubtotal + shippingCost;
-        if (validatedCoupon.discountType === 'percentage') {
-          discountAmount = (totalWithShipping * parseFloat(validatedCoupon.discountValue)) / 100;
-        } else {
-          discountAmount = parseFloat(validatedCoupon.discountValue);
-        }
-        if (validatedCoupon.maxDiscountAmount) {
-          discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
-        }
-        discountAmount = Math.min(discountAmount, totalWithShipping);
-      }
-
-      const discountedSubtotalCents = Math.round(campaignPricing.discountedSubtotal * 100);
-      const discountCents = Math.min(Math.round(discountAmount * 100), discountedSubtotalCents + Math.round(shippingCost * 100));
-      const shippingCents = Math.round(shippingCost * 100);
-      const paymentAmount = Math.max(0, discountedSubtotalCents - discountCents + shippingCents);
-      discountAmount = discountCents / 100;
-      const serverTotal = paymentAmount / 100;
-
-      if (shippingCents > 0) {
-        basketUnits.push({ name: "Kargo", priceCents: shippingCents, isProduct: false });
-      }
-      let remainingDiscountCents = discountCents;
-      const discountableUnits = basketUnits.filter(unit => unit.isProduct || validatedCoupon?.appliesToShipping);
-      for (const unit of [...discountableUnits].sort((a, b) => b.priceCents - a.priceCents)) {
-        const unitDiscount = Math.min(unit.priceCents, remainingDiscountCents);
-        unit.priceCents -= unitDiscount;
-        remainingDiscountCents -= unitDiscount;
-        if (remainingDiscountCents === 0) break;
-      }
-      if (remainingDiscountCents > 0) {
-        return res.status(400).json({ error: "Kupon indirimi sepet tutarını aşıyor" });
-      }
-      const basketTotal = basketUnits.reduce((total, unit) => total + unit.priceCents, 0);
-      if (basketTotal !== paymentAmount) {
-        throw new Error("PayTR sepet tutarı ödeme tutarıyla eşleşmiyor");
-      }
-      const basketGroups = new Map<string, { name: string; priceCents: number; quantity: number }>();
-      basketUnits.forEach(unit => {
-        const key = `${unit.name}|${unit.priceCents}`;
-        const group = basketGroups.get(key) || { name: unit.name, priceCents: unit.priceCents, quantity: 0 };
-        group.quantity += 1;
-        basketGroups.set(key, group);
-      });
-      const userBasket: Array<[string, string, number]> = Array.from(basketGroups.values()).map(group => [
-        group.name,
-        group.priceCents.toString(),
-        group.quantity,
-      ]);
+      // Calculate shipping, coupon and PayTR basket totals from the same server-side result
+      const checkoutPricing = calculateCheckoutPricing(campaignPricing, validatedCoupon, selectedCountry);
+      const { shippingCost, paymentAmount, total: serverTotal } = checkoutPricing;
+      discountAmount = checkoutPricing.discountAmount;
+      const userBasket = checkoutPricing.basket;
 
       // Generate unique merchant order ID
       const merchantOid = `HNK${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
@@ -2197,9 +2113,7 @@ export async function registerRoutes(
         shippingCost: shippingCost.toFixed(2),
         discountAmount: discountAmount.toFixed(2),
         couponCode: validatedCoupon?.code || null,
-        campaignId: campaignPricing.campaign?.id || null,
-        campaignDiscountAmount: campaignPricing.campaignDiscount.toFixed(2),
-        campaignDiscountDetails: campaignPricing.campaignDiscountDetails,
+        ...campaignFieldsFromPricing(campaignPricing),
         total: serverTotal.toFixed(2),
         status: 'pending',
         paytrToken: null,
@@ -2300,9 +2214,7 @@ export async function registerRoutes(
           shippingCost: pendingPayment.shippingCost,
           discountAmount: pendingPayment.discountAmount || '0',
           couponCode: pendingPayment.couponCode,
-          campaignId: pendingPayment.campaignId,
-          campaignDiscountAmount: pendingPayment.campaignDiscountAmount || '0',
-          campaignDiscountDetails: pendingPayment.campaignDiscountDetails,
+          ...campaignFieldsFromPendingPayment(pendingPayment),
           total: pendingPayment.total,
           status: 'confirmed',
           paymentMethod: 'credit_card',
@@ -2613,7 +2525,6 @@ export async function registerRoutes(
       // Handle coupon validation and redemption - recalculate discount on server
       let validatedCoupon = null;
       let discountAmount = 0;
-      let couponFreeShipping = false;
       
       if (req.body.couponCode) {
         const couponResult = await storage.validateCoupon(
@@ -2624,59 +2535,13 @@ export async function registerRoutes(
         
         if (couponResult.valid && couponResult.coupon) {
           validatedCoupon = couponResult.coupon;
-          couponFreeShipping = validatedCoupon.freeShipping || false;
-          
-          // Recalculate discount on server to prevent tampering
-          if (validatedCoupon.discountType === 'percentage') {
-            discountAmount = (campaignPricing.discountedSubtotal * parseFloat(validatedCoupon.discountValue)) / 100;
-          } else {
-            discountAmount = parseFloat(validatedCoupon.discountValue);
-          }
-          if (validatedCoupon.maxDiscountAmount) {
-            discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
-          }
-          // Clamp discount to subtotal
-          discountAmount = Math.min(discountAmount, campaignPricing.discountedSubtotal);
         }
       }
-      
-      // Calculate shipping and total on server
-      const FREE_SHIPPING_THRESHOLD = 2500;
-      const DOMESTIC_SHIPPING_COST = 200;
-      const INTERNATIONAL_SHIPPING_COST = 2500;
-      const IRAQ_SHIPPING_COST = 5700;
-      const GREECE_SHIPPING_COST = 3000;
       
       const orderCountry = req.body.shippingAddress?.country || 'Türkiye';
-      const isDomestic = orderCountry === 'Türkiye';
-      const isIraq = orderCountry === 'Irak';
-      const isGreece = orderCountry === 'Yunanistan';
-      let shippingCost = isDomestic
-        ? (serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : DOMESTIC_SHIPPING_COST)
-        : isIraq ? IRAQ_SHIPPING_COST
-        : isGreece ? GREECE_SHIPPING_COST
-        : INTERNATIONAL_SHIPPING_COST;
-      if (couponFreeShipping) {
-        shippingCost = 0;
-      }
-      if (validatedCoupon?.appliesToShipping && shippingCost > 0) {
-        const totalWithShipping = campaignPricing.discountedSubtotal + shippingCost;
-        discountAmount = validatedCoupon.discountType === 'percentage'
-          ? (totalWithShipping * parseFloat(validatedCoupon.discountValue)) / 100
-          : parseFloat(validatedCoupon.discountValue);
-        if (validatedCoupon.maxDiscountAmount) {
-          discountAmount = Math.min(discountAmount, parseFloat(validatedCoupon.maxDiscountAmount));
-        }
-        discountAmount = Math.min(discountAmount, totalWithShipping);
-      }
-      const discountedSubtotalCents = Math.round(campaignPricing.discountedSubtotal * 100);
-      const shippingCents = Math.round(shippingCost * 100);
-      const discountCents = Math.min(
-        Math.round(discountAmount * 100),
-        discountedSubtotalCents + shippingCents,
-      );
-      discountAmount = discountCents / 100;
-      const serverTotal = Math.max(0, discountedSubtotalCents - discountCents + shippingCents) / 100;
+      const checkoutPricing = calculateCheckoutPricing(campaignPricing, validatedCoupon, orderCountry);
+      const { shippingCost, discountAmount: calculatedDiscountAmount, total: serverTotal } = checkoutPricing;
+      discountAmount = calculatedDiscountAmount;
       
       const validated = insertOrderSchema.parse({
         ...req.body,
@@ -2685,9 +2550,7 @@ export async function registerRoutes(
         shippingCost: shippingCost.toFixed(2),
         couponCode: validatedCoupon?.code || null,
         discountAmount: discountAmount.toFixed(2),
-        campaignId: campaignPricing.campaign?.id || null,
-        campaignDiscountAmount: campaignPricing.campaignDiscount.toFixed(2),
-        campaignDiscountDetails: campaignPricing.campaignDiscountDetails,
+        ...campaignFieldsFromPricing(campaignPricing),
         total: serverTotal.toFixed(2),
       });
 

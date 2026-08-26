@@ -1,8 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { db } from "./db";
 import { productCategories, products, type AutoCartCampaign } from "@shared/schema";
 
-type CartItemLike = {
+export type CartItemLike = {
   id: string;
   productId: string;
   variantId?: string | null;
@@ -67,6 +66,7 @@ function campaignIsInDateRange(campaign: AutoCartCampaign, now = new Date()) {
 }
 
 async function getCategoryMap(productIds: string[]) {
+  const { db } = await import("./db");
   const categoryMap = new Map<string, Set<string>>();
   if (productIds.length === 0) return categoryMap;
 
@@ -92,6 +92,7 @@ async function getCategoryMap(productIds: string[]) {
 }
 
 export async function getCampaignEligibleProductIds(campaign: AutoCartCampaign) {
+  const { db } = await import("./db");
   const rows = await db
     .select({ id: products.id, categoryId: products.categoryId })
     .from(products)
@@ -120,7 +121,7 @@ export async function getCampaignEligibleProductIds(campaign: AutoCartCampaign) 
 function isProductEligible(
   campaign: AutoCartCampaign,
   productId: string,
-  categoryIds: Set<string>,
+  categoryIds: ReadonlySet<string>,
 ) {
   const excludedCategories = new Set(campaign.excludedCategoryIds || []);
   const excludedProducts = new Set(campaign.excludedProductIds || []);
@@ -139,9 +140,10 @@ function isProductEligible(
 export async function calculateCartCampaign(
   cartItems: CartItemLike[],
   campaign?: AutoCartCampaign | null,
+  categoryMapOverride?: ReadonlyMap<string, ReadonlySet<string>>,
 ): Promise<CartCampaignPricing> {
   const productIds = Array.from(new Set(cartItems.map(item => item.productId)));
-  const categoryMap = await getCategoryMap(productIds);
+  const categoryMap = categoryMapOverride || await getCategoryMap(productIds);
   const lines: CampaignLine[] = cartItems.map(item => {
     const product = item.product;
     const unitPrice = Number(item.variant?.price || product?.basePrice || 0);
