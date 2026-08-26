@@ -2,13 +2,24 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Link } from "wouter";
 
-const STORAGE_KEY = "hank_winter_promo_popup_shown_v3";
-const SHOW_DELAY_MS = 1800;
+const STORAGE_KEY = "hank_winter_promo_popup_shown_v4";
+const SHOW_DELAY_MS = 1000;
+const PROMO_DESKTOP = "/uploads/promo/hank-campaign.webp?v=1";
+const PROMO_DESKTOP_FALLBACK = "/uploads/promo/hank-campaign.jpg?v=1";
+const PROMO_MOBILE = "/uploads/promo/hank-campaign-mobile.webp?v=1";
+const PROMO_MOBILE_FALLBACK = "/uploads/promo/hank-campaign-mobile.jpg?v=1";
 
 export default function WinterPromoPopup() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    const imageUrl = window.matchMedia("(min-width: 640px)").matches
+      ? PROMO_DESKTOP
+      : PROMO_MOBILE;
+    const image = new Image();
+    image.decoding = "async";
+    image.src = imageUrl;
+
     let alreadyShown = false;
     try {
       alreadyShown = !!sessionStorage.getItem(STORAGE_KEY);
@@ -54,12 +65,12 @@ export default function WinterPromoPopup() {
         type="button"
         aria-label="Kapat"
         onClick={() => setOpen(false)}
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/75"
         data-testid="button-backdrop-close"
       />
 
       {/* Card — compact on desktop (image is portrait). Use fixed small width + height cap. */}
-      <div className="relative w-full max-w-[320px] sm:max-w-[340px] md:max-w-[360px] mx-auto max-h-[78vh] rounded-2xl overflow-hidden shadow-2xl bg-white animate-in zoom-in-95 duration-300 flex flex-col">
+      <div className="relative w-full max-w-[320px] sm:max-w-[340px] md:max-w-[360px] mx-auto max-h-[78vh] rounded-2xl overflow-hidden shadow-2xl bg-white animate-in zoom-in-95 duration-200 flex flex-col [will-change:transform,opacity]">
         <button
           onClick={() => setOpen(false)}
           aria-label="Kapat"
@@ -69,7 +80,7 @@ export default function WinterPromoPopup() {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Responsive image: aspect 3:2 desktop, 4:3 mobile */}
+        {/* Responsive image with WebP and JPEG fallbacks */}
         <Link
           href="/magaza"
           onClick={() => setOpen(false)}
@@ -79,13 +90,24 @@ export default function WinterPromoPopup() {
           <picture>
             <source
               media="(min-width: 640px)"
-              srcSet="/uploads/promo/winter-promo.jpg?v=4"
+              type="image/webp"
+              srcSet={PROMO_DESKTOP}
+            />
+            <source
+              media="(min-width: 640px)"
+              srcSet={PROMO_DESKTOP_FALLBACK}
+            />
+            <source
+              type="image/webp"
+              srcSet={PROMO_MOBILE}
             />
             <img
-              src="/uploads/promo/winter-promo-mobile.jpg?v=4"
-              alt="HANK Kampanyası — Tüm ürünlerde %30 toplam indirim"
+              src={PROMO_MOBILE_FALLBACK}
+              alt="2 ürün alana 3. üründe yüzde 50 indirim kampanyası"
               loading="eager"
-              className="w-full h-full object-contain block group-hover:scale-[1.01] transition-transform duration-500"
+              decoding="async"
+              fetchPriority="high"
+              className="w-full h-full object-contain block"
             />
           </picture>
         </Link>
