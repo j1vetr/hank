@@ -352,7 +352,7 @@ export default function Cart() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between gap-2 mt-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3">
                             <div className="flex items-center bg-black/30 rounded-lg p-0.5 shrink-0">
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
@@ -375,12 +375,12 @@ export default function Cart() {
                               </motion.button>
                             </div>
 
-                            <div className="text-right shrink-0">
-                              <p className="font-bold text-base sm:text-lg" data-testid={`text-price-${item.id}`}>
+                            <div className="w-full min-w-0 text-right sm:w-auto sm:shrink-0">
+                              <p className="font-bold text-base sm:text-lg break-words" data-testid={`text-price-${item.id}`}>
                                 {(getPricingLine(item.id)?.lineSubtotal ?? (parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity)).toLocaleString('tr-TR')} ₺
                               </p>
                               {(getPricingLine(item.id)?.discountAmount || 0) > 0 && (
-                                <p className="text-xs text-emerald-400 mt-0.5">
+                                <p className="text-xs leading-tight text-emerald-400 mt-0.5 break-words whitespace-normal">
                                   Kampanya indirimi: -{getPricingLine(item.id)?.discountAmount.toLocaleString('tr-TR')} ₺
                                 </p>
                               )}
