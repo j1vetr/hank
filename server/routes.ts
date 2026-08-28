@@ -1354,6 +1354,13 @@ export async function registerRoutes(
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
+
+      const variantsToSync = await storage.getProductVariants(product.id);
+      for (const variant of variantsToSync) {
+        if (variant.price !== product.basePrice) {
+          await storage.updateProductVariant(variant.id, { price: product.basePrice });
+        }
+      }
       
       // Auto-create missing variants for new size/color combinations
       const sizes = product.availableSizes || [];
@@ -1736,9 +1743,14 @@ export async function registerRoutes(
 
   app.post("/api/admin/products/:productId/variants", requireAdmin, async (req, res) => {
     try {
+      const product = await storage.getProduct(req.params.productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
       const validated = insertProductVariantSchema.parse({
         ...req.body,
         productId: req.params.productId,
+        price: product.basePrice,
       });
       const variant = await storage.createProductVariant(validated);
       res.status(201).json(variant);
@@ -1749,7 +1761,19 @@ export async function registerRoutes(
 
   app.patch("/api/admin/variants/:id", requireAdmin, async (req, res) => {
     try {
-      const variant = await storage.updateProductVariant(req.params.id, req.body);
+      const currentVariant = await storage.getProductVariant(req.params.id);
+      if (!currentVariant) {
+        return res.status(404).json({ error: "Variant not found" });
+      }
+      const product = await storage.getProduct(currentVariant.productId);
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      const variant = await storage.updateProductVariant(req.params.id, {
+        ...req.body,
+        productId: currentVariant.productId,
+        price: product.basePrice,
+      });
       if (!variant) {
         return res.status(404).json({ error: "Variant not found" });
       }

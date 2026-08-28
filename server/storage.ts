@@ -552,12 +552,36 @@ export class DbStorage implements IStorage {
   }
 
   async createProductVariant(variant: InsertProductVariant): Promise<ProductVariant> {
-    const [newVariant] = await db.insert(productVariants).values(variant).returning();
+    const [product] = await db
+      .select({ basePrice: products.basePrice })
+      .from(products)
+      .where(eq(products.id, variant.productId));
+    if (!product) {
+      throw new Error("Product not found for variant");
+    }
+    const [newVariant] = await db
+      .insert(productVariants)
+      .values({ ...variant, price: product.basePrice })
+      .returning();
     return newVariant;
   }
 
   async updateProductVariant(id: string, variant: Partial<InsertProductVariant>): Promise<ProductVariant | undefined> {
-    const [updated] = await db.update(productVariants).set(variant).where(eq(productVariants.id, id)).returning();
+    let updateData = variant;
+    if (variant.price !== undefined || variant.productId !== undefined) {
+      const current = await this.getProductVariant(id);
+      if (!current) return undefined;
+      const productId = variant.productId || current.productId;
+      const [product] = await db
+        .select({ basePrice: products.basePrice })
+        .from(products)
+        .where(eq(products.id, productId));
+      if (!product) {
+        throw new Error("Product not found for variant");
+      }
+      updateData = { ...variant, productId, price: product.basePrice };
+    }
+    const [updated] = await db.update(productVariants).set(updateData).where(eq(productVariants.id, id)).returning();
     return updated;
   }
 

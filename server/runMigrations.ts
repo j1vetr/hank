@@ -50,6 +50,11 @@ export async function runAutoCartCampaignMigration() {
       value numeric(10,2),
       created_at timestamp NOT NULL DEFAULT now()
     );
+    UPDATE product_variants AS variant
+    SET price = product.base_price
+    FROM products AS product
+    WHERE variant.product_id = product.id
+      AND variant.price IS DISTINCT FROM product.base_price;
     DO $$ BEGIN
       IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_campaign_id_auto_cart_campaigns_id_fk') THEN
         ALTER TABLE orders ADD CONSTRAINT orders_campaign_id_auto_cart_campaigns_id_fk
