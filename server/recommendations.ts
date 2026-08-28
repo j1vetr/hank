@@ -87,6 +87,8 @@ export async function getCartRecommendations(
     subtotal: number;
     eligibleItemCount: number;
     requiredItemCount: number;
+    campaign: unknown | null;
+    remainingItems: number;
   },
   campaign?: AutoCartCampaign | null,
 ): Promise<CartRecommendations> {
@@ -154,11 +156,7 @@ export async function getCartRecommendations(
     true,
   );
 
-  const groupSize = campaign ? campaign.buyQuantity + campaign.rewardQuantity : 0;
-  const remainder = groupSize > 0 ? pricing.eligibleItemCount % groupSize : 0;
-  const neededForCampaign = campaign && pricing.requiredItemCount > 0
-    ? remainder === 0 ? (pricing.eligibleItemCount === 0 ? groupSize : 0) : groupSize - remainder
-    : 0;
+  const neededForCampaign = pricing.campaign ? pricing.remainingItems : 0;
   const eligibleIds = campaign && neededForCampaign > 0
     ? await getCampaignEligibleProductIds(campaign)
     : [];

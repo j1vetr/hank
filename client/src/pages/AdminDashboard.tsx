@@ -6285,7 +6285,9 @@ function AutoCartCampaignModal({
         <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-white">{campaign ? 'Sepet Kampanyasını Düzenle' : 'Yeni Sepet Kampanyası'}</h3>
-            <p className="text-sm text-zinc-500 mt-1">İndirim uygun ürünler arasındaki en ucuz ürüne uygulanır.</p>
+            <p className="text-sm text-zinc-500 mt-1">
+              Alınacak adet tüm ürünlerden sayılır. İndirim yalnızca aşağıda seçtiğiniz kapsamdaki en ucuz uygun ürüne uygulanır.
+            </p>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
@@ -6316,7 +6318,7 @@ function AutoCartCampaignModal({
           </div>
           <div className="grid sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Kapsam</label>
+              <label className="block text-sm text-zinc-400 mb-2">İndirimli Ürün Kapsamı</label>
               <select value={formData.scopeType} onChange={e => setFormData(current => ({ ...current, scopeType: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white">
                 <option value="all">Tüm ürünler</option>
                 <option value="categories">Seçili kategoriler</option>
@@ -6343,14 +6345,14 @@ function AutoCartCampaignModal({
             </div>
           </div>
           {formData.scopeType === 'categories' && (
-            <SelectionList title="Dahil Edilen Kategoriler" items={categories} selected={formData.includedCategoryIds} onToggle={id => toggle('includedCategoryIds', id)} />
+            <SelectionList title="İndirim Uygulanacak Kategoriler" items={categories} selected={formData.includedCategoryIds} onToggle={id => toggle('includedCategoryIds', id)} />
           )}
           {formData.scopeType === 'products' && (
-            <SelectionList title="Dahil Edilen Ürünler" items={products} selected={formData.includedProductIds} onToggle={id => toggle('includedProductIds', id)} />
+            <SelectionList title="İndirim Uygulanacak Ürünler" items={products} selected={formData.includedProductIds} onToggle={id => toggle('includedProductIds', id)} />
           )}
           <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-zinc-800">
-            <SelectionList title="Hariç Tutulan Kategoriler" items={categories} selected={formData.excludedCategoryIds} onToggle={id => toggle('excludedCategoryIds', id)} />
-            <SelectionList title="Hariç Tutulan Ürünler" items={products} selected={formData.excludedProductIds} onToggle={id => toggle('excludedProductIds', id)} />
+            <SelectionList title="İndirimden Hariç Kategoriler" items={categories} selected={formData.excludedCategoryIds} onToggle={id => toggle('excludedCategoryIds', id)} />
+            <SelectionList title="İndirimden Hariç Ürünler" items={products} selected={formData.excludedProductIds} onToggle={id => toggle('excludedProductIds', id)} />
           </div>
         </div>
         <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">

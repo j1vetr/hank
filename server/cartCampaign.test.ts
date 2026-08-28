@@ -97,9 +97,9 @@ test("2+1 kampanyası tekrar eden gruplarda en ucuz iki birimi indirir", async (
 test("ürün ve kategori istisnaları dahil etme kapsamından önce uygulanır", async () => {
   const pricing = await calculateCartCampaign(
     [
-      cartItem("allowed", "allowed", 3, "100.00", { categoryId: "protein" }),
-      cartItem("category-excluded", "category-excluded", 3, "100.00", { categoryId: "protein" }),
-      cartItem("product-excluded", "product-excluded", 3, "100.00", { categoryId: "protein" }),
+      cartItem("allowed", "allowed", 1, "100.00", { categoryId: "protein" }),
+      cartItem("category-excluded", "category-excluded", 1, "100.00", { categoryId: "protein" }),
+      cartItem("product-excluded", "product-excluded", 1, "100.00", { categoryId: "protein" }),
     ],
     campaign({
       scopeType: "categories",
@@ -124,6 +124,86 @@ test("ürün ve kategori istisnaları dahil etme kapsamından önce uygulanır",
   );
   assert.equal(pricing.eligibleItemCount, 3);
   assert.equal(pricing.campaignDiscount, 100);
+});
+
+test("herhangi iki ürün seçili kategorideki üçüncü ürüne yüzde 50 indirim kazandırır", async () => {
+  const pricing = await calculateCartCampaign(
+    [
+      cartItem("qualifier", "qualifier", 2, "60.00", { categoryId: "tshirt" }),
+      cartItem("reward", "reward", 1, "200.00", { categoryId: "protein" }),
+    ],
+    campaign({
+      scopeType: "categories",
+      includedCategoryIds: ["protein"],
+      discountPercentage: "50",
+    }),
+    categories([
+      ["qualifier", ["tshirt"]],
+      ["reward", ["protein"]],
+    ]),
+  );
+
+  assert.equal(pricing.applications, 1);
+  assert.equal(pricing.campaignDiscount, 100);
+  assert.equal(pricing.lines.find(line => line.productId === "qualifier")?.discountedQuantity, 0);
+  assert.equal(pricing.lines.find(line => line.productId === "reward")?.discountedQuantity, 1);
+});
+
+test("seçili kategorideki aynı üründen üç adet alındığında bir adet indirim alır", async () => {
+  const pricing = await calculateCartCampaign(
+    [cartItem("reward", "reward", 3, "200.00", { categoryId: "protein" })],
+    campaign({
+      scopeType: "categories",
+      includedCategoryIds: ["protein"],
+      discountPercentage: "50",
+    }),
+    categories([["reward", ["protein"]]]),
+  );
+
+  assert.equal(pricing.applications, 1);
+  assert.equal(pricing.campaignDiscount, 100);
+  assert.equal(pricing.lines[0].discountedQuantity, 1);
+  assert.equal(pricing.lines[0].discountedUnitPrice, 100);
+});
+
+test("seçili kapsam dışında kalan üç ürün kampanya indirimi oluşturmaz", async () => {
+  const pricing = await calculateCartCampaign(
+    [cartItem("outside", "outside", 3, "90.00", { categoryId: "tshirt" })],
+    campaign({
+      scopeType: "categories",
+      includedCategoryIds: ["protein"],
+      discountPercentage: "50",
+    }),
+    categories([["outside", ["tshirt"]]]),
+  );
+
+  assert.equal(pricing.applications, 0);
+  assert.equal(pricing.campaignDiscount, 0);
+  assert.equal(pricing.remainingItems, 1);
+  assert.match(pricing.progressMessage || "", /1 kampanya ürünü/);
+});
+
+test("tekrarlı uygulama ödül ürünü adediyle sınırlanır", async () => {
+  const pricing = await calculateCartCampaign(
+    [
+      cartItem("qualifier", "qualifier", 5, "50.00", { categoryId: "tshirt" }),
+      cartItem("reward", "reward", 1, "120.00", { categoryId: "protein" }),
+    ],
+    campaign({
+      scopeType: "categories",
+      includedCategoryIds: ["protein"],
+      discountPercentage: "50",
+    }),
+    categories([
+      ["qualifier", ["tshirt"]],
+      ["reward", ["protein"]],
+    ]),
+  );
+
+  assert.equal(pricing.applications, 1);
+  assert.equal(pricing.campaignDiscount, 60);
+  assert.equal(pricing.remainingItems, 1);
+  assert.equal(pricing.lines.find(line => line.productId === "reward")?.discountedQuantity, 1);
 });
 
 test("varyant fiyatı ve maksimum uygulama limiti kullanılır", async () => {

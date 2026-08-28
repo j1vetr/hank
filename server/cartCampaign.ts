@@ -183,7 +183,7 @@ export async function calculateCartCampaign(
     };
   }
 
-  const eligibleUnits = lines.flatMap((line, lineIndex) =>
+  const rewardEligibleUnits = lines.flatMap((line, lineIndex) =>
     line.eligible
       ? Array.from({ length: line.quantity }, (_, unitIndex) => ({
           lineIndex,
@@ -192,14 +192,23 @@ export async function calculateCartCampaign(
         }))
       : [],
   );
+  const totalItemCount = cartItems.reduce(
+    (total, item) => total + (item.product ? Math.max(0, item.quantity) : 0),
+    0,
+  );
   const groupSize = campaign.buyQuantity + campaign.rewardQuantity;
-  const possibleApplications = Math.floor(eligibleUnits.length / groupSize);
+  const possibleApplicationsByTotal = Math.floor(totalItemCount / groupSize);
+  const possibleApplicationsByReward = Math.floor(
+    rewardEligibleUnits.length / campaign.rewardQuantity,
+  );
+  const applicationLimit = campaign.maxApplications || Number.MAX_SAFE_INTEGER;
   const applications = Math.min(
-    possibleApplications,
-    campaign.maxApplications || Number.MAX_SAFE_INTEGER,
+    possibleApplicationsByTotal,
+    possibleApplicationsByReward,
+    applicationLimit,
   );
   const rewardUnitCount = applications * campaign.rewardQuantity;
-  const rewardUnits = [...eligibleUnits]
+  const rewardUnits = [...rewardEligibleUnits]
     .sort((a, b) => a.priceCents - b.priceCents || a.lineIndex - b.lineIndex || a.unitIndex - b.unitIndex)
     .slice(0, rewardUnitCount);
 
@@ -232,14 +241,28 @@ export async function calculateCartCampaign(
       quantity: line.discountedQuantity,
       discountAmount: line.discountAmount.toFixed(2),
     }));
-  const remainingItems = Math.max(0, groupSize - (eligibleUnits.length % groupSize));
+  const completedCurrentGroup = applications > 0
+    && totalItemCount % groupSize === 0
+    && applications === possibleApplicationsByTotal;
+  const canApplyAgain = applications < applicationLimit;
+  const nextApplication = applications + 1;
+  const totalItemsNeeded = Math.max(0, nextApplication * groupSize - totalItemCount);
+  const rewardItemsNeeded = Math.max(
+    0,
+    nextApplication * campaign.rewardQuantity - rewardEligibleUnits.length,
+  );
+  const remainingItems = !canApplyAgain || completedCurrentGroup
+    ? 0
+    : Math.max(totalItemsNeeded, rewardItemsNeeded);
+  const progressItemCount = Math.max(0, Math.min(groupSize, groupSize - remainingItems));
   let progressMessage = campaign.customerMessage || null;
   if (!progressMessage) {
     if (applications > 0) {
       progressMessage = `${campaign.name}: ${rewardUnitCount} ürün için %${Number(campaign.discountPercentage)} indirim uygulandı.`;
-    } else if (eligibleUnits.length > 0) {
-      const needed = Math.max(1, groupSize - eligibleUnits.length);
-      progressMessage = `${needed} ürün daha ekleyin, avantajı kazanın.`;
+    } else if (remainingItems > 0) {
+      progressMessage = rewardItemsNeeded > 0 && totalItemCount >= campaign.buyQuantity
+        ? `${rewardItemsNeeded} kampanya ürünü daha ekleyin, %${Number(campaign.discountPercentage)} indirim kazanın.`
+        : `${remainingItems} ürün daha ekleyin, avantajı kazanın.`;
     } else {
       progressMessage = "Bu kampanya için uygun ürün bulunmuyor.";
     }
@@ -261,7 +284,7 @@ export async function calculateCartCampaign(
       campaignName: campaign.name,
       discountedItems,
     },
-    eligibleItemCount: eligibleUnits.length,
+    eligibleItemCount: progressItemCount,
     requiredItemCount: groupSize,
     applications,
     remainingItems: applications > 0 && remainingItems === groupSize ? 0 : remainingItems,
