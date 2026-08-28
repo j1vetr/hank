@@ -166,7 +166,7 @@ export function useCartProvider() {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
   const localSubtotal = items.reduce((sum, item) => {
-    const price = item.product?.basePrice || '0';
+    const price = item.variant?.price || item.product?.basePrice || '0';
     return sum + parseFloat(price) * item.quantity;
   }, 0);
   const subtotal = pricing?.subtotal ?? localSubtotal;

@@ -219,13 +219,14 @@ export default function ProductDetail() {
     setIsAdding(true);
     try {
       const variant = selectedSize ? product.variants?.find(v => v.size === selectedSize) : undefined;
+      const selectedUnitPrice = parseFloat(variant?.price || product.basePrice || '0');
       await addToCart(product.id, variant?.id, quantity);
       const category = categories.find(c => c.id === product.categoryId);
       trackAddToCart({
         contentId: product.id,
         contentName: product.name,
         contentCategory: category?.name,
-        value: parseFloat(product.basePrice || '0') * quantity,
+        value: selectedUnitPrice * quantity,
         quantity,
         userData: user ? {
           email: user.email,
@@ -242,7 +243,7 @@ export default function ProductDetail() {
       showModal({
         name: product.name,
         image: mainImage,
-        price: parseFloat(product.basePrice || '0') * quantity,
+        price: selectedUnitPrice * quantity,
         size: selectedSize || undefined,
         quantity: quantity,
       });

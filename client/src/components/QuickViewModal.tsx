@@ -96,10 +96,11 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
         for (let i = 0; i < quantity; i++) {
           await addToCart(product.id, variant.id);
         }
+        const selectedUnitPrice = parseFloat(variant.price || product.basePrice || '0');
         showModal({
           name: product.name,
           image: product.images[0],
-          price: price,
+          price: selectedUnitPrice * quantity,
           quantity: quantity,
           size: selectedSize,
         });

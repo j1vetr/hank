@@ -1165,7 +1165,7 @@ export default function Checkout() {
                         <p className="text-xs font-medium truncate">{item.product?.name || 'Ürün'}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">Adet: {item.quantity}</p>
                         <p className="text-sm font-bold mt-1">
-                          {(parseFloat(item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
+                          {(parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity).toLocaleString('tr-TR')} ₺
                         </p>
                       </div>
                     </div>
