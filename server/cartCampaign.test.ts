@@ -183,6 +183,25 @@ test("seçili kapsam dışında kalan üç ürün kampanya indirimi oluşturmaz"
   assert.match(pricing.progressMessage || "", /1 kampanya ürünü/);
 });
 
+test("iki kapsam dışı ürün sonrası kampanya ürünü eklemeye yönlendirir", async () => {
+  const pricing = await calculateCartCampaign(
+    [cartItem("winter", "winter", 2, "90.00", { categoryId: "winter" })],
+    campaign({
+      scopeType: "categories",
+      includedCategoryIds: ["protein"],
+      discountPercentage: "50",
+    }),
+    categories([["winter", ["winter"]]]),
+  );
+
+  assert.equal(pricing.applications, 0);
+  assert.equal(pricing.remainingItems, 1);
+  assert.equal(
+    pricing.progressMessage,
+    "1 kampanya ürünü daha ekleyin, %50 indirim kazanın.",
+  );
+});
+
 test("tekrarlı uygulama ödül ürünü adediyle sınırlanır", async () => {
   const pricing = await calculateCartCampaign(
     [

@@ -77,6 +77,7 @@ export default function ProductDetail() {
   const { user } = useAuth();
   const { data: activeCampaign } = useQuery<{
     name: string;
+    description: string;
     customerMessage: string | null;
     buyQuantity: number;
     rewardQuantity: number;
@@ -800,7 +801,7 @@ export default function ProductDetail() {
                     {activeCampaign.name}
                   </p>
                   <p className="text-xs text-violet-200/80 mt-1">
-                    {activeCampaign.customerMessage || `${activeCampaign.buyQuantity} ürün al, ${activeCampaign.rewardQuantity}. üründe %${activeCampaign.discountPercentage} indirim fırsatı.`}
+                    {activeCampaign.description || activeCampaign.customerMessage || `${activeCampaign.buyQuantity} ürün al, ${activeCampaign.rewardQuantity}. üründe %${activeCampaign.discountPercentage} indirim fırsatı.`}
                   </p>
                 </div>
               )}

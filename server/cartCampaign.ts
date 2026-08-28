@@ -1,6 +1,10 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { productCategories, products, type AutoCartCampaign } from "@shared/schema";
 
+export const AUTO_CART_CAMPAIGN_NAME = "2 Ürün Al, 3. Üründe %50 İndirim Fırsatı";
+export const AUTO_CART_CAMPAIGN_DESCRIPTION =
+  "Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.";
+
 export type CartItemLike = {
   id: string;
   productId: string;
@@ -37,6 +41,7 @@ export type CartCampaignPricing = {
   campaign: {
     id: string;
     name: string;
+    description: string;
     customerMessage: string | null;
     buyQuantity: number;
     rewardQuantity: number;
@@ -255,10 +260,10 @@ export async function calculateCartCampaign(
     ? 0
     : Math.max(totalItemsNeeded, rewardItemsNeeded);
   const progressItemCount = Math.max(0, Math.min(groupSize, groupSize - remainingItems));
-  let progressMessage = campaign.customerMessage || null;
+  let progressMessage: string | null = null;
   if (!progressMessage) {
     if (applications > 0) {
-      progressMessage = `${campaign.name}: ${rewardUnitCount} ürün için %${Number(campaign.discountPercentage)} indirim uygulandı.`;
+      progressMessage = `${AUTO_CART_CAMPAIGN_NAME}: ${rewardUnitCount} ürün için %${Number(campaign.discountPercentage)} indirim uygulandı.`;
     } else if (remainingItems > 0) {
       progressMessage = rewardItemsNeeded > 0 && totalItemCount >= campaign.buyQuantity
         ? `${rewardItemsNeeded} kampanya ürünü daha ekleyin, %${Number(campaign.discountPercentage)} indirim kazanın.`
@@ -274,14 +279,15 @@ export async function calculateCartCampaign(
     discountedSubtotal: money(Math.max(0, subtotal - campaignDiscount)),
     campaign: {
       id: campaign.id,
-      name: campaign.name,
-      customerMessage: campaign.customerMessage,
+      name: AUTO_CART_CAMPAIGN_NAME,
+      description: AUTO_CART_CAMPAIGN_DESCRIPTION,
+      customerMessage: null,
       buyQuantity: campaign.buyQuantity,
       rewardQuantity: campaign.rewardQuantity,
       discountPercentage: Number(campaign.discountPercentage),
     },
     campaignDiscountDetails: {
-      campaignName: campaign.name,
+      campaignName: AUTO_CART_CAMPAIGN_NAME,
       discountedItems,
     },
     eligibleItemCount: progressItemCount,

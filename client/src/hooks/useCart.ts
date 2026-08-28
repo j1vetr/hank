@@ -30,6 +30,7 @@ export interface CartCampaignPricing {
   campaign: {
     id: string;
     name: string;
+    description: string;
     customerMessage: string | null;
     buyQuantity: number;
     rewardQuantity: number;

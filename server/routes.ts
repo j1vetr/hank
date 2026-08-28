@@ -29,7 +29,12 @@ import { sendInvoiceToBizimHesap } from "./bizimhesap";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
-import { calculateCartCampaign, getCampaignEligibleProductIds } from "./cartCampaign";
+import {
+  AUTO_CART_CAMPAIGN_DESCRIPTION,
+  AUTO_CART_CAMPAIGN_NAME,
+  calculateCartCampaign,
+  getCampaignEligibleProductIds,
+} from "./cartCampaign";
 import { getCartRecommendations } from "./recommendations";
 import {
   calculateCheckoutPricing,
@@ -93,6 +98,9 @@ function parseAutoCartCampaignPayload(payload: any) {
   }
   return insertAutoCartCampaignSchema.parse({
     ...payload,
+    name: AUTO_CART_CAMPAIGN_NAME,
+    description: AUTO_CART_CAMPAIGN_DESCRIPTION,
+    customerMessage: null,
     startsAt: dateValue(payload?.startsAt),
     endsAt: dateValue(payload?.endsAt),
     maxApplications: payload?.maxApplications === "" || payload?.maxApplications === undefined
@@ -1840,8 +1848,9 @@ export async function registerRoutes(
       const eligibleProductIds = await getCampaignEligibleProductIds(campaign);
       res.json({
         id: campaign.id,
-        name: campaign.name,
-        customerMessage: campaign.customerMessage,
+        name: AUTO_CART_CAMPAIGN_NAME,
+        description: AUTO_CART_CAMPAIGN_DESCRIPTION,
+        customerMessage: null,
         buyQuantity: campaign.buyQuantity,
         rewardQuantity: campaign.rewardQuantity,
         discountPercentage: Number(campaign.discountPercentage),

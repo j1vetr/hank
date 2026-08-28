@@ -269,6 +269,9 @@ export default function Cart() {
                           {pricing.campaign.name}
                         </p>
                         <p className="text-sm text-muted-foreground mt-0.5">
+                          {pricing.campaign.description}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
                           {pricing.progressMessage}
                         </p>
                         {campaignDiscount === 0 && pricing.requiredItemCount > 0 && (

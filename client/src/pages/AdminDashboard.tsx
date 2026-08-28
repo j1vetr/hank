@@ -5798,6 +5798,9 @@ function MarketingPanel() {
                       <p className="text-sm text-zinc-400 mt-1">
                         {campaign.buyQuantity}+{campaign.rewardQuantity} • En ucuz uygun üründe %{campaign.discountPercentage} indirim
                       </p>
+                      <p className="text-xs text-zinc-500 mt-1 max-w-xl">
+                        {campaign.description || 'Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.'}
+                      </p>
                       <p className="text-xs text-zinc-500 mt-1">
                         {campaign.scopeType === 'all' ? 'Tüm ürünler' : campaign.scopeType === 'categories' ? 'Seçili kategoriler' : 'Seçili ürünler'}
                         {campaign.maxApplications ? ` • En fazla ${campaign.maxApplications} uygulama` : ' • Tekrarlanabilir'}
@@ -6218,10 +6221,12 @@ function AutoCartCampaignModal({
   onSave: (campaign: any) => void;
   isSaving: boolean;
 }) {
+  const defaultCampaignName = '2 Ürün Al, 3. Üründe %50 İndirim Fırsatı';
+  const defaultCampaignDescription = 'Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.';
   const [formData, setFormData] = useState({
-    name: campaign?.name || '',
-    description: campaign?.description || '',
-    customerMessage: campaign?.customerMessage || '',
+    name: defaultCampaignName,
+    description: defaultCampaignDescription,
+    customerMessage: '',
     buyQuantity: String(campaign?.buyQuantity || 2),
     rewardQuantity: String(campaign?.rewardQuantity || 1),
     discountPercentage: String(campaign?.discountPercentage || 50),
@@ -6292,15 +6297,12 @@ function AutoCartCampaignModal({
           <button onClick={onClose} className="text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-6 space-y-5">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">Kampanya Adı *</label>
-              <input value={formData.name} onChange={e => setFormData(current => ({ ...current, name: e.target.value }))} placeholder="2 al 3. ürün %50" className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">Müşteri Mesajı</label>
-              <input value={formData.customerMessage} onChange={e => setFormData(current => ({ ...current, customerMessage: e.target.value }))} placeholder="3. ürününde avantaj seni bekliyor" className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
-            </div>
+          <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
+            <p className="text-xs font-medium text-zinc-400 mb-1">Kampanya Başlığı</p>
+            <p className="text-sm font-medium text-white">{formData.name}</p>
+            <p className="text-xs font-medium text-zinc-400 mt-3 mb-1">Kampanya Açıklaması</p>
+            <p className="text-sm text-zinc-300">{formData.description}</p>
+            <p className="text-xs text-zinc-500 mt-3">Bu metinler müşteriyi kampanyaya yönlendirmek için otomatik kullanılır.</p>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>

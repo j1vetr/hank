@@ -1252,6 +1252,11 @@ export default function Checkout() {
                 </div>
 
                 <div className="space-y-3 text-sm py-4 relative">
+                  {pricing?.campaign && (
+                    <p className="text-xs text-muted-foreground">
+                      {pricing.campaign.description}
+                    </p>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ara Toplam</span>
                     <span data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
