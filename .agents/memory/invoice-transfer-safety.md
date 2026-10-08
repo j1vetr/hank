@@ -27,6 +27,12 @@ Kullanıcı, sanal POS üzerinden tek çekim ödeme aldıklarını ve fatura tut
 
 **How to apply:** Başarılı ödemelerin tahsilat aktarımını araştırırken tam fatura bedelinin ödendiği akışı esas al. Eşit tutarları, fatura oluşturmanın tahsilat kaydını da otomatik oluşturduğuna kanıt sayma.
 
+Kullanıcının istediği çıktı BizimHesap müşteri sayfasındaki "Önceki Ödemeleri" bölümünde, ödeme şekli "Kredi Kartı" olan tahsilat kaydının otomatik oluşması. Müşteri sayfası ve soldaki fatura zaten oluşuyor, sağdaki tahsilat şu anda elle ekleniyor.
+
+**Why:** Kullanıcı BizimHesap ekranıyla eksik davranışı açıkça tarif etti.
+
+**How to apply:** Başarılı PayTR ödemesini mevcut müşteri ve ilgili faturayla ilişkilendir. Yalnızca fatura notu veya yerel ödendi durumunu değiştirmeyi tamamlanmış tahsilat entegrasyonu sayma. Önceden elle eklenmiş tahsilatları tekrar oluşturma.
+
 BizimHesap'ın kendi PayTR sanal POS entegrasyonunu, bu sitede alınan PayTR ödemelerinin cari tahsilata aktarılmasıyla aynı özellik sayma.
 
 **Why:** 2026-10-09 tarihinde resmî API dizini yalnızca sipariş/fatura ekleme ve ürün/depo/stok okumayı belgeliyordu. Resmî destek sayfası, başka yerde kullanılan PayTR hesabını BizimHesap'ta da kullanmak için ikinci mağaza kodu gerektiğini söylüyor. Bu, dış sitedeki ödemelerin otomatik eşleştiğini doğrulamıyor.
