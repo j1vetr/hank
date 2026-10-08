@@ -70,7 +70,7 @@ export async function sendInvoiceToBizimHesap(
         fullProductName += ` - ${item.variantDetails}`;
       }
 
-      // Use the current parent product code resolved by the caller.
+      // Use the current variant code, including size/color suffixes, when available.
       const sku = itemSkus?.get(item.id);
       const productCode = sku || `HANK-${order.orderNumber}-${index + 1}`;
 

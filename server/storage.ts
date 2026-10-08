@@ -1,5 +1,11 @@
 import { db } from "./db";
-import { planVariantSkuUpdates } from "./productSku";
+import {
+  planVariantSkuUpdates,
+  buildVariantSkuCheck,
+  SkuRepairError,
+  type VariantSkuRepairSelection,
+  type VariantSkuCheck,
+} from "./productSku";
 import { 
   adminUsers, 
   categories, 
@@ -169,6 +175,7 @@ export interface IStorage {
   getUserReview(userId: string, productId: string): Promise<ProductReview | undefined>;
 
   getProductVariants(productId: string): Promise<ProductVariant[]>;
+  repairVariantSkus(productId: string, expectedProductSku: string, selections: VariantSkuRepairSelection[]): Promise<{ updatedCount: number; check: VariantSkuCheck }>;
   getProductVariant(id: string): Promise<ProductVariant | undefined>;
   createProductVariant(variant: InsertProductVariant): Promise<ProductVariant>;
   updateProductVariant(id: string, variant: Partial<InsertProductVariant>): Promise<ProductVariant | undefined>;
@@ -566,6 +573,50 @@ export class DbStorage implements IStorage {
 
   async getProductVariants(productId: string): Promise<ProductVariant[]> {
     return db.select().from(productVariants).where(eq(productVariants.productId, productId));
+  }
+
+  async repairVariantSkus(
+    productId: string,
+    expectedProductSku: string,
+    selections: VariantSkuRepairSelection[],
+  ): Promise<{ updatedCount: number; check: VariantSkuCheck }> {
+    return db.transaction(async tx => {
+      const [product] = await tx.select().from(products)
+        .where(eq(products.id, productId)).for("update");
+      if (!product) throw new SkuRepairError(404, "Ürün bulunamadı.");
+      if (!product.sku?.trim()) throw new SkuRepairError(400, "Önce ürünün stok kodunu kaydedin.");
+      if (product.sku !== expectedProductSku) {
+        throw new SkuRepairError(409, "Ürünün stok kodu değişmiş. Kontrolü yeniden çalıştırın.");
+      }
+      const variants = await tx.select().from(productVariants)
+        .where(eq(productVariants.productId, productId)).for("update");
+      const check = buildVariantSkuCheck(product, variants);
+      if (!selections.length || new Set(selections.map(row => row.id)).size !== selections.length) {
+        throw new SkuRepairError(400, "Güncellenecek varyantları tekrar seçin.");
+      }
+      const updates = selections.map(selection => {
+        const row = check.variants.find(variant => variant.id === selection.id);
+        if (!row || row.currentSku !== selection.expectedCurrentSku ||
+            row.suggestedSku !== selection.expectedSuggestedSku) {
+          throw new SkuRepairError(409, "Varyant bilgileri değişmiş. Kontrolü yeniden çalıştırın.");
+        }
+        if (row.status !== "candidate" || !row.suggestedSku) {
+          throw new SkuRepairError(400, "Yalnızca kontrol ekranındaki önerilen kodlar güncellenebilir.");
+        }
+        return { id: row.id, sku: row.suggestedSku };
+      });
+      await tx.update(productVariants).set({ sku: null })
+        .where(inArray(productVariants.id, updates.map(row => row.id)));
+      for (const update of updates) {
+        await tx.update(productVariants).set({ sku: update.sku })
+          .where(eq(productVariants.id, update.id));
+      }
+      const repairedVariants = variants.map(variant => {
+        const update = updates.find(row => row.id === variant.id);
+        return update ? { ...variant, sku: update.sku } : variant;
+      });
+      return { updatedCount: updates.length, check: buildVariantSkuCheck(product, repairedVariants) };
+    });
   }
 
   async getProductVariant(id: string): Promise<ProductVariant | undefined> {

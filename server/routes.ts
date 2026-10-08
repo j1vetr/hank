@@ -26,7 +26,7 @@ import {
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
-import { getOrderItemCatalogDetails, getOrderItemSkus } from "./productSku";
+import { getOrderItemCatalogDetails, getOrderItemSkus, buildVariantSkuCheck, SkuRepairError } from "./productSku";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
@@ -3598,6 +3598,49 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Data check error:', error);
       res.status(500).json({ error: "Failed to check data consistency" });
+    }
+  });
+
+  app.get("/api/admin/products/:id/sku-check", requireAdmin, async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      if (!product) return res.status(404).json({ error: "Ürün bulunamadı." });
+      if (!product.sku?.trim()) {
+        return res.status(400).json({ error: "Önce ürünün stok kodunu kaydedin." });
+      }
+      res.setHeader("Cache-Control", "no-store");
+      res.json(buildVariantSkuCheck(product, await storage.getProductVariants(product.id)));
+    } catch (error) {
+      console.error("SKU check failed:", error);
+      res.status(500).json({ error: "Stok kodları kontrol edilemedi." });
+    }
+  });
+
+  app.post("/api/admin/products/:id/repair-skus", requireAdmin, async (req, res) => {
+    const input = z.object({
+      expectedProductSku: z.string().min(1),
+      variants: z.array(z.object({
+        id: z.string().min(1),
+        expectedCurrentSku: z.string().nullable(),
+        expectedSuggestedSku: z.string().min(1),
+      })).min(1).max(2000),
+    }).safeParse(req.body);
+    if (!input.success) return res.status(400).json({ error: "Güncelleme bilgileri geçersiz." });
+    try {
+      res.json(await storage.repairVariantSkus(
+        req.params.id, input.data.expectedProductSku, input.data.variants,
+      ));
+    } catch (error) {
+      if (error instanceof SkuRepairError) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      if ((error as { code?: string }).code === "23505") {
+        return res.status(409).json({
+          error: "Önerilen kod başka bir varyantta kullanılıyor. Hiçbir kod değiştirilmedi.",
+        });
+      }
+      console.error("SKU repair failed:", error);
+      res.status(500).json({ error: "Stok kodları güncellenemedi." });
     }
   });
 

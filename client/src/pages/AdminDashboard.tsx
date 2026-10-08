@@ -3,6 +3,7 @@ import { useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import OrdersPanel from './AdminOrdersPanel';
+import VariantSkuCheckDialog from '@/components/admin/VariantSkuCheckDialog';
 import { 
   LayoutDashboard, 
   Package, 
@@ -228,6 +229,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [skuCheckProductId, setSkuCheckProductId] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
@@ -830,8 +832,19 @@ export default function AdminDashboard() {
                             )}
                             <div>
                               <p className="font-medium text-white">{product.name}</p>
-                              <div className="flex items-center gap-2 text-sm text-zinc-500">
+                              <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
                                 {product.sku && <span className="text-purple-400 font-mono">{product.sku}</span>}
+                                {product.sku && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSkuCheckProductId(product.id)}
+                                    className="rounded border border-purple-400/30 px-2 py-0.5 text-xs text-purple-300 hover:bg-purple-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+                                    aria-label={`${product.name} stok kodlarını kontrol et`}
+                                    data-testid={`button-check-sku-${product.id}`}
+                                  >
+                                    Kontrol et
+                                  </button>
+                                )}
                                 <span>{product.slug}</span>
                               </div>
                             </div>
@@ -1112,6 +1125,18 @@ export default function AdminDashboard() {
           )}
         </div>
       </main>
+
+      {skuCheckProductId && (
+        <VariantSkuCheckDialog
+          productId={skuCheckProductId}
+          onClose={() => setSkuCheckProductId(null)}
+          onUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
+          }}
+        />
+      )}
 
       {showProductModal && (
         <ProductModal

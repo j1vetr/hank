@@ -1,1 +1,1 @@
-- [Stok kodu politikası](stock-code-policy.md) — Sipariş ve faturalarda güncel ana ürün kodu kullanılır. Özel varyant kodları kayıt olarak korunur.
+- [Stok kodu politikası](stock-code-policy.md) — Beden ve renk ekleri korunur. Önceden eski kalan varyant kodları kontrol ve kullanıcı onayıyla onarılır.
