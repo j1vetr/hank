@@ -21,6 +21,12 @@ Bu sitede ödeme PayTR üzerinden zaten alınıyor. İstenen iş BizimHesap'ta m
 
 **How to apply:** Mevcut ödeme alma akışını koru. Dışarıda alınmış ödemenin muhasebe kaydını sağlayan yöntemi araştır.
 
+Kullanıcı, sanal POS üzerinden tek çekim ödeme aldıklarını ve fatura tutarının tahsilat tutarıyla aynı olduğunu belirtti.
+
+**Why:** Kullanıcının ödeme akışına ilişkin açık iş kuralı.
+
+**How to apply:** Başarılı ödemelerin tahsilat aktarımını araştırırken tam fatura bedelinin ödendiği akışı esas al. Eşit tutarları, fatura oluşturmanın tahsilat kaydını da otomatik oluşturduğuna kanıt sayma.
+
 BizimHesap'ın kendi PayTR sanal POS entegrasyonunu, bu sitede alınan PayTR ödemelerinin cari tahsilata aktarılmasıyla aynı özellik sayma.
 
 **Why:** 2026-10-09 tarihinde resmî API dizini yalnızca sipariş/fatura ekleme ve ürün/depo/stok okumayı belgeliyordu. Resmî destek sayfası, başka yerde kullanılan PayTR hesabını BizimHesap'ta da kullanmak için ikinci mağaza kodu gerektiğini söylüyor. Bu, dış sitedeki ödemelerin otomatik eşleştiğini doğrulamıyor.
