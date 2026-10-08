@@ -1,1 +1,1 @@
-- [Stok kodu güncellemeleri](stock-code-policy.md) — Üründen türetilen varyant kodları güncellenir, ayrı verilen özel kodlar korunur.
+- [Stok kodu politikası](stock-code-policy.md) — Sipariş ve faturalarda güncel ana ürün kodu kullanılır. Özel varyant kodları kayıt olarak korunur.

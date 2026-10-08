@@ -31,19 +31,34 @@ type CatalogReader = {
   getProduct(id: string): Promise<Product | undefined>;
 };
 
-/** Invoice codes are keyed by order item, including items without a variant. */
+type OrderCatalogItem = Pick<OrderItem, "id" | "productId" | "variantId">;
+
+/** Both old and new orders use the current parent product code without suffixes. */
+export async function getOrderItemCatalogDetails(
+  item: OrderCatalogItem,
+  catalog: CatalogReader,
+): Promise<{ sku: string | null; productImage: string | null }> {
+  const variant = item.variantId
+    ? await catalog.getProductVariant(item.variantId)
+    : undefined;
+  let product = item.productId ? await catalog.getProduct(item.productId) : undefined;
+  if (!product && variant?.productId && variant.productId !== item.productId) {
+    product = await catalog.getProduct(variant.productId);
+  }
+  return {
+    sku: product?.sku?.trim() ? product.sku : variant?.sku?.trim() ? variant.sku : null,
+    productImage: product?.images?.[0] || null,
+  };
+}
+
+/** Invoice and order-detail codes share the same current catalog resolution. */
 export async function getOrderItemSkus(
-  items: Pick<OrderItem, "id" | "productId" | "variantId">[],
+  items: OrderCatalogItem[],
   catalog: CatalogReader,
 ): Promise<Map<string, string>> {
   const entries = await Promise.all(items.map(async item => {
-    const variant = item.variantId
-      ? await catalog.getProductVariant(item.variantId)
-      : undefined;
-    if (variant?.sku?.trim()) return [item.id, variant.sku] as const;
-    const productId = variant?.productId || item.productId;
-    const product = productId ? await catalog.getProduct(productId) : undefined;
-    return [item.id, product?.sku?.trim() ? product.sku : null] as const;
+    const { sku } = await getOrderItemCatalogDetails(item, catalog);
+    return [item.id, sku] as const;
   }));
   return new Map(entries.filter((entry): entry is readonly [string, string] => !!entry[1]));
 }

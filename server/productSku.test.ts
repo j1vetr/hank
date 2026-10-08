@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Product, ProductVariant } from "@shared/schema";
-import { getOrderItemSkus, planVariantSkuUpdates } from "./productSku";
+import { getOrderItemCatalogDetails, getOrderItemSkus, planVariantSkuUpdates } from "./productSku";
 
 test("generated codes retain size and color suffixes while custom codes stay unchanged", () => {
   const variants = [
@@ -41,7 +41,7 @@ test("successive changes use the last product code without dropping suffixes", (
   ]);
 });
 
-test("invoice code resolution prefers variant codes and falls back to parent products", async () => {
+test("invoice codes prefer current product codes over even custom variant codes", async () => {
   const reader = {
     async getProductVariant(id: string) {
       const sku = id === "custom" ? "CUSTOM" : id === "blank" ? " " : null;
@@ -59,7 +59,61 @@ test("invoice code resolution prefers variant codes and falls back to parent pro
     { id: "e", variantId: null, productId: "deleted" },
     { id: "f", variantId: null, productId: null },
   ], reader);
-  assert.deepEqual([...result], [
-    ["a", "CUSTOM"], ["b", "SKU-parent"], ["c", "SKU-simple"], ["d", "SKU-parent"],
+  assert.deepEqual(Array.from(result), [
+    ["a", "SKU-parent"], ["b", "SKU-parent"], ["c", "SKU-simple"], ["d", "SKU-parent"],
   ]);
+});
+
+test("an existing order shows 203 instead of STK3-M and follows subsequent product edits", async () => {
+  let currentSku = "203";
+  const reader = {
+    async getProductVariant() {
+      return { sku: "STK3-M", productId: "tank" } as ProductVariant;
+    },
+    async getProduct() {
+      return { sku: currentSku, images: ["/tank.jpg"] } as Product;
+    },
+  };
+  const existingOrderItem = { id: "old-order-item", productId: "tank", variantId: "medium" };
+  assert.deepEqual(await getOrderItemCatalogDetails(existingOrderItem, reader), {
+    sku: "203", productImage: "/tank.jpg",
+  });
+  assert.equal((await getOrderItemSkus([existingOrderItem], reader)).get(existingOrderItem.id), "203");
+  currentSku = "204";
+  assert.equal((await getOrderItemCatalogDetails(existingOrderItem, reader)).sku, "204");
+  assert.equal((await getOrderItemSkus([existingOrderItem], reader)).get(existingOrderItem.id), "204");
+});
+
+test("missing product codes fall back to variant codes without changing catalog data", async () => {
+  const variant = { sku: "CUSTOM-M", productId: "parent" } as ProductVariant;
+  const reader = {
+    async getProductVariant() { return variant; },
+    async getProduct(id: string) {
+      return id === "deleted" ? undefined : { sku: " ", images: [] } as unknown as Product;
+    },
+  };
+  assert.equal((await getOrderItemCatalogDetails({
+    id: "a", productId: "parent", variantId: "v",
+  }, reader)).sku, "CUSTOM-M");
+  assert.equal((await getOrderItemCatalogDetails({
+    id: "b", productId: "deleted", variantId: "v",
+  }, reader)).sku, "CUSTOM-M");
+  assert.equal(variant.sku, "CUSTOM-M");
+});
+
+test("a missing order product link can resolve the variant parent product code", async () => {
+  const reader = {
+    async getProductVariant() {
+      return { sku: "OLD-M", productId: "parent" } as ProductVariant;
+    },
+    async getProduct(id: string) {
+      return id === "parent" ? { sku: "203", images: [] } as unknown as Product : undefined;
+    },
+  };
+  assert.equal((await getOrderItemCatalogDetails({
+    id: "a", productId: null, variantId: "v",
+  }, reader)).sku, "203");
+  assert.equal((await getOrderItemCatalogDetails({
+    id: "b", productId: "deleted", variantId: "v",
+  }, reader)).sku, "203");
 });

@@ -26,7 +26,7 @@ import {
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
-import { getOrderItemSkus } from "./productSku";
+import { getOrderItemCatalogDetails, getOrderItemSkus } from "./productSku";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
@@ -2636,24 +2636,8 @@ export async function registerRoutes(
       // Enrich items with SKU and product image
       const itemsWithDetails = await Promise.all(
         items.map(async (item) => {
-          let sku = null;
-          let productImage = null;
-          
-          if (item.variantId) {
-            const variant = await storage.getProductVariant(item.variantId);
-            sku = variant?.sku || null;
-            if (variant?.productId) {
-              const product = await storage.getProduct(variant.productId);
-              productImage = product?.images?.[0] || null;
-              if (!sku) sku = product?.sku || null;
-            }
-          }
-          if (!productImage && item.productId) {
-            const product = await storage.getProduct(item.productId);
-            productImage = product?.images?.[0] || null;
-            if (!sku) sku = product?.sku || null;
-          }
-          return { ...item, sku, productImage };
+          const details = await getOrderItemCatalogDetails(item, storage);
+          return { ...item, ...details };
         })
       );
       
