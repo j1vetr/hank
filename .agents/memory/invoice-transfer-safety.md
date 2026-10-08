@@ -14,3 +14,9 @@ Fatura aktarımı ile tahsilat aktarımını ayrı kapsamlar olarak ele al.
 **Why:** Kullanıcı, doğrulanmış fatura tutarı ve takip eksiklerinin düzeltilmesini onayladı. Tahsilat yöntemi için resmî API teyidi henüz yok.
 
 **How to apply:** Fatura başarı durumundan tahsilatın işlendiği sonucunu çıkarma. Tahsilat entegrasyonu için doğrulanmış sağlayıcı yöntemini kullan.
+
+BizimHesap'ın kendi PayTR sanal POS entegrasyonunu, bu sitede alınan PayTR ödemelerinin cari tahsilata aktarılmasıyla aynı özellik sayma.
+
+**Why:** 2026-10-09 tarihinde resmî API dizini yalnızca sipariş/fatura ekleme ve ürün/depo/stok okumayı belgeliyordu. Resmî destek sayfası, başka yerde kullanılan PayTR hesabını BizimHesap'ta da kullanmak için ikinci mağaza kodu gerektiğini söylüyor. Bu, dış sitedeki ödemelerin otomatik eşleştiğini doğrulamıyor.
+
+**How to apply:** Yeni tahsilat entegrasyonu öncesinde dış sitede alınmış başarılı ödemeyi müşteri ve fatura GUID'sine bağlayan yöntem, kasa/POS hesabı ve mükerrerlik referansını sağlayıcıdan teyit et. Belgede bulunmamasını özelliğin kesinlikle olmadığı şeklinde yorumlama. Kaynaklar: https://apidocs.bizimhesap.com/llms.txt ve https://destek.bizimhesap.com/portal/tr/kb/articles/sanal-p
