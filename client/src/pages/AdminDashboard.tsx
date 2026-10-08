@@ -375,12 +375,19 @@ export default function AdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product),
       });
-      return response.json();
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Ürün kaydedilemedi');
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
       setShowProductModal(false);
       setEditingProduct(null);
+    },
+    onError: (error: Error) => {
+      alert(error.message);
     },
   });
 

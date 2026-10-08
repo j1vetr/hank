@@ -26,6 +26,7 @@ import {
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { sendInvoiceToBizimHesap } from "./bizimhesap";
+import { getOrderItemSkus } from "./productSku";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
@@ -1318,7 +1319,7 @@ export async function registerRoutes(
           // Create variant for each size/color combination
           for (const size of sizes) {
             for (const color of colors as Array<{name: string, hex: string}>) {
-              const variantSku = baseSku ? `${baseSku}-${size}` : null;
+              const variantSku = baseSku ? `${baseSku}-${size}-${color.name}` : null;
               await storage.createProductVariant({
                 productId: product.id,
                 size: size,
@@ -1383,7 +1384,7 @@ export async function registerRoutes(
             for (const color of colors as Array<{name: string, hex: string}>) {
               const exists = existingVariants.some(v => v.size === size && v.color === color.name);
               if (!exists) {
-                const variantSku = baseSku ? `${baseSku}-${size}` : null;
+                const variantSku = baseSku ? `${baseSku}-${size}-${color.name}` : null;
                 await storage.createProductVariant({
                   productId: product.id,
                   size: size,
@@ -1428,6 +1429,11 @@ export async function registerRoutes(
       res.json({ ...product, categoryIds: productCategoryIds });
     } catch (error) {
       console.error('Product update error:', error);
+      if ((error as { code?: string }).code === "23505") {
+        return res.status(400).json({
+          error: "Bu stok kodu başka bir ürün veya varyant tarafından kullanılıyor. Farklı bir kod girin.",
+        });
+      }
       res.status(400).json({ error: "Failed to update product" });
     }
   });
@@ -2501,19 +2507,10 @@ export async function registerRoutes(
         sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
         sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
 
-        // Fetch variant SKUs for invoice
-        const variantSkus = new Map<string, string>();
-        for (const item of orderItems) {
-          if (item.variantId) {
-            const variant = await storage.getProductVariant(item.variantId);
-            if (variant?.sku) {
-              variantSkus.set(item.variantId, variant.sku);
-            }
-          }
-        }
+        const itemSkus = await getOrderItemSkus(orderItems, storage);
 
         // Send invoice to BizimHesap
-        sendInvoiceToBizimHesap(order, orderItems, variantSkus).catch(err => console.error('[BizimHesap] Invoice failed:', err));
+        sendInvoiceToBizimHesap(order, orderItems, itemSkus).catch(err => console.error('[BizimHesap] Invoice failed:', err));
 
         // Create user account if requested during checkout
         if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
@@ -4656,18 +4653,9 @@ export async function registerRoutes(
       
       const orderItems = await storage.getOrderItems(order.id);
       
-      // Fetch variant SKUs for invoice
-      const variantSkus = new Map<string, string>();
-      for (const item of orderItems) {
-        if (item.variantId) {
-          const variant = await storage.getProductVariant(item.variantId);
-          if (variant?.sku) {
-            variantSkus.set(item.variantId, variant.sku);
-          }
-        }
-      }
+      const itemSkus = await getOrderItemSkus(orderItems, storage);
       
-      const result = await sendInvoiceToBizimHesap(order, orderItems, variantSkus);
+      const result = await sendInvoiceToBizimHesap(order, orderItems, itemSkus);
       
       if (result.success) {
         res.json({ success: true, message: "Fatura BizimHesap'a gönderildi", guid: result.guid, url: result.url });

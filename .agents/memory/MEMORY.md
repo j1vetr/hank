@@ -1,0 +1,1 @@
+- [Stok kodu güncellemeleri](stock-code-policy.md) — Üründen türetilen varyant kodları güncellenir, ayrı verilen özel kodlar korunur.

@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { planVariantSkuUpdates } from "./productSku";
 import { 
   adminUsers, 
   categories, 
@@ -497,8 +498,29 @@ export class DbStorage implements IStorage {
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product | undefined> {
     // Remove fields that shouldn't be updated (auto-managed or sent as strings from frontend)
     const { createdAt, updatedAt, id: productId, ...updateData } = product as any;
-    const [updated] = await db.update(products).set(updateData).where(eq(products.id, id)).returning();
-    return updated;
+    return db.transaction(async tx => {
+      const [previous] = await tx.select().from(products)
+        .where(eq(products.id, id)).for("update");
+      if (!previous) return undefined;
+      const [updated] = await tx.update(products).set(updateData)
+        .where(eq(products.id, id)).returning();
+      if (previous.sku !== updated.sku) {
+        const variants = await tx.select().from(productVariants)
+          .where(eq(productVariants.productId, id)).for("update");
+        const updates = planVariantSkuUpdates(previous.sku, updated.sku, variants);
+        if (updates.length) {
+          // Clear generated codes first to avoid temporary unique collisions.
+          // Any collision with a custom code rolls the entire transaction back.
+          await tx.update(productVariants).set({ sku: null })
+            .where(inArray(productVariants.id, updates.map(variant => variant.id)));
+          for (const variant of updates) {
+            await tx.update(productVariants).set({ sku: variant.sku })
+              .where(eq(productVariants.id, variant.id));
+          }
+        }
+      }
+      return updated;
+    });
   }
 
   async deleteProduct(id: string): Promise<void> {
