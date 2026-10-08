@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { runAutoCartCampaignMigration } from "./runMigrations";
+import { runAutoCartCampaignMigration, runInvoiceTrackingMigration } from "./runMigrations";
 
 const app = express();
 const httpServer = createServer(app);
@@ -68,6 +68,7 @@ app.use((req, res, next) => {
 
 (async () => {
   await runAutoCartCampaignMigration();
+  await runInvoiceTrackingMigration();
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

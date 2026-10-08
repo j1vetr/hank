@@ -23,6 +23,7 @@ export type CartItemLike = {
 
 export type CampaignLine = {
   cartItemId: string;
+  variantId?: string | null;
   productId: string;
   productName: string;
   quantity: number;
@@ -49,7 +50,7 @@ export type CartCampaignPricing = {
   } | null;
   campaignDiscountDetails: {
     campaignName: string;
-    discountedItems: Array<{ productId: string; quantity: number; discountAmount: string }>;
+    discountedItems: Array<{ productId: string; variantId?: string | null; quantity: number; discountAmount: string }>;
   } | null;
   eligibleItemCount: number;
   requiredItemCount: number;
@@ -159,6 +160,7 @@ export async function calculateCartCampaign(
     );
     return {
       cartItemId: item.id,
+      variantId: item.variantId,
       productId: item.productId,
       productName: product?.name || "Ürün",
       quantity: item.quantity,
@@ -243,6 +245,7 @@ export async function calculateCartCampaign(
     .filter(line => line.discountAmount > 0)
     .map(line => ({
       productId: line.productId,
+      ...(line.variantId ? { variantId: line.variantId } : {}),
       quantity: line.discountedQuantity,
       discountAmount: line.discountAmount.toFixed(2),
     }));

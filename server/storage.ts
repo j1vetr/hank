@@ -99,7 +99,8 @@ import {
   influencerPayments,
   type InfluencerPayment,
 } from "@shared/schema";
-import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, sql, ilike, gte, lte, between, inArray, isNull } from "drizzle-orm";
+import type { InvoiceSendResult } from "./bizimhesap";
 
 export interface AdminStats {
   totalProducts: number;
@@ -223,6 +224,8 @@ export interface IStorage {
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
   updateOrder(id: string, data: Partial<Order>): Promise<Order | undefined>;
+  claimInvoiceTransfer(id: string, attemptId: string): Promise<Order | undefined>;
+  completeInvoiceTransfer(id: string, attemptId: string, result: InvoiceSendResult): Promise<Order | undefined>;
   
   getOrderItems(orderId: string): Promise<OrderItem[]>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
@@ -1222,6 +1225,29 @@ export class DbStorage implements IStorage {
   async updateOrder(id: string, data: Partial<Order>): Promise<Order | undefined> {
     const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
     return updated;
+  }
+
+  async claimInvoiceTransfer(id: string, attemptId: string): Promise<Order | undefined> {
+    const [order] = await db.update(orders).set({
+      invoiceStatus: "sending", invoiceAttemptId: attemptId,
+      invoiceAttemptedAt: new Date(), invoiceError: null, updatedAt: new Date(),
+    }).where(and(
+      eq(orders.id, id),
+      inArray(orders.invoiceStatus, ["not_sent", "failed"]),
+      isNull(orders.invoiceGuid), isNull(orders.invoiceUrl),
+    )).returning();
+    return order;
+  }
+
+  async completeInvoiceTransfer(id: string, attemptId: string, result: InvoiceSendResult): Promise<Order | undefined> {
+    const data: Partial<Order> = result.success
+      ? { invoiceStatus: "sent", invoiceGuid: result.guid, invoiceUrl: result.url || null,
+          invoiceSentAt: new Date(), invoiceError: null }
+      : { invoiceStatus: result.status, invoiceError: result.error };
+    const [order] = await db.update(orders).set({ ...data, updatedAt: new Date() })
+      .where(and(eq(orders.id, id), eq(orders.invoiceAttemptId, attemptId), eq(orders.invoiceStatus, "sending")))
+      .returning();
+    return order;
   }
 
   // Stock management methods

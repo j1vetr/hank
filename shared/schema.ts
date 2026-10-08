@@ -221,7 +221,7 @@ export const orders = pgTable("orders", {
   campaignDiscountAmount: decimal("campaign_discount_amount", { precision: 10, scale: 2 }).default("0"),
   campaignDiscountDetails: jsonb("campaign_discount_details").$type<{
     campaignName: string;
-    discountedItems: Array<{ productId: string; quantity: number; discountAmount: string }>;
+    discountedItems: Array<{ productId: string; variantId?: string | null; quantity: number; discountAmount: string }>;
   }>(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").default("pending").notNull(),
@@ -232,6 +232,12 @@ export const orders = pgTable("orders", {
   trackingUrl: text("tracking_url"),
   shippingCarrier: text("shipping_carrier"),
   invoiceUrl: text("invoice_url"),
+  invoiceGuid: text("invoice_guid"),
+  invoiceStatus: text("invoice_status").default("not_sent").notNull(),
+  invoiceError: text("invoice_error"),
+  invoiceAttemptId: varchar("invoice_attempt_id"),
+  invoiceAttemptedAt: timestamp("invoice_attempted_at"),
+  invoiceSentAt: timestamp("invoice_sent_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -633,7 +639,7 @@ export const pendingPayments = pgTable("pending_payments", {
   campaignDiscountAmount: decimal("campaign_discount_amount", { precision: 10, scale: 2 }).default("0"),
   campaignDiscountDetails: jsonb("campaign_discount_details").$type<{
     campaignName: string;
-    discountedItems: Array<{ productId: string; quantity: number; discountAmount: string }>;
+    discountedItems: Array<{ productId: string; variantId?: string | null; quantity: number; discountAmount: string }>;
   }>(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status").default("pending").notNull(),

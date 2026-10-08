@@ -74,3 +74,23 @@ export async function runAutoCartCampaignMigration() {
     END $$;
   `));
 }
+
+export async function runInvoiceTrackingMigration() {
+  await db.execute(sql.raw(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'invoice_status'
+      ) THEN
+        ALTER TABLE orders ADD COLUMN invoice_status text NOT NULL DEFAULT 'not_sent';
+        UPDATE orders SET invoice_status =
+          CASE WHEN NULLIF(trim(invoice_url), '') IS NOT NULL THEN 'sent' ELSE 'legacy' END;
+      END IF;
+    END $$;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_guid text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_error text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_attempt_id varchar;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_attempted_at timestamp;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_sent_at timestamp;
+  `));
+}

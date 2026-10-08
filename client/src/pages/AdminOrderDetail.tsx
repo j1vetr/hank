@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
+import InvoiceTransferPanel from '@/components/admin/InvoiceTransferPanel';
 import { 
   ChevronLeft, 
   Package, 
@@ -16,8 +17,7 @@ import {
   Calendar,
   MessageSquare,
   ExternalLink,
-  Loader2,
-  FileText
+  Loader2
 } from 'lucide-react';
 
 interface OrderItem {
@@ -88,8 +88,6 @@ export default function AdminOrderDetail() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [couponInfo, setCouponInfo] = useState<{ isInfluencerCode: boolean; influencerInstagram?: string } | null>(null);
-  const [isSendingInvoice, setIsSendingInvoice] = useState(false);
-  const [invoiceResult, setInvoiceResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -234,28 +232,6 @@ export default function AdminOrderDetail() {
     }
   };
 
-  const handleSendInvoice = async () => {
-    if (!order) return;
-    setIsSendingInvoice(true);
-    setInvoiceResult(null);
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/send-invoice`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setInvoiceResult({ success: true, message: data.message || 'Fatura gönderildi!' });
-      } else {
-        setInvoiceResult({ success: false, message: data.error || 'Fatura gönderilemedi' });
-      }
-    } catch (error) {
-      console.error('Send invoice failed:', error);
-      setInvoiceResult({ success: false, message: 'Fatura gönderilemedi' });
-    } finally {
-      setIsSendingInvoice(false);
-    }
-  };
 
   const currentStatus = statusOptions.find(s => s.value === status);
   const StatusIcon = currentStatus?.icon || Clock;
@@ -530,36 +506,7 @@ export default function AdminOrderDetail() {
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                BizimHesap Fatura
-              </h3>
-              <div className="space-y-3">
-                <button
-                  onClick={handleSendInvoice}
-                  disabled={isSendingInvoice}
-                  className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-                >
-                  {isSendingInvoice ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Gönderiliyor...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4" />
-                      Fatura Gönder
-                    </>
-                  )}
-                </button>
-                {invoiceResult && (
-                  <p className={`text-sm ${invoiceResult.success ? 'text-green-400' : 'text-red-400'}`}>
-                    {invoiceResult.message}
-                  </p>
-                )}
-              </div>
-            </div>
+            <InvoiceTransferPanel orderId={order.id} />
 
             {status !== 'cancelled' && status !== 'delivered' && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">

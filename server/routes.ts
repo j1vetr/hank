@@ -25,8 +25,8 @@ import {
   sendAbandonedCartEmail 
 } from "./emailService";
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
-import { sendInvoiceToBizimHesap } from "./bizimhesap";
-import { getOrderItemCatalogDetails, getOrderItemSkus, buildVariantSkuCheck, SkuRepairError } from "./productSku";
+import { invoiceTransferView, sendTrackedInvoice } from "./invoiceTransfer";
+import { getOrderItemCatalogDetails, buildVariantSkuCheck, SkuRepairError } from "./productSku";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
@@ -2507,10 +2507,10 @@ export async function registerRoutes(
         sendOrderConfirmationEmail(order, orderItems).catch(err => console.error('[Email] Order confirmation failed:', err));
         sendAdminOrderNotificationEmail(order, orderItems).catch(err => console.error('[Email] Admin notification failed:', err));
 
-        const itemSkus = await getOrderItemSkus(orderItems, storage);
-
         // Send invoice to BizimHesap
-        sendInvoiceToBizimHesap(order, orderItems, itemSkus).catch(err => console.error('[BizimHesap] Invoice failed:', err));
+        sendTrackedInvoice(order.id, storage)
+          .then(result => console.log("[BizimHesap] Invoice transfer:", order.id, result.success ? "sent" : "not confirmed"))
+          .catch(() => console.error("[BizimHesap] Invoice transfer state requires checking:", order.id));
 
         // Create user account if requested during checkout
         if (pendingPayment.createAccount && pendingPayment.accountPasswordHash) {
@@ -4672,26 +4672,28 @@ export async function registerRoutes(
     }
   });
 
-  // Send invoice to BizimHesap manually
-  app.post("/api/admin/orders/:id/send-invoice", requireAdmin, async (req, res) => {
+  app.get("/api/admin/orders/:id/invoice-status", requireAdmin, async (req, res) => {
     try {
       const order = await storage.getOrder(req.params.id);
-      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı" });
-      
-      const orderItems = await storage.getOrderItems(order.id);
-      
-      const itemSkus = await getOrderItemSkus(orderItems, storage);
-      
-      const result = await sendInvoiceToBizimHesap(order, orderItems, itemSkus);
-      
+      if (!order) return res.status(404).json({ error: "Sipariş bulunamadı." });
+      res.setHeader("Cache-Control", "no-store");
+      res.json(invoiceTransferView(order));
+    } catch {
+      res.status(500).json({ error: "Fatura aktarım durumu alınamadı." });
+    }
+  });
+
+  // Send invoice to BizimHesap manually through the same duplicate-prevention gate
+  app.post("/api/admin/orders/:id/send-invoice", requireAdmin, async (req, res) => {
+    try {
+      const result = await sendTrackedInvoice(req.params.id, storage);
       if (result.success) {
-        res.json({ success: true, message: "Fatura BizimHesap'a gönderildi", guid: result.guid, url: result.url });
+        res.json({ ...result, message: result.reused ? "Bu siparişin faturası daha önce aktarılmış." : "Fatura BizimHesap'a gönderildi." });
       } else {
-        res.status(400).json({ error: result.error || "Fatura gönderilemedi" });
+        res.status(result.httpStatus).json(result);
       }
-    } catch (error) {
-      console.error('[BizimHesap] Manual invoice error:', error);
-      res.status(500).json({ error: "Fatura gönderilemedi" });
+    } catch {
+      res.status(500).json({ error: "Aktarım sonucu kaydedilemedi. Tekrar göndermeden önce fatura durumunu ve BizimHesap'ı kontrol edin." });
     }
   });
 

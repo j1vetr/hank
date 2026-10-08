@@ -1,1 +1,2 @@
 - [Stok kodu politikası](stock-code-policy.md) — Beden ve renk ekleri korunur. Önceden eski kalan varyant kodları kontrol ve kullanıcı onayıyla onarılır.
+- [Fatura aktarım güvenliği](invoice-transfer-safety.md) — Belirsiz yanıtlar ve takipsiz eski siparişler körlemesine yeniden gönderilmez. Fatura ile tahsilat ayrı kapsamlar.
