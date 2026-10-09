@@ -235,7 +235,7 @@ export default function BulkVariantSkuCheckDialog({
     <Dialog open onOpenChange={onDialogChange}>
       <DialogContent
         aria-describedby="bulk-sku-description"
-        className="max-h-[94dvh] w-[calc(100%-1rem)] max-w-5xl gap-0 overflow-hidden border-[#344847] bg-[#172625] p-0 text-[#f2f0e7] shadow-2xl shadow-[#071311]/60 sm:w-[calc(100%-2rem)] sm:rounded-xl"
+        className="flex h-[94dvh] max-h-[94dvh] w-[calc(100%-1rem)] max-w-5xl flex-col gap-0 overflow-hidden border-[#344847] bg-[#172625] p-0 text-[#f2f0e7] shadow-2xl shadow-[#071311]/60 sm:w-[calc(100%-2rem)] sm:rounded-xl"
         onEscapeKeyDown={(event) => {
           if (!canClose) event.preventDefault();
         }}
@@ -243,7 +243,7 @@ export default function BulkVariantSkuCheckDialog({
           if (!canClose) event.preventDefault();
         }}
       >
-        <DialogHeader className="border-b border-[#344847] bg-[#1c302e] px-5 py-5 pr-14 text-left sm:px-7 sm:py-6">
+        <DialogHeader className="shrink-0 border-b border-[#344847] bg-[#1c302e] px-5 py-5 pr-14 text-left sm:px-7 sm:py-6">
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#d8b778]">
             <ScanSearch className="h-4 w-4" aria-hidden="true" />
             HANK / katalog kontrolü
@@ -256,7 +256,7 @@ export default function BulkVariantSkuCheckDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7">
+        <div data-testid="bulk-sku-scroll-area" className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y px-4 py-5 sm:px-7">
           {loading ? (
             <div className="space-y-4" aria-label="Stok kodları kontrol ediliyor" aria-live="polite">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -495,7 +495,7 @@ export default function BulkVariantSkuCheckDialog({
           ) : null}
         </div>
 
-        <footer className="flex flex-col-reverse gap-2 border-t border-[#344847] bg-[#172625] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+        <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-[#344847] bg-[#172625] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <div className="min-h-5 text-xs text-[#92a79b]" aria-live="polite">
             {check && !loading && !loadError && !hasRun
               ? `${selectedCount} / ${candidates.length} öneri seçildi`
