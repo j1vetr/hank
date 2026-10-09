@@ -2,9 +2,11 @@ import { db } from "./db";
 import {
   planVariantSkuUpdates,
   buildVariantSkuCheck,
+  buildBulkVariantSkuCheck,
   SkuRepairError,
   type VariantSkuRepairSelection,
   type VariantSkuCheck,
+  type BulkVariantSkuCheck,
 } from "./productSku";
 import { 
   adminUsers, 
@@ -176,6 +178,7 @@ export interface IStorage {
   getUserReview(userId: string, productId: string): Promise<ProductReview | undefined>;
 
   getProductVariants(productId: string): Promise<ProductVariant[]>;
+  getBulkVariantSkuCheck(): Promise<BulkVariantSkuCheck>;
   repairVariantSkus(productId: string, expectedProductSku: string, selections: VariantSkuRepairSelection[]): Promise<{ updatedCount: number; check: VariantSkuCheck }>;
   getProductVariant(id: string): Promise<ProductVariant | undefined>;
   createProductVariant(variant: InsertProductVariant): Promise<ProductVariant>;
@@ -576,6 +579,18 @@ export class DbStorage implements IStorage {
 
   async getProductVariants(productId: string): Promise<ProductVariant[]> {
     return db.select().from(productVariants).where(eq(productVariants.productId, productId));
+  }
+
+  async getBulkVariantSkuCheck(): Promise<BulkVariantSkuCheck> {
+    const [productRows, variantRows] = await Promise.all([
+      db.select({ id: products.id, name: products.name, sku: products.sku })
+        .from(products).orderBy(asc(products.name)),
+      db.select({
+        id: productVariants.id, productId: productVariants.productId, sku: productVariants.sku,
+        size: productVariants.size, color: productVariants.color,
+      }).from(productVariants),
+    ]);
+    return buildBulkVariantSkuCheck(productRows, variantRows);
   }
 
   async repairVariantSkus(

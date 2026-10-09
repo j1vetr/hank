@@ -57,6 +57,34 @@ export function buildVariantSkuCheck(
 }
 
 export type VariantSkuCheck = ReturnType<typeof buildVariantSkuCheck>;
+
+/** One catalog-wide preview, no writes and no guesses without user approval. */
+export function buildBulkVariantSkuCheck(
+  products: Pick<Product, "id" | "name" | "sku">[],
+  variants: (SkuVariant & { productId: string })[],
+) {
+  const variantsByProduct = new Map<string, SkuVariant[]>();
+  for (const variant of variants) {
+    const group = variantsByProduct.get(variant.productId) || [];
+    group.push(variant);
+    variantsByProduct.set(variant.productId, group);
+  }
+  const checks = products.map(product =>
+    buildVariantSkuCheck(product, variantsByProduct.get(product.id) || []),
+  );
+  const checkedVariants = checks.flatMap(check => check.variants);
+  return {
+    checkedProducts: products.length,
+    totalVariants: checkedVariants.length,
+    candidateCount: checkedVariants.filter(row => row.status === "candidate").length,
+    currentCount: checkedVariants.filter(row => row.status === "current").length,
+    customCount: checkedVariants.filter(row => row.status === "custom").length,
+    missingSkuProducts: products.filter(product => !product.sku?.trim()).length,
+    products: checks.filter(check => check.variants.some(row => row.needsUpdate)),
+  };
+}
+
+export type BulkVariantSkuCheck = ReturnType<typeof buildBulkVariantSkuCheck>;
 export type VariantSkuRepairSelection = {
   id: string;
   expectedCurrentSku: string | null;

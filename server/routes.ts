@@ -3601,6 +3601,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/variant-skus/check", requireAdmin, async (req, res) => {
+    try {
+      res.setHeader("Cache-Control", "no-store");
+      res.json(await storage.getBulkVariantSkuCheck());
+    } catch {
+      res.status(500).json({ error: "Toplu stok kodu kontrolü yapılamadı. Yeniden deneyin." });
+    }
+  });
+
   app.get("/api/admin/products/:id/sku-check", requireAdmin, async (req, res) => {
     try {
       const product = await storage.getProduct(req.params.id);

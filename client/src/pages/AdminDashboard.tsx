@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import OrdersPanel from './AdminOrdersPanel';
 import VariantSkuCheckDialog from '@/components/admin/VariantSkuCheckDialog';
+import BulkVariantSkuCheckDialog from '@/components/admin/BulkVariantSkuCheckDialog';
 import { 
   LayoutDashboard, 
   Package, 
@@ -230,6 +231,7 @@ export default function AdminDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [skuCheckProductId, setSkuCheckProductId] = useState<string | null>(null);
+  const [showBulkSkuCheck, setShowBulkSkuCheck] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
@@ -739,7 +741,7 @@ export default function AdminDashboard() {
 
           {activeTab === 'products' && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                   <input
@@ -751,7 +753,15 @@ export default function AdminDashboard() {
                     data-testid="input-search-products"
                   />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setShowBulkSkuCheck(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white rounded-lg font-medium hover:bg-zinc-700 transition-colors border border-zinc-700"
+                    data-testid="button-bulk-sku-check"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Toplu stok kodu kontrolü
+                  </button>
                   <button
                     onClick={async () => {
                       try {
@@ -1125,6 +1135,17 @@ export default function AdminDashboard() {
           )}
         </div>
       </main>
+
+      {showBulkSkuCheck && (
+        <BulkVariantSkuCheckDialog
+          onClose={() => setShowBulkSkuCheck(false)}
+          onUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-low-stock'] });
+          }}
+        />
+      )}
 
       {skuCheckProductId && (
         <VariantSkuCheckDialog

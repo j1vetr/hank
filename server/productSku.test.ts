@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Product, ProductVariant } from "@shared/schema";
-import { buildVariantSkuCheck, getOrderItemCatalogDetails, getOrderItemSkus, planVariantSkuUpdates } from "./productSku";
+import { buildBulkVariantSkuCheck, buildVariantSkuCheck, getOrderItemCatalogDetails, getOrderItemSkus, planVariantSkuUpdates } from "./productSku";
 
 test("generated codes retain size and color suffixes while custom codes stay unchanged", () => {
   const variants = [
@@ -31,6 +31,46 @@ test("generated codes retain size and color suffixes while custom codes stay unc
     { id: "legacy", sku: null },
     { id: "base", sku: null },
   ]);
+});
+
+test("bulk preview groups repair suggestions and counts protected/current/missing-code records without mutations", () => {
+  const products = [
+    { id: "p1", name: "First", sku: "203" },
+    { id: "p2", name: "Second", sku: "204" },
+    { id: "missing", name: "Missing", sku: " " },
+    { id: "empty", name: "Without variants", sku: "205" },
+  ];
+  const variants = [
+    { id: "old", productId: "p1", sku: "STK3-M", size: "M", color: null },
+    { id: "correct", productId: "p1", sku: "203-L", size: "L", color: null },
+    { id: "custom", productId: "p1", sku: "MANUAL-42", size: "M", color: null },
+    { id: "color", productId: "p2", sku: "STK4-L-Siyah", size: "L", color: "Siyah" },
+    { id: "missing-code", productId: "missing", sku: "OLD-M", size: "M", color: null },
+  ];
+  const before = JSON.stringify({ products, variants });
+  const check = buildBulkVariantSkuCheck(products, variants);
+  assert.equal(check.checkedProducts, 4);
+  assert.equal(check.totalVariants, 5);
+  assert.equal(check.candidateCount, 2);
+  assert.equal(check.currentCount, 1);
+  assert.equal(check.customCount, 2);
+  assert.equal(check.missingSkuProducts, 1);
+  assert.deepEqual(check.products.map(row => row.product.id), ["p1", "p2"]);
+  assert.equal(check.products[0].variants.find(row => row.id === "old")?.suggestedSku, "203-M");
+  assert.equal(check.products[1].variants[0].suggestedSku, "204-L-Siyah");
+  assert.equal(JSON.stringify({ products, variants }), before);
+});
+
+test("an empty or fully current catalog returns no bulk repair proposals", () => {
+  assert.deepEqual(buildBulkVariantSkuCheck([], []), {
+    checkedProducts: 0, totalVariants: 0, candidateCount: 0, currentCount: 0,
+    customCount: 0, missingSkuProducts: 0, products: [],
+  });
+  const check = buildBulkVariantSkuCheck([{ id: "p", name: "Current", sku: "203" }], [
+    { id: "v", productId: "p", sku: "203-M", size: "M", color: null },
+  ]);
+  assert.equal(check.currentCount, 1);
+  assert.deepEqual(check.products, []);
 });
 
 test("successive changes use the last product code without dropping suffixes", () => {
