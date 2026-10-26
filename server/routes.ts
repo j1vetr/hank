@@ -1364,13 +1364,6 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Product not found" });
       }
 
-      const variantsToSync = await storage.getProductVariants(product.id);
-      for (const variant of variantsToSync) {
-        if (variant.price !== product.basePrice) {
-          await storage.updateProductVariant(variant.id, { price: product.basePrice });
-        }
-      }
-      
       // Auto-create missing variants for new size/color combinations
       const sizes = product.availableSizes || [];
       const colors = product.availableColors || [];

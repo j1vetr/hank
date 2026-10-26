@@ -1,2 +1,3 @@
 - [Stok kodu politikası](stock-code-policy.md) — Beden ve renk ekleri korunur. Önceden eski kalan varyant kodları kontrol ve kullanıcı onayıyla onarılır.
+- [Ürün ve varyant fiyatı](product-price-policy.md) — Varyantlar ürünle aynı fiyatı kullanır. Eski fiyat farkı onarılırken indirim tekrar uygulanmaz.
 - [Fatura aktarım güvenliği](invoice-transfer-safety.md) — Belirsiz yanıtlar ve takipsiz eski siparişler körlemesine yeniden gönderilmez. Fatura ile tahsilat ayrı kapsamlar.

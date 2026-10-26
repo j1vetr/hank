@@ -532,6 +532,13 @@ export class DbStorage implements IStorage {
           }
         }
       }
+      // Variant prices are not independent in this catalog. Keep every update
+      // path (including bulk discounts) atomic with the displayed product price.
+      await tx.update(productVariants).set({ price: updated.basePrice })
+        .where(and(
+          eq(productVariants.productId, id),
+          sql`${productVariants.price} IS DISTINCT FROM ${updated.basePrice}::numeric`,
+        ));
       return updated;
     });
   }
