@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import InvoiceTransferPanel from '@/components/admin/InvoiceTransferPanel';
+import OrderPriceSummary from '@/components/admin/OrderPriceSummary';
 import { 
   ChevronLeft, 
   Package, 
@@ -56,6 +57,16 @@ interface Order {
   shippingCost: string;
   discountAmount: string;
   couponCode?: string;
+  campaignDiscountAmount?: string;
+  campaignDiscountDetails?: {
+    campaignName?: string | null;
+    discountedItems?: Array<{
+      productId: string;
+      variantId?: string | null;
+      quantity: number;
+      discountAmount: string;
+    }>;
+  } | null;
   total: string;
   status: string;
   paymentStatus: string;
@@ -360,29 +371,7 @@ export default function AdminOrderDetail() {
                 ))}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-zinc-700 space-y-2">
-                <div className="flex justify-between text-zinc-400">
-                  <span>Ara Toplam</span>
-                  <span>{parseFloat(order.subtotal).toFixed(2)}₺</span>
-                </div>
-                <div className="flex justify-between text-zinc-400">
-                  <span>Kargo</span>
-                  <span>{parseFloat(order.shippingCost || '0').toFixed(2)}₺</span>
-                </div>
-                {order.discountAmount && parseFloat(order.discountAmount) > 0 && (
-                  <div className="flex justify-between text-green-400">
-                    <span className="flex items-center gap-2">
-                      <Tag className="w-4 h-4" />
-                      İndirim {order.couponCode && `(${order.couponCode})`}
-                    </span>
-                    <span>-{parseFloat(order.discountAmount).toFixed(2)}₺</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-white text-xl font-bold pt-2 border-t border-zinc-700">
-                  <span>Toplam</span>
-                  <span>{parseFloat(order.total).toFixed(2)}₺</span>
-                </div>
-              </div>
+              <OrderPriceSummary order={order} className="mt-6 pt-4 border-t border-zinc-700" />
 
               {order.couponCode && couponInfo?.isInfluencerCode && (
                 <div className="mt-4 p-3 bg-purple-900/30 border border-purple-600/30 rounded-lg">

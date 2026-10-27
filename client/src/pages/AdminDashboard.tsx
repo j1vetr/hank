@@ -7,6 +7,7 @@ import OrdersPanel from './AdminOrdersPanel';
 import VariantSkuCheckDialog from '@/components/admin/VariantSkuCheckDialog';
 import BulkVariantSkuCheckDialog from '@/components/admin/BulkVariantSkuCheckDialog';
 import BizimHesapCollectionSettings from '@/components/admin/BizimHesapCollectionSettings';
+import OrderPriceSummary from '@/components/admin/OrderPriceSummary';
 import { 
   LayoutDashboard, 
   Package, 
@@ -2983,6 +2984,17 @@ function CategoryModal({
 }
 
 function OrderDetailModal({ order, onClose, onRefresh }: { order: Order; onClose: () => void; onRefresh?: () => void }) {
+  const [detailOrder, setDetailOrder] = useState<Order & {
+    subtotal?: string;
+    shippingCost?: string;
+    discountAmount?: string;
+    couponCode?: string | null;
+    campaignDiscountAmount?: string;
+    campaignDiscountDetails?: {
+      campaignName?: string | null;
+      discountedItems?: Array<{ productId: string; variantId?: string | null; quantity: number; discountAmount: string }>;
+    } | null;
+  }>(order);
   const [status, setStatus] = useState(order.status);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
@@ -2998,7 +3010,9 @@ function OrderDetailModal({ order, onClose, onRefresh }: { order: Order; onClose
     fetch(`/api/admin/orders/${order.id}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
+        setDetailOrder(data);
         if (data.items) setOrderItems(data.items);
+        if (data.status) setStatus(data.status);
         if (data.trackingNumber) setTrackingNumber(data.trackingNumber);
         if (data.trackingUrl) setTrackingUrl(data.trackingUrl);
       });
@@ -3158,10 +3172,11 @@ function OrderDetailModal({ order, onClose, onRefresh }: { order: Order; onClose
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between mt-3 pt-3 border-t border-zinc-700">
-                <span className="text-zinc-400">Toplam</span>
-                <span className="text-xl font-bold text-white">{order.total}₺</span>
-              </div>
+              <OrderPriceSummary
+                order={detailOrder}
+                className="mt-3 pt-3 border-t border-zinc-700"
+                totalClassName="text-white text-xl font-bold pt-2 border-t border-zinc-700"
+              />
             </div>
           )}
 
