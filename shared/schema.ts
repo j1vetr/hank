@@ -200,6 +200,16 @@ export const stockNotifications = pgTable("stock_notifications", {
 
 export type StockNotification = typeof stockNotifications.$inferSelect;
 
+export const bizimHesapCollectionSettings = pgTable("bizimhesap_collection_settings", {
+  id: integer("id").primaryKey().default(1),
+  enabled: boolean("enabled").default(false).notNull(),
+  cashId: text("cash_id"),
+  cashTitle: text("cash_title"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type BizimHesapCollectionSettings = typeof bizimHesapCollectionSettings.$inferSelect;
+
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   orderNumber: text("order_number").notNull().unique(),
@@ -238,14 +248,30 @@ export const orders = pgTable("orders", {
   invoiceAttemptId: varchar("invoice_attempt_id"),
   invoiceAttemptedAt: timestamp("invoice_attempted_at"),
   invoiceSentAt: timestamp("invoice_sent_at"),
+  invoiceCashId: text("invoice_cash_id"),
+  invoiceCashTitle: text("invoice_cash_title"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertOrderSchema = createInsertSchema(orders).omit({
+export const insertOrderSchema = createInsertSchema(orders, {
+  shippingAddress: z.object({
+    address: z.string(), city: z.string(), district: z.string(), postalCode: z.string(),
+    country: z.string().optional(),
+  }),
+  campaignDiscountDetails: z.object({
+    campaignName: z.string(),
+    discountedItems: z.array(z.object({
+      productId: z.string(), variantId: z.string().nullable().optional(),
+      quantity: z.number(), discountAmount: z.string(),
+    })),
+  }).nullable().optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  invoiceCashId: true,
+  invoiceCashTitle: true,
 });
 
 export type InsertOrder = z.infer<typeof insertOrderSchema>;

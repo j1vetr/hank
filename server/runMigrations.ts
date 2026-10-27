@@ -95,5 +95,15 @@ export async function runInvoiceTrackingMigration() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_attempt_id varchar;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_attempted_at timestamp;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_sent_at timestamp;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_cash_id text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_cash_title text;
+    CREATE TABLE IF NOT EXISTS bizimhesap_collection_settings (
+      id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+      enabled boolean NOT NULL DEFAULT false,
+      cash_id text,
+      cash_title text,
+      updated_at timestamp NOT NULL DEFAULT now(),
+      CHECK (NOT enabled OR (NULLIF(trim(cash_id), '') IS NOT NULL AND NULLIF(trim(cash_title), '') IS NOT NULL))
+    );
   `));
 }

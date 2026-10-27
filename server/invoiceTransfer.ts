@@ -8,6 +8,14 @@ export function invoiceTransferView(order: Order) {
     status: order.invoiceGuid || order.invoiceUrl ? "sent" : order.invoiceStatus,
     guid: order.invoiceGuid, url: order.invoiceUrl, error: order.invoiceError,
     attemptedAt: order.invoiceAttemptedAt, sentAt: order.invoiceSentAt,
+    collection: {
+      status: !order.invoiceCashId ? "not_requested" :
+        order.invoiceGuid || order.invoiceUrl || order.invoiceStatus === "sent" ? "submitted_with_invoice" :
+          ["sending", "uncertain"].includes(order.invoiceStatus) ? "uncertain" : "pending_invoice",
+      cashTitle: order.invoiceCashTitle ?? null,
+      // A successful invoice response is not independent proof of collection.
+      verified: false,
+    },
   };
 }
 

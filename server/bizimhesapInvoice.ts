@@ -1,4 +1,5 @@
 import type { Order, OrderItem } from "@shared/schema";
+import { invoiceCashierFields } from "./bizimhesapCollection";
 
 function cents(value: string | number | null | undefined): number {
   const number = Number(value ?? 0);
@@ -130,6 +131,7 @@ export function buildBizimHesapInvoice(
   const invoiceDate = now.toISOString();
   return {
     firmId, invoiceNo: order.orderNumber, invoiceType: 3,
+    ...invoiceCashierFields(order),
     note: `HANK Online Sipariş - ${order.orderNumber}`,
     dates: { invoiceDate, dueDate: invoiceDate, deliveryDate: invoiceDate },
     customer: {

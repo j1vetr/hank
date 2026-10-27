@@ -1,4 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import { registerBizimHesapCollectionRoutes } from "./bizimhesapCollectionRoutes";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { z } from "zod";
@@ -2342,7 +2343,7 @@ export async function registerRoutes(
           status: 'confirmed',
           paymentMethod: 'credit_card',
           paymentStatus: 'paid',
-        });
+        }, { capturePaytrCashier: true });
 
         // Create order items and reduce stock
         for (const item of pendingPayment.cartItems) {
@@ -4323,6 +4324,8 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to fetch email recipients" });
     }
   });
+
+  registerBizimHesapCollectionRoutes(app, requireAdmin, storage);
 
   // Site Settings Routes
   app.get("/api/admin/settings", requireAdmin, async (req, res) => {

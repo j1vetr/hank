@@ -6,6 +6,7 @@ import { getCampaignPresentation } from '@shared/campaignDisplay';
 import OrdersPanel from './AdminOrdersPanel';
 import VariantSkuCheckDialog from '@/components/admin/VariantSkuCheckDialog';
 import BulkVariantSkuCheckDialog from '@/components/admin/BulkVariantSkuCheckDialog';
+import BizimHesapCollectionSettings from '@/components/admin/BizimHesapCollectionSettings';
 import { 
   LayoutDashboard, 
   Package, 
@@ -7315,6 +7316,8 @@ function SettingsPanel() {
         <h2 className="text-2xl font-bold text-white">Ayarlar</h2>
         <p className="text-zinc-400">E-posta ve sistem ayarlarını yönetin</p>
       </div>
+
+      <BizimHesapCollectionSettings />
 
       {message && (
         <div className={`flex items-center gap-2 p-4 rounded-lg ${

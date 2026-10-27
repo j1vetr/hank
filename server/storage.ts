@@ -1,4 +1,7 @@
 import { db } from "./db";
+import { bizimHesapCollectionSettings, type BizimHesapCollectionSettings } from "@shared/schema";
+import type { CollectionSettingsInput } from "./bizimhesapCollection";
+import { insertOrderWithCashierSnapshot } from "./bizimhesapOrder";
 import {
   planVariantSkuUpdates,
   buildVariantSkuCheck,
@@ -224,7 +227,9 @@ export interface IStorage {
   getOrders(): Promise<Order[]>;
   getOrder(id: string): Promise<Order | undefined>;
   getOrderByNumber(orderNumber: string): Promise<Order | undefined>;
-  createOrder(order: InsertOrder): Promise<Order>;
+  createOrder(order: InsertOrder, options?: { capturePaytrCashier?: boolean }): Promise<Order>;
+  getBizimHesapCollectionSettings(): Promise<BizimHesapCollectionSettings | undefined>;
+  saveBizimHesapCollectionSettings(settings: CollectionSettingsInput): Promise<BizimHesapCollectionSettings>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
   updateOrder(id: string, data: Partial<Order>): Promise<Order | undefined>;
   claimInvoiceTransfer(id: string, attemptId: string): Promise<Order | undefined>;
@@ -834,9 +839,21 @@ export class DbStorage implements IStorage {
     return order;
   }
 
-  async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
-    return newOrder;
+  async getBizimHesapCollectionSettings(): Promise<BizimHesapCollectionSettings | undefined> {
+    const [settings] = await db.select().from(bizimHesapCollectionSettings)
+      .where(eq(bizimHesapCollectionSettings.id, 1));
+    return settings;
+  }
+
+  async saveBizimHesapCollectionSettings(settings: CollectionSettingsInput): Promise<BizimHesapCollectionSettings> {
+    const values = { ...settings, updatedAt: new Date() };
+    const [saved] = await db.insert(bizimHesapCollectionSettings).values({ id: 1, ...values })
+      .onConflictDoUpdate({ target: bizimHesapCollectionSettings.id, set: values }).returning();
+    return saved;
+  }
+
+  async createOrder(order: InsertOrder, options: { capturePaytrCashier?: boolean } = {}): Promise<Order> {
+    return db.transaction(tx => insertOrderWithCashierSnapshot(tx, order, options.capturePaytrCashier === true));
   }
 
   async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
