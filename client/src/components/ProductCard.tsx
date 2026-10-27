@@ -43,6 +43,11 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const isLiked = favoriteIds.includes(product.id);
   const { data: campaign } = useQuery<{
     name: string;
+    description?: string;
+    customerMessage?: string | null;
+    campaignType?: 'quantity' | 'direct';
+    discountType?: 'percentage' | 'fixed';
+    discountAmount?: string | number;
     buyQuantity: number;
     rewardQuantity: number;
     discountPercentage: number;
@@ -55,7 +60,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
     },
     staleTime: 60_000,
   });
-  const isCampaignEligible = Boolean(campaign?.eligibleProductIds.includes(product.id));
+  const isCampaignEligible = Boolean(campaign?.eligibleProductIds?.includes(product.id));
 
   const price = parseFloat(product.basePrice || '0') || 0;
   const originalPrice = getOriginalPrice(price, product.discountBadge);
@@ -137,7 +142,11 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
 
               {isCampaignEligible && !isOutOfStock && (
                 <span className="absolute bottom-2 left-2 z-10 bg-violet-600/90 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg">
-                  {campaign?.buyQuantity}+{campaign?.rewardQuantity} % {campaign?.discountPercentage} İNDİRİM
+                  {campaign?.campaignType === 'direct'
+                    ? campaign?.discountType === 'fixed'
+                      ? `SEPETTE ${Number(campaign?.discountAmount || 0).toLocaleString('tr-TR')} TL İNDİRİM`
+                      : `SEPETTE %${Number(campaign?.discountPercentage || 0).toLocaleString('tr-TR')} İNDİRİM`
+                    : `${campaign?.buyQuantity}+${campaign?.rewardQuantity} • %${campaign?.discountPercentage} İNDİRİM`}
                 </span>
               )}
 

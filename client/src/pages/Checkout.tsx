@@ -8,6 +8,7 @@ import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { getCampaignPresentation } from '@shared/campaignDisplay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Phone, MapPin, CreditCard, Truck, Shield, 
@@ -243,6 +244,7 @@ export default function Checkout() {
   
   const discount = calculateDiscount();
   const campaignDiscount = pricing?.campaignDiscount || 0;
+  const campaignPresentation = pricing?.campaign ? getCampaignPresentation(pricing.campaign) : null;
   const total = (pricing?.discountedSubtotal ?? subtotal) - discount + shippingCost;
 
   // Coupon validation handler
@@ -1254,7 +1256,7 @@ export default function Checkout() {
                 <div className="space-y-3 text-sm py-4 relative">
                   {pricing?.campaign && (
                     <p className="text-xs text-muted-foreground">
-                      {pricing.campaign.description}
+                      {campaignPresentation?.description || pricing.campaign.description}
                     </p>
                   )}
                   <div className="flex justify-between">
@@ -1265,12 +1267,12 @@ export default function Checkout() {
                     <div className="flex justify-between text-emerald-400">
                       <span className="flex items-center gap-1">
                         <BadgePercent className="w-3 h-3" />
-                        {pricing?.campaign?.name || 'Sepet kampanyası'}
+                          {campaignPresentation?.name || 'Sepet kampanyası'}
                       </span>
                       <span data-testid="text-campaign-discount">-{campaignDiscount.toLocaleString('tr-TR')} ₺</span>
                     </div>
                   )}
-                  {pricing?.campaign && campaignDiscount === 0 && (
+                  {pricing?.campaign && pricing.campaign.campaignType !== 'direct' && campaignDiscount === 0 && (
                     <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg">
                       <div className="flex gap-2">
                         <BadgePercent className="w-4 h-4 text-violet-300 shrink-0 mt-0.5" />

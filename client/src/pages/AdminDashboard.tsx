@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { getCampaignPresentation } from '@shared/campaignDisplay';
 import OrdersPanel from './AdminOrdersPanel';
 import VariantSkuCheckDialog from '@/components/admin/VariantSkuCheckDialog';
 import BulkVariantSkuCheckDialog from '@/components/admin/BulkVariantSkuCheckDialog';
@@ -5843,20 +5844,24 @@ function MarketingPanel() {
                   <div key={campaign.id} className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-medium text-white">{campaign.name}</h4>
+                         <h4 className="font-medium text-white">{getCampaignPresentation(campaign).name}</h4>
                         <span className={`px-2 py-0.5 text-xs rounded ${campaign.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-700 text-zinc-400'}`}>
                           {campaign.isActive ? 'Aktif' : 'Pasif'}
                         </span>
                       </div>
-                      <p className="text-sm text-zinc-400 mt-1">
-                        {campaign.buyQuantity}+{campaign.rewardQuantity} • En ucuz uygun üründe %{campaign.discountPercentage} indirim
-                      </p>
+                       <p className="text-sm text-zinc-400 mt-1">
+                         {campaign.campaignType === 'direct'
+                           ? `${getCampaignPresentation(campaign).name} • Sepete bir kez uygulanır`
+                           : `${campaign.buyQuantity}+${campaign.rewardQuantity} • En ucuz uygun üründe %${campaign.discountPercentage} indirim`}
+                       </p>
                       <p className="text-xs text-zinc-500 mt-1 max-w-xl">
-                        {campaign.description || 'Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.'}
+                         {getCampaignPresentation(campaign).description}
                       </p>
                       <p className="text-xs text-zinc-500 mt-1">
                         {campaign.scopeType === 'all' ? 'Tüm ürünler' : campaign.scopeType === 'categories' ? 'Seçili kategoriler' : 'Seçili ürünler'}
-                        {campaign.maxApplications ? ` • En fazla ${campaign.maxApplications} uygulama` : ' • Tekrarlanabilir'}
+                         {campaign.campaignType === 'direct'
+                           ? ' • İndirim yalnızca kapsama giren ürünlerin toplamına uygulanır'
+                           : campaign.maxApplications ? ` • En fazla ${campaign.maxApplications} uygulama` : ' • Tekrarlanabilir'}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -6112,6 +6117,7 @@ function MarketingPanel() {
           onClose={() => { setShowAutoCampaignModal(false); setEditingAutoCampaign(null); }}
           onSave={(campaign) => saveAutoCampaignMutation.mutate(campaign)}
           isSaving={saveAutoCampaignMutation.isPending}
+          error={saveAutoCampaignMutation.error instanceof Error ? saveAutoCampaignMutation.error.message : null}
         />
       )}
     </div>
@@ -6266,6 +6272,7 @@ function AutoCartCampaignModal({
   onClose,
   onSave,
   isSaving,
+  error,
 }: {
   campaign: any;
   products: Product[];
@@ -6273,16 +6280,17 @@ function AutoCartCampaignModal({
   onClose: () => void;
   onSave: (campaign: any) => void;
   isSaving: boolean;
+  error: string | null;
 }) {
-  const defaultCampaignName = '2 Ürün Al, 3. Üründe %50 İndirim Fırsatı';
-  const defaultCampaignDescription = 'Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.';
+  const initialCampaignType = campaign?.campaignType === 'direct' ? 'direct' : 'quantity';
   const [formData, setFormData] = useState({
-    name: defaultCampaignName,
-    description: defaultCampaignDescription,
+    campaignType: initialCampaignType,
+    discountType: initialCampaignType === 'direct' && campaign?.discountType === 'fixed' ? 'fixed' : 'percentage',
+    discountAmount: String(campaign?.discountAmount ?? '0.00'),
     customerMessage: '',
     buyQuantity: String(campaign?.buyQuantity || 2),
     rewardQuantity: String(campaign?.rewardQuantity || 1),
-    discountPercentage: String(campaign?.discountPercentage || 50),
+    discountPercentage: String(campaign?.discountPercentage ?? 50),
     scopeType: campaign?.scopeType || 'all',
     includedCategoryIds: campaign?.includedCategoryIds || [],
     includedProductIds: campaign?.includedProductIds || [],
@@ -6301,14 +6309,47 @@ function AutoCartCampaignModal({
         : [...current[field], id],
     }));
   };
+  const isDirect = formData.campaignType === 'direct';
+  const amount = formData.discountType === 'fixed' ? Number(formData.discountAmount) : Number(formData.discountPercentage);
+  const discountValid = formData.discountType === 'fixed'
+    ? Number.isFinite(amount) && amount > 0 && amount <= 99999999.99 && /^\d+(\.\d{1,2})?$/.test(formData.discountAmount)
+    : Number.isFinite(amount) && amount > 0 && amount <= 100;
+  const scopeValid = formData.scopeType === 'all'
+    || (formData.scopeType === 'categories' && formData.includedCategoryIds.length > 0)
+    || (formData.scopeType === 'products' && formData.includedProductIds.length > 0);
+  const datesValid = !formData.startsAt || !formData.endsAt || formData.startsAt <= formData.endsAt;
+  const quantityValid = isDirect || (
+    Number.isInteger(Number(formData.buyQuantity)) && Number(formData.buyQuantity) > 0
+    && Number.isInteger(Number(formData.rewardQuantity)) && Number(formData.rewardQuantity) > 0
+    && (!formData.maxApplications || (Number.isInteger(Number(formData.maxApplications)) && Number(formData.maxApplications) > 0))
+  );
+  const formValid = discountValid && scopeValid && datesValid && quantityValid;
   const handleSubmit = () => {
+    if (!formValid) return;
+    const campaignCopy = getCampaignPresentation({
+      campaignType: formData.campaignType,
+      discountType: formData.discountType,
+      discountPercentage: formData.discountPercentage,
+      discountAmount: formData.discountAmount,
+    });
     onSave({
       ...(campaign?.id ? { id: campaign.id } : {}),
-      ...formData,
-      buyQuantity: Number(formData.buyQuantity),
-      rewardQuantity: Number(formData.rewardQuantity),
-      discountPercentage: Number(formData.discountPercentage),
-      maxApplications: formData.maxApplications ? Number(formData.maxApplications) : null,
+      campaignType: formData.campaignType,
+      discountType: formData.discountType,
+      discountAmount: isDirect && formData.discountType === 'fixed' ? Number(amount).toFixed(2) : '0.00',
+      name: campaignCopy.name,
+      description: campaignCopy.description,
+      customerMessage: formData.customerMessage || null,
+      buyQuantity: isDirect ? 1 : Number(formData.buyQuantity),
+      rewardQuantity: isDirect ? 1 : Number(formData.rewardQuantity),
+      discountPercentage: isDirect && formData.discountType === 'fixed' ? 0 : Number(formData.discountPercentage),
+      maxApplications: isDirect || !formData.maxApplications ? null : Number(formData.maxApplications),
+      scopeType: formData.scopeType,
+      includedCategoryIds: formData.includedCategoryIds,
+      includedProductIds: formData.includedProductIds,
+      excludedCategoryIds: formData.excludedCategoryIds,
+      excludedProductIds: formData.excludedProductIds,
+      isActive: formData.isActive,
       startsAt: formData.startsAt || null,
       endsAt: formData.endsAt || null,
     });
@@ -6338,37 +6379,64 @@ function AutoCartCampaignModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div data-testid="auto-cart-campaign-dialog" role="dialog" aria-modal="true" aria-label="Sepet kampanyası" className="bg-zinc-900 rounded-xl w-full max-w-3xl max-h-[92dvh] flex flex-col overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-zinc-800 flex items-start justify-between gap-4 shrink-0">
           <div>
             <h3 className="text-lg font-semibold text-white">{campaign ? 'Sepet Kampanyasını Düzenle' : 'Yeni Sepet Kampanyası'}</h3>
             <p className="text-sm text-zinc-500 mt-1">
-              Alınacak adet tüm ürünlerden sayılır. İndirim yalnızca aşağıda seçtiğiniz kapsamdaki en ucuz uygun ürüne uygulanır.
+              {isDirect
+                ? 'Adet koşulu yoktur. İndirim sepette bir kez, yalnızca kapsamdaki uygun ürünlerin toplamına uygulanır. Kupon indirimi kampanyadan sonra hesaplanır.'
+                : 'Alınacak adet tüm ürünlerden sayılır. İndirim yalnızca aşağıda seçtiğiniz kapsamdaki uygun ürüne uygulanır.'}
             </p>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto min-h-0 flex-1">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">Kampanya Türü</label>
+              <select value={formData.campaignType} onChange={e => setFormData(current => ({ ...current, campaignType: e.target.value, ...(e.target.value === 'quantity' && current.discountType === 'fixed' ? { discountType: 'percentage' } : {}) }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white">
+                <option value="quantity">Adet koşullu kampanya</option>
+                <option value="direct">Doğrudan sepet indirimi</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">İndirim Türü</label>
+              <select value={formData.discountType} onChange={e => setFormData(current => ({ ...current, discountType: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white">
+                <option value="percentage">Yüzde (%)</option>
+                {isDirect && <option value="fixed">Sabit tutar (TL)</option>}
+              </select>
+            </div>
+          </div>
           <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
             <p className="text-xs font-medium text-zinc-400 mb-1">Kampanya Başlığı</p>
-            <p className="text-sm font-medium text-white">{formData.name}</p>
+            <p className="text-sm font-medium text-white">{getCampaignPresentation({ campaignType: formData.campaignType, discountType: formData.discountType, discountPercentage: formData.discountPercentage, discountAmount: formData.discountAmount }).name}</p>
             <p className="text-xs font-medium text-zinc-400 mt-3 mb-1">Kampanya Açıklaması</p>
-            <p className="text-sm text-zinc-300">{formData.description}</p>
+            <p className="text-sm text-zinc-300">{getCampaignPresentation({ campaignType: formData.campaignType, discountType: formData.discountType, discountPercentage: formData.discountPercentage, discountAmount: formData.discountAmount }).description}</p>
             <p className="text-xs text-zinc-500 mt-3">Bu metinler müşteriyi kampanyaya yönlendirmek için otomatik kullanılır.</p>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className={`grid gap-4 ${!isDirect ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+            {!isDirect && <>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">Alınacak Adet *</label>
+                <input type="number" min="1" step="1" value={formData.buyQuantity} onChange={e => setFormData(current => ({ ...current, buyQuantity: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400 mb-2">İndirimli Adet *</label>
+                <input type="number" min="1" step="1" value={formData.rewardQuantity} onChange={e => setFormData(current => ({ ...current, rewardQuantity: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+              </div>
+            </>}
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">Alınacak Adet *</label>
-              <input type="number" min="1" value={formData.buyQuantity} onChange={e => setFormData(current => ({ ...current, buyQuantity: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">İndirimli Adet *</label>
-              <input type="number" min="1" value={formData.rewardQuantity} onChange={e => setFormData(current => ({ ...current, rewardQuantity: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">İndirim (%) *</label>
-              <input type="number" min="0" max="100" value={formData.discountPercentage} onChange={e => setFormData(current => ({ ...current, discountPercentage: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+              <label className="block text-sm text-zinc-400 mb-2">{formData.discountType === 'fixed' ? 'Sepet indirimi (TL) *' : 'İndirim (%) *'}</label>
+              {formData.discountType === 'fixed' ? (
+                <input type="number" min="0.01" max="99999999.99" step="0.01" value={formData.discountAmount} onChange={e => setFormData(current => ({ ...current, discountAmount: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+              ) : (
+                <input type="number" min="0.01" max="100" step="0.01" value={formData.discountPercentage} onChange={e => setFormData(current => ({ ...current, discountPercentage: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
+              )}
+              <p className="text-xs text-zinc-500 mt-1">
+                {formData.discountType === 'fixed' ? 'Tutar uygun ürünlerin toplamını aşamaz ve sepete yalnızca bir kez uygulanır.' : isDirect ? 'Yüzde indirimi uygun ürünlerin tüm adetlerine uygulanır.' : 'Yüzde indirimi adet koşulu sağlandığında uygulanır.'}
+              </p>
             </div>
           </div>
           <div className="grid sm:grid-cols-3 gap-4">
@@ -6380,10 +6448,10 @@ function AutoCartCampaignModal({
                 <option value="products">Seçili ürünler</option>
               </select>
             </div>
-            <div>
+            {!isDirect && <div>
               <label className="block text-sm text-zinc-400 mb-2">En Fazla Uygulama</label>
               <input type="number" min="1" value={formData.maxApplications} onChange={e => setFormData(current => ({ ...current, maxApplications: e.target.value }))} placeholder="Boşsa tekrar eder" className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white" />
-            </div>
+            </div>}
             <label className="flex items-end gap-3 pb-2 text-sm text-zinc-300 cursor-pointer">
               <input type="checkbox" checked={formData.isActive} onChange={e => setFormData(current => ({ ...current, isActive: e.target.checked }))} />
               Kampanya aktif
@@ -6405,14 +6473,18 @@ function AutoCartCampaignModal({
           {formData.scopeType === 'products' && (
             <SelectionList title="İndirim Uygulanacak Ürünler" items={products} selected={formData.includedProductIds} onToggle={id => toggle('includedProductIds', id)} />
           )}
+          {!scopeValid && formData.scopeType !== 'all' && <p className="text-xs text-amber-300">Devam etmek için en az bir kapsam kategorisi veya ürünü seçin.</p>}
           <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-zinc-800">
             <SelectionList title="İndirimden Hariç Kategoriler" items={categories} selected={formData.excludedCategoryIds} onToggle={id => toggle('excludedCategoryIds', id)} />
             <SelectionList title="İndirimden Hariç Ürünler" items={products} selected={formData.excludedProductIds} onToggle={id => toggle('excludedProductIds', id)} />
           </div>
+          {!datesValid && <p className="text-xs text-red-400">Bitiş tarihi başlangıç tarihinden önce olamaz.</p>}
+          {!discountValid && <p className="text-xs text-red-400">{formData.discountType === 'fixed' ? 'Tutar 0,01 ile 99.999.999,99 TL arasında olmalıdır.' : 'Yüzde 0’dan büyük ve 100’e eşit veya küçük olmalıdır.'}</p>}
+          {error && <p role="alert" className="text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
         </div>
-        <div className="p-6 border-t border-zinc-800 flex justify-end gap-3">
+        <div className="p-4 sm:p-6 border-t border-zinc-800 flex justify-end gap-3 shrink-0">
           <button onClick={onClose} className="px-4 py-2 text-zinc-400 hover:text-white">İptal</button>
-          <button onClick={handleSubmit} disabled={isSaving || !formData.name || Number(formData.buyQuantity) < 1 || Number(formData.rewardQuantity) < 1} className="flex items-center gap-2 px-5 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 disabled:opacity-50">
+          <button onClick={handleSubmit} disabled={isSaving || !formValid} className="flex items-center gap-2 px-5 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 disabled:opacity-50">
             {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
             {campaign ? 'Güncelle' : 'Oluştur'}
           </button>

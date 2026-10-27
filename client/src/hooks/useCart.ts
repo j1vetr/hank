@@ -32,6 +32,9 @@ export interface CartCampaignPricing {
     name: string;
     description: string;
     customerMessage: string | null;
+    campaignType?: 'quantity' | 'direct';
+    discountType?: 'percentage' | 'fixed';
+    discountAmount?: string | number;
     buyQuantity: number;
     rewardQuantity: number;
     discountPercentage: number;

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { getCampaignPresentation } from '@shared/campaignDisplay';
 import { getOriginalPrice } from '@/lib/discountPrice';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -79,6 +80,9 @@ export default function ProductDetail() {
     name: string;
     description: string;
     customerMessage: string | null;
+    campaignType?: 'quantity' | 'direct';
+    discountType?: 'percentage' | 'fixed';
+    discountAmount?: string | number;
     buyQuantity: number;
     rewardQuantity: number;
     discountPercentage: number;
@@ -91,6 +95,7 @@ export default function ProductDetail() {
     },
     staleTime: 60_000,
   });
+  const campaignPresentation = activeCampaign ? getCampaignPresentation(activeCampaign) : null;
 
   const { data: reviews = [] } = useProductReviews(product?.id || '');
   const { data: ratingData } = useProductRating(product?.id || '');
@@ -798,10 +803,10 @@ export default function ProductDetail() {
               {activeCampaign?.eligibleProductIds.includes(product.id) && (
                 <div className="mb-6 p-3.5 bg-gradient-to-r from-violet-500/15 to-fuchsia-500/10 border border-violet-400/25 rounded-lg">
                   <p className="text-sm font-semibold text-violet-100">
-                    {activeCampaign.name}
+                    {campaignPresentation?.name || activeCampaign.name}
                   </p>
                   <p className="text-xs text-violet-200/80 mt-1">
-                    {activeCampaign.description || activeCampaign.customerMessage || `${activeCampaign.buyQuantity} ürün al, ${activeCampaign.rewardQuantity}. üründe %${activeCampaign.discountPercentage} indirim fırsatı.`}
+                    {campaignPresentation?.description || activeCampaign.description || activeCampaign.customerMessage || `${activeCampaign.buyQuantity} ürün al, ${activeCampaign.rewardQuantity}. üründe %${activeCampaign.discountPercentage} indirim fırsatı.`}
                   </p>
                 </div>
               )}

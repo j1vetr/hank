@@ -64,9 +64,15 @@ function createBasketUnits(pricing: CartCampaignPricing, shippingCost: number): 
       });
     }
     for (let unit = 0; unit < line.discountedQuantity; unit += 1) {
+      // A fixed cart discount may leave a fractional cent per unit. Distribute
+      // the exact line total across units instead of rounding every unit alike.
+      const discountedTotal = moneyToCents(line.unitPrice) * line.discountedQuantity
+        - moneyToCents(line.discountAmount);
+      const unitCents = Math.floor(discountedTotal / line.discountedQuantity);
+      const extraCentUnits = discountedTotal % line.discountedQuantity;
       units.push({
         name: `${line.productName.substring(0, 42)} (kampanya)`,
-        priceCents: moneyToCents(line.discountedUnitPrice),
+        priceCents: unitCents + (unit < extraCentUnits ? 1 : 0),
         isProduct: true,
       });
     }

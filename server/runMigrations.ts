@@ -23,6 +23,9 @@ export async function runAutoCartCampaignMigration() {
       created_at timestamp NOT NULL DEFAULT now(),
       updated_at timestamp NOT NULL DEFAULT now()
     );
+    ALTER TABLE auto_cart_campaigns ADD COLUMN IF NOT EXISTS campaign_type text NOT NULL DEFAULT 'quantity';
+    ALTER TABLE auto_cart_campaigns ADD COLUMN IF NOT EXISTS discount_type text NOT NULL DEFAULT 'percentage';
+    ALTER TABLE auto_cart_campaigns ADD COLUMN IF NOT EXISTS discount_amount numeric(10,2) NOT NULL DEFAULT '0.00';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS campaign_id varchar;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS campaign_discount_amount numeric(10,2) DEFAULT '0';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS campaign_discount_details jsonb;
@@ -59,9 +62,9 @@ export async function runAutoCartCampaignMigration() {
     SET name = '2 Ürün Al, 3. Üründe %50 İndirim Fırsatı',
         description = 'Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.',
         customer_message = NULL
-    WHERE name IS DISTINCT FROM '2 Ürün Al, 3. Üründe %50 İndirim Fırsatı'
+    WHERE campaign_type = 'quantity' AND (name IS DISTINCT FROM '2 Ürün Al, 3. Üründe %50 İndirim Fırsatı'
        OR description IS DISTINCT FROM 'Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.'
-       OR customer_message IS NOT NULL;
+       OR customer_message IS NOT NULL);
     DO $$ BEGIN
       IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_campaign_id_auto_cart_campaigns_id_fk') THEN
         ALTER TABLE orders ADD CONSTRAINT orders_campaign_id_auto_cart_campaigns_id_fk

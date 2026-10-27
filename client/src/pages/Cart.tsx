@@ -6,6 +6,7 @@ import { useCart } from '@/hooks/useCart';
 import { Minus, Plus, Trash2, ShoppingBag, Truck, Shield, RotateCcw, ArrowRight, Package, BadgePercent, Bell, Loader2, Sparkles } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getCampaignPresentation } from '@shared/campaignDisplay';
 
 interface Product {
   id: string;
@@ -46,7 +47,7 @@ interface CartRecommendations {
 const FREE_SHIPPING_THRESHOLD = 2500;
 
 export default function Cart() {
-  const { items, isLoading, updateQuantity, removeItem, addToCart, totalItems, subtotal, pricing } = useCart();
+  const { items, isLoading, updateQuantity, removeItem, addToCart, totalItems, subtotal, pricing, isPricingLoading } = useCart();
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
   const [notifyTarget, setNotifyTarget] = useState<RecommendationProduct | null>(null);
   const [notifyEmail, setNotifyEmail] = useState('');
@@ -84,6 +85,11 @@ export default function Cart() {
   const remainingForFreeShipping = FREE_SHIPPING_THRESHOLD - subtotal;
   const shippingProgress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
   const getPricingLine = (cartItemId: string) => pricing?.lines.find(line => line.cartItemId === cartItemId);
+  const campaignPresentation = pricing?.campaign ? getCampaignPresentation(pricing.campaign) : null;
+  const formatPrice = (amount: number) =>
+    `${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`;
+  const getNetLineSubtotal = (lineSubtotal: number, discountAmount: number) =>
+    Math.round((lineSubtotal - discountAmount) * 100) / 100;
 
   useEffect(() => {
     if (!recommendations) return;
@@ -269,12 +275,12 @@ export default function Cart() {
                           {pricing.campaign.name}
                         </p>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                          {pricing.campaign.description}
+                          {campaignPresentation?.description || pricing.campaign.description}
                         </p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {pricing.progressMessage}
-                        </p>
-                        {campaignDiscount === 0 && pricing.requiredItemCount > 0 && (
+                        {pricing.progressMessage && (pricing.campaign.campaignType !== 'direct' || campaignDiscount === 0) && (
+                          <p className="text-sm text-muted-foreground mt-0.5">{pricing.progressMessage}</p>
+                        )}
+                        {pricing.campaign.campaignType !== 'direct' && campaignDiscount === 0 && pricing.requiredItemCount > 0 && (
                           <div className="h-1.5 bg-black/30 rounded-full overflow-hidden mt-3">
                             <motion.div
                               initial={{ width: 0 }}
@@ -352,7 +358,7 @@ export default function Cart() {
                             </div>
                           </div>
 
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3">
+                          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mt-3 min-w-0">
                             <div className="flex items-center bg-black/30 rounded-lg p-0.5 shrink-0">
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
@@ -375,15 +381,53 @@ export default function Cart() {
                               </motion.button>
                             </div>
 
-                            <div className="w-full min-w-0 text-right sm:w-auto sm:shrink-0">
-                              <p className="font-bold text-base sm:text-lg break-words" data-testid={`text-price-${item.id}`}>
-                                {(getPricingLine(item.id)?.lineSubtotal ?? (parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity)).toLocaleString('tr-TR')} ₺
-                              </p>
-                              {(getPricingLine(item.id)?.discountAmount || 0) > 0 && (
-                                <p className="text-xs leading-tight text-emerald-400 mt-0.5 break-words whitespace-normal">
-                                  Kampanya indirimi: -{getPricingLine(item.id)?.discountAmount.toLocaleString('tr-TR')} ₺
-                                </p>
-                              )}
+                            <div className="w-full min-w-0 text-left sm:text-right sm:w-auto sm:max-w-full sm:shrink sm:ml-auto">
+                              {(() => {
+                                const line = getPricingLine(item.id);
+                                const fallbackSubtotal = parseFloat(item.variant?.price || item.product?.basePrice || '0') * item.quantity;
+                                if (!line && isPricingLoading) {
+                                  return (
+                                    <div className="space-y-2 sm:ml-auto sm:w-36" aria-live="polite">
+                                      <div className="h-3 w-24 rounded bg-white/10 animate-pulse sm:ml-auto" />
+                                      <div className="h-6 w-32 rounded bg-white/10 animate-pulse sm:ml-auto" />
+                                      <p className="text-xs text-muted-foreground">Fiyat hesaplanıyor</p>
+                                    </div>
+                                  );
+                                }
+
+                                if (line && line.discountAmount > 0) {
+                                  const netSubtotal = getNetLineSubtotal(line.lineSubtotal, line.discountAmount);
+                                  return (
+                                    <div className="min-w-0">
+                                      <p
+                                        className="text-xs text-muted-foreground line-through decoration-white/50 break-words"
+                                        data-testid={`text-original-price-${item.id}`}
+                                      >
+                                        {formatPrice(line.lineSubtotal)}
+                                      </p>
+                                      <p
+                                        className="font-bold text-lg sm:text-xl text-emerald-300 tabular-nums break-words"
+                                        data-testid={`text-net-price-${item.id}`}
+                                      >
+                                        {formatPrice(netSubtotal)}
+                                      </p>
+                                      <p
+                                        className="text-xs leading-tight text-emerald-400 mt-0.5 break-words"
+                                        data-testid={`text-savings-${item.id}`}
+                                      >
+                                        {formatPrice(line.discountAmount)} tasarruf
+                                      </p>
+                                    </div>
+                                  );
+                                }
+
+                                const regularSubtotal = line?.lineSubtotal ?? fallbackSubtotal;
+                                return (
+                                  <p className="font-bold text-base sm:text-lg tabular-nums break-words" data-testid={`text-price-${item.id}`}>
+                                    {formatPrice(regularSubtotal)}
+                                  </p>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -418,10 +462,12 @@ export default function Cart() {
 
                  {recommendations?.sections.campaign.length ? (
                    <RecommendationSection
-                     title="KAMPANYAYI TAMAMLA"
-                     description={pricing?.remainingItems
-                       ? `${pricing.remainingItems} uygun ürün daha ekleyerek kampanya avantajını yakalayın`
-                       : 'Kampanyaya uygun ürünleri keşfedin'}
+                     title={pricing?.campaign?.campaignType === 'direct' ? "SEPETTE İNDİRİM FIRSATI" : "KAMPANYAYI TAMAMLA"}
+                      description={pricing?.campaign?.campaignType === 'direct'
+                        ? 'Kampanyaya dahil ürünleri keşfedin, indirim sepette otomatik uygulanır'
+                        : pricing?.remainingItems
+                          ? `${pricing.remainingItems} uygun ürün daha ekleyerek kampanya avantajını yakalayın`
+                          : 'Kampanyaya uygun ürünleri keşfedin'}
                      products={recommendations.sections.campaign}
                      addingProductId={addingProductId}
                      onAdd={handleRecommendationAdd}
@@ -455,31 +501,40 @@ export default function Cart() {
                     SİPARİŞ ÖZETİ
                   </h2>
 
-                  <div className="space-y-4 text-sm relative">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ara Toplam ({totalItems} ürün)</span>
-                      <span className="font-medium" data-testid="text-subtotal">{subtotal.toLocaleString('tr-TR')} ₺</span>
+                  <div className="space-y-4 text-sm relative min-w-0">
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <span className="text-muted-foreground min-w-0">Ürünler ara toplamı ({totalItems} ürün)</span>
+                      <span className="font-medium tabular-nums text-right break-words shrink-0" data-testid="text-subtotal">{formatPrice(pricing?.subtotal ?? subtotal)}</span>
                     </div>
-                    {campaignDiscount > 0 && (
-                      <div className="flex justify-between text-emerald-400">
-                        <span className="flex items-center gap-1">
-                          <BadgePercent className="w-3.5 h-3.5" />
-                          {pricing?.campaign?.name || 'Sepet kampanyası'}
-                        </span>
-                        <span data-testid="text-campaign-discount">-{campaignDiscount.toLocaleString('tr-TR')} ₺</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
+                    <div className="flex items-start justify-between gap-3 min-w-0 text-emerald-400">
+                      <span className="flex items-center gap-1 min-w-0">
+                        <BadgePercent className="w-3.5 h-3.5 shrink-0" />
+                        <span className="min-w-0 break-words">{campaignPresentation?.name || 'Sepet kampanyası indirimi'}</span>
+                      </span>
+                      <span className="tabular-nums text-right shrink-0" data-testid="text-campaign-discount">
+                        {isPricingLoading && !pricing ? 'Hesaplanıyor' : `-${formatPrice(campaignDiscount)}`}
+                      </span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <span className="text-muted-foreground min-w-0">İndirimli ürünler toplamı</span>
+                      <span className="font-semibold text-right tabular-nums break-words shrink-0 text-emerald-200" data-testid="text-discounted-subtotal">
+                        {isPricingLoading && !pricing ? 'Hesaplanıyor' : formatPrice(pricing?.discountedSubtotal ?? subtotal)}
+                      </span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3 min-w-0">
                       <span className="text-muted-foreground">Kargo</span>
-                      <span data-testid="text-shipping" className={shippingCost === 0 ? 'text-green-400 font-medium' : ''}>
-                        {shippingCost === 0 ? 'ÜCRETSİZ' : `${shippingCost.toFixed(2)} ₺`}
+                      <span data-testid="text-shipping" className={`text-right tabular-nums shrink-0 ${shippingCost === 0 ? 'text-green-400 font-medium' : ''}`}>
+                        {shippingCost === 0 ? 'ÜCRETSİZ' : formatPrice(shippingCost)}
                       </span>
                     </div>
                     <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent my-4" />
-                    <div className="flex justify-between text-base">
-                      <span className="font-bold">Toplam</span>
-                      <span className="font-bold text-xl" data-testid="text-total">{total.toLocaleString('tr-TR')} ₺</span>
+                    <div className="flex items-start justify-between gap-3 min-w-0 text-base">
+                      <span className="font-bold min-w-0">Ödenecek toplam</span>
+                      <span className="font-bold text-xl text-right tabular-nums break-words shrink-0" data-testid="text-total">{isPricingLoading && !pricing ? 'Hesaplanıyor' : formatPrice(total)}</span>
                     </div>
+                    {!pricing && isPricingLoading && (
+                      <p className="text-xs text-muted-foreground text-right" aria-live="polite">Sepet kampanyası hesaplanıyor</p>
+                    )}
                   </div>
 
                   <Link href="/odeme">

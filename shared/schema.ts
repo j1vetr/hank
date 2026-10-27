@@ -511,6 +511,9 @@ export const autoCartCampaigns = pgTable("auto_cart_campaigns", {
   isActive: boolean("is_active").default(false).notNull(),
   startsAt: timestamp("starts_at"),
   endsAt: timestamp("ends_at"),
+  campaignType: text("campaign_type").$type<"quantity" | "direct">().default("quantity").notNull(),
+  discountType: text("discount_type").$type<"percentage" | "fixed">().default("percentage").notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0.00").notNull(),
   buyQuantity: integer("buy_quantity").notNull(),
   rewardQuantity: integer("reward_quantity").notNull(),
   discountPercentage: decimal("discount_percentage", { precision: 5, scale: 2 }).notNull(),
@@ -529,14 +532,42 @@ export const insertAutoCartCampaignSchema = createInsertSchema(autoCartCampaigns
   createdAt: true,
   updatedAt: true,
 }).extend({
-  buyQuantity: z.coerce.number().int().min(1),
-  rewardQuantity: z.coerce.number().int().min(1),
-  discountPercentage: z.coerce.number().min(0).max(100),
+  campaignType: z.enum(["quantity", "direct"]).default("quantity"),
+  discountType: z.enum(["percentage", "fixed"]).default("percentage"),
+  discountAmount: z.coerce.number().finite().min(0).max(99999999.99)
+    .transform(value => (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2)).default(0),
+  buyQuantity: z.coerce.number().int().min(1).default(2),
+  rewardQuantity: z.coerce.number().int().min(1).default(1),
+  discountPercentage: z.coerce.number().finite().min(0).max(100)
+    .transform(value => Math.round(value * 100) / 100).default(0),
   maxApplications: z.coerce.number().int().min(1).nullable().optional(),
   includedCategoryIds: z.array(z.string()).default([]),
   includedProductIds: z.array(z.string()).default([]),
   excludedCategoryIds: z.array(z.string()).default([]),
   excludedProductIds: z.array(z.string()).default([]),
+}).superRefine((campaign, context) => {
+  const invalid = (path: string, message: string) =>
+    context.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+  if (campaign.campaignType === "quantity" && campaign.discountType !== "percentage") {
+    invalid("discountType", "Adet koşullu kampanyalarda yüzde indirimi kullanın.");
+  }
+  if (campaign.campaignType === "direct") {
+    if (campaign.discountType === "percentage" && campaign.discountPercentage <= 0) {
+      invalid("discountPercentage", "İndirim oranı sıfırdan büyük olmalı.");
+    }
+    if (campaign.discountType === "fixed" && Number(campaign.discountAmount) <= 0) {
+      invalid("discountAmount", "İndirim tutarı sıfırdan büyük olmalı.");
+    }
+  }
+  if (campaign.scopeType === "categories" && !campaign.includedCategoryIds.length) {
+    invalid("includedCategoryIds", "En az bir kategori seçin.");
+  }
+  if (campaign.scopeType === "products" && !campaign.includedProductIds.length) {
+    invalid("includedProductIds", "En az bir ürün seçin.");
+  }
+  if (campaign.startsAt && campaign.endsAt && campaign.endsAt < campaign.startsAt) {
+    invalid("endsAt", "Bitiş tarihi başlangıç tarihinden önce olamaz.");
+  }
 });
 
 export type InsertAutoCartCampaign = z.infer<typeof insertAutoCartCampaignSchema>;

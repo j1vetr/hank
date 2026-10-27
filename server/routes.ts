@@ -27,6 +27,8 @@ import {
 import { getPayTRToken, verifyPayTRCallback, type PayTRCallbackData } from "./paytr";
 import { invoiceTransferView, sendTrackedInvoice } from "./invoiceTransfer";
 import { getOrderItemCatalogDetails, buildVariantSkuCheck, SkuRepairError } from "./productSku";
+import { getCampaignPresentation } from "@shared/campaignDisplay";
+import { parseAutoCartCampaignPayload } from "./cartCampaignPayload";
 import { generateProductDescription, styleNames, type DescriptionStyle } from "./aiService";
 import { processMessage, getChatHistory, generateProductEmbedding, generateAllProductEmbeddings, isChatbotAvailable } from "./chatbotService";
 import { sendCapiEvent, extractFbCookies, getClientIp } from "./metaCapi";
@@ -82,37 +84,6 @@ async function getAuthPayload(req: Request, res: Response): Promise<JwtPayload |
   }
   
   return null;
-}
-
-function parseAutoCartCampaignPayload(payload: any) {
-  const arrayValue = (value: unknown) =>
-    Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
-  const dateValue = (value: unknown) => {
-    if (!value) return null;
-    const parsed = new Date(String(value));
-    if (Number.isNaN(parsed.getTime())) throw new Error("Geçersiz kampanya tarihi");
-    return parsed;
-  };
-  const scopeType = payload?.scopeType || "all";
-  if (!["all", "categories", "products"].includes(scopeType)) {
-    throw new Error("Geçersiz kampanya kapsamı");
-  }
-  return insertAutoCartCampaignSchema.parse({
-    ...payload,
-    name: AUTO_CART_CAMPAIGN_NAME,
-    description: AUTO_CART_CAMPAIGN_DESCRIPTION,
-    customerMessage: null,
-    startsAt: dateValue(payload?.startsAt),
-    endsAt: dateValue(payload?.endsAt),
-    maxApplications: payload?.maxApplications === "" || payload?.maxApplications === undefined
-      ? null
-      : payload.maxApplications,
-    scopeType,
-    includedCategoryIds: arrayValue(payload?.includedCategoryIds),
-    includedProductIds: arrayValue(payload?.includedProductIds),
-    excludedCategoryIds: arrayValue(payload?.excludedCategoryIds),
-    excludedProductIds: arrayValue(payload?.excludedProductIds),
-  });
 }
 
 // Configure multer for file uploads
@@ -1847,11 +1818,12 @@ export async function registerRoutes(
       const eligibleProductIds = await getCampaignEligibleProductIds(campaign);
       res.json({
         id: campaign.id,
-        name: AUTO_CART_CAMPAIGN_NAME,
-        description: AUTO_CART_CAMPAIGN_DESCRIPTION,
-        customerMessage: null,
-        buyQuantity: campaign.buyQuantity,
-        rewardQuantity: campaign.rewardQuantity,
+        ...getCampaignPresentation(campaign),
+        campaignType: campaign.campaignType,
+        discountType: campaign.discountType,
+        discountAmount: campaign.discountAmount,
+        buyQuantity: campaign.campaignType === "direct" ? 0 : campaign.buyQuantity,
+        rewardQuantity: campaign.campaignType === "direct" ? 0 : campaign.rewardQuantity,
         discountPercentage: Number(campaign.discountPercentage),
         eligibleProductIds,
       });

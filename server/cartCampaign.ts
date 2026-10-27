@@ -1,9 +1,12 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { productCategories, products, type AutoCartCampaign } from "@shared/schema";
+import {
+  AUTO_CART_CAMPAIGN_NAME,
+  AUTO_CART_CAMPAIGN_DESCRIPTION,
+} from "@shared/campaignDisplay";
+import { calculateDirectCartDiscount } from "./directCartDiscount";
 
-export const AUTO_CART_CAMPAIGN_NAME = "2 Ürün Al, 3. Üründe %50 İndirim Fırsatı";
-export const AUTO_CART_CAMPAIGN_DESCRIPTION =
-  "Sepetine herhangi 2 ürün ekle, indirim kapsamındaki ürünlerden 1 ürün daha al. Seçtiğin üçüncü üründe %50 indirim fırsatını yakala.";
+export { AUTO_CART_CAMPAIGN_NAME, AUTO_CART_CAMPAIGN_DESCRIPTION };
 
 export type CartItemLike = {
   id: string;
@@ -47,6 +50,9 @@ export type CartCampaignPricing = {
     buyQuantity: number;
     rewardQuantity: number;
     discountPercentage: number;
+    campaignType?: "quantity" | "direct";
+    discountType?: "percentage" | "fixed";
+    discountAmount?: string;
   } | null;
   campaignDiscountDetails: {
     campaignName: string;
@@ -190,6 +196,10 @@ export async function calculateCartCampaign(
     };
   }
 
+  if (campaign.campaignType === "direct") {
+    return calculateDirectCartDiscount(lines, campaign, subtotal);
+  }
+
   const rewardEligibleUnits = lines.flatMap((line, lineIndex) =>
     line.eligible
       ? Array.from({ length: line.quantity }, (_, unitIndex) => ({
@@ -288,6 +298,9 @@ export async function calculateCartCampaign(
       buyQuantity: campaign.buyQuantity,
       rewardQuantity: campaign.rewardQuantity,
       discountPercentage: Number(campaign.discountPercentage),
+      campaignType: "quantity",
+      discountType: "percentage",
+      discountAmount: "0.00",
     },
     campaignDiscountDetails: {
       campaignName: AUTO_CART_CAMPAIGN_NAME,
