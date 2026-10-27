@@ -11,7 +11,7 @@ BizimHesap isteğinin zaman aşımına uğraması veya bozuk yanıt dönmesi fat
 
 Fatura aktarımı ile tahsilat aktarımını ayrı kapsamlar olarak ele al.
 
-**Why:** Kullanıcı, doğrulanmış fatura tutarı ve takip eksiklerinin düzeltilmesini onayladı. Tahsilat yöntemi için resmî API teyidi henüz yok.
+**Why:** Kullanıcı, doğrulanmış fatura tutarı ve takip eksiklerinin düzeltilmesini onayladı. Sağlayıcının sonradan gönderdiği tahsilat yöntemleri, fatura başarısından otomatik olarak tahsilat başarısı çıkarılmasını haklı kılmaz.
 
 **How to apply:** Fatura başarı durumundan tahsilatın işlendiği sonucunu çıkarma. Tahsilat entegrasyonu için doğrulanmış sağlayıcı yöntemini kullan.
 
@@ -32,6 +32,12 @@ Kullanıcının istediği çıktı BizimHesap müşteri sayfasındaki "Önceki �
 **Why:** Kullanıcı BizimHesap ekranıyla eksik davranışı açıkça tarif etti.
 
 **How to apply:** Başarılı PayTR ödemesini mevcut müşteri ve ilgili faturayla ilişkilendir. Yalnızca fatura notu veya yerel ödendi durumunu değiştirmeyi tamamlanmış tahsilat entegrasyonu sayma. Önceden elle eklenmiş tahsilatları tekrar oluşturma.
+
+Sağlayıcının 2026-10-27 tarihinde kullanıcı aracılığıyla gönderdiği özel belgeler, önce incelenen açık API dizininden daha kapsamlıdır. TXT notu kasa kimliğini faturaya `CashId` olarak göndermeyi tarif eder. Postman koleksiyonunda `GET /api/b2b/cashiers`, faturada `CashId` ve ayrıca `POST /api/b2b/AddCollection` bulunur.
+
+**Why:** Tahsilat yöntemi bulunmadığı izlenimi eski belgelerin kapsamıyla sınırlıydı. Sonradan gönderilen kaynaklar bu eksikliği gideriyor fakat örnekler tüm ödeme türlerini veya yanıt sözleşmesini açıklamıyor.
+
+**How to apply:** Yeni entegrasyonda bu kaynakları esas al. TXT'teki tekil `cashier` yazımı yerine Postman'daki çoğul `cashiers` yolunu dikkate al. Faturadaki `CashId` yoluyla tahsilat oluşuyorsa aynı ödeme için ayrıca `AddCollection` gönderme. Örnekteki `paymentType: "1"` değerinin kredi kartı olduğunu varsayma. Ayrı tahsilat örneğindeki müşteri kimliği GUID biçiminde olduğundan mevcut kaynak müşteri kimliğiyle eşleştirme sözleşmesini teyit et. Eski faturaları bu alanı eklemek amacıyla yeniden gönderme.
 
 BizimHesap'ın kendi PayTR sanal POS entegrasyonunu, bu sitede alınan PayTR ödemelerinin cari tahsilata aktarılmasıyla aynı özellik sayma.
 
