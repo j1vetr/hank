@@ -21,6 +21,7 @@ test("partner accounts, isolated sales, concurrent payouts, snapshots and admin 
   const password = `Test-${randomUUID()}`;
   const couponIds: string[] = [];
   const orderIds: string[] = [];
+  const productIds: string[] = [];
   const app = express();
   app.use(express.json(), cookieParser());
   registerPartnerRoutes(app, (req, res, next) => {
@@ -95,6 +96,20 @@ test("partner accounts, isolated sales, concurrent payouts, snapshots and admin 
     assert.ok(!JSON.stringify(dashboard.data).includes(otherOrder));
     assert.ok(!JSON.stringify(dashboard.data).includes("Gizli Soyad"));
     assert.ok(!JSON.stringify(dashboard.data).includes("partner-test@example.invalid"));
+    assert.equal(dashboard.data.sales.find((s: any) => s.id === saleId).items[0].productName, "Test Forma");
+    assert.equal(dashboard.data.sales.find((s: any) => s.id === saleId).items[0].productImage, null);
+    const productId = String((await db.execute(sql`
+      INSERT INTO products(name,slug,base_price,images)
+      VALUES('Test Forma',${`partner-image-${suffix}`},500,'["/uploads/branding/hank-logo.svg"]'::jsonb)
+      RETURNING id
+    `)).rows[0].id);
+    productIds.push(productId);
+    await db.execute(sql`UPDATE order_items SET product_id=${productId} WHERE order_id=${saleId}`);
+    dashboard = await request("/api/partner/dashboard");
+    assert.equal(dashboard.data.sales.find((s: any) => s.id === saleId).items[0].productImage, "/uploads/branding/hank-logo.svg");
+    await db.execute(sql`DELETE FROM products WHERE id=${productId}`);
+    dashboard = await request("/api/partner/dashboard");
+    assert.equal(dashboard.data.sales.find((s: any) => s.id === saleId).items[0].productImage, null);
     assert.equal(dashboard.data.sales.find((s: any) => s.id === saleId).items[0].productName, "Test Forma");
     assert.equal((await request("/api/partner/dashboard?startDate=2026-02-31")).status, 400);
     assert.equal((await request("/api/partner/dashboard?startDate=2030-01-01&endDate=2020-01-01")).status, 400);
@@ -171,6 +186,7 @@ test("partner accounts, isolated sales, concurrent payouts, snapshots and admin 
   } finally {
     for (const id of orderIds) await db.execute(sql`DELETE FROM orders WHERE id=${id}`);
     for (const id of couponIds) await db.execute(sql`DELETE FROM coupons WHERE id=${id}`);
+    for (const id of productIds) await db.execute(sql`DELETE FROM products WHERE id=${id}`);
     await new Promise<void>(resolve => server.close(() => resolve()));
   }
 });

@@ -41,7 +41,7 @@ export const dateText = (value: string, options?: Intl.DateTimeFormatOptions) =>
 export function paymentLabel(paymentStatus: string, orderStatus: string) {
   const value = `${paymentStatus} ${orderStatus}`.toLowerCase();
   if (value.includes("cancel") || value.includes("iptal")) return "İptal";
-  if (value.includes("refund") || value.includes("returned") || value.includes("iade")) return "İade edildi";
+  if (value.includes("refund") || value.includes("returned") || value.includes("iade")) return "İade Edildi";
   if (value.includes("paid") || value.includes("ödendi") || value.includes("completed")) return "Ödendi";
   if (value.includes("fail")) return "Başarısız";
   if (value.includes("pending") || value.includes("bekle")) return "Bekliyor";
@@ -49,7 +49,7 @@ export function paymentLabel(paymentStatus: string, orderStatus: string) {
 }
 
 export function commissionText(profile: PartnerProfile) {
-  if (!profile.commissionValue) return "Tanımlı değil";
+  if (!profile.commissionValue) return "Tanımlı Değil";
   return profile.commissionType?.toLowerCase().includes("percent")
     ? `%${profile.commissionValue}`
     : money(profile.commissionValue);

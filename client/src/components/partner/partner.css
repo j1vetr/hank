@@ -2,7 +2,10 @@
   min-height: 100dvh;
   background: #080808;
   color: #f5f5f5;
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--font-body), sans-serif;
+}
+
+.partner-root:not(.partner-mobile-sheet) {
   animation: partner-enter 300ms ease-out both;
 }
 
@@ -10,6 +13,7 @@
 .partner-root input,
 .partner-root select {
   -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
 }
 
 .partner-root button:not(:disabled),
@@ -43,14 +47,25 @@
 }
 
 .partner-root .partner-display {
-  font-family: var(--font-display), sans-serif;
-  letter-spacing: 0.035em;
+  font-family: var(--font-body), sans-serif;
+  font-weight: 600;
+  letter-spacing: normal;
   color: #f5f5f5;
 }
 
 .partner-root .partner-card {
   border: 1px solid #353535;
   background: #191919;
+}
+
+.partner-root .partner-stat-card {
+  border: 1px solid #353535;
+  background: #191919;
+  padding: 1rem;
+}
+
+.partner-root .partner-stat-value {
+  overflow-wrap: anywhere;
 }
 
 .partner-root .partner-muted {
@@ -98,6 +113,57 @@
   background: #d9d9d9;
   border-color: #d9d9d9;
   color: #111111;
+}
+
+.partner-root .partner-break {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.partner-header {
+  min-height: calc(68px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.partner-mobile-sheet.partner-root {
+  background: #0b0b0b;
+  color: #ffffff;
+  font-family: var(--font-body), sans-serif;
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+}
+
+.partner-mobile-sheet > button:not(.partner-drawer-close) {
+  display: none;
+}
+
+.partner-drawer-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 1rem);
+  right: max(1rem, env(safe-area-inset-right));
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid #454545;
+  background: #1b1b1b;
+  color: #ffffff;
+}
+
+.partner-menu-profile {
+  border: 1px solid #383838;
+  background: #171717;
+  padding: 1rem;
+}
+
+@media (max-width: 359px) {
+  .partner-root .partner-stat-card {
+    padding: 0.75rem;
+  }
 }
 
 .partner-root .partner-skeleton {

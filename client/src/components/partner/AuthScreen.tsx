@@ -7,7 +7,7 @@ import { ErrorBox } from "./PartnerPrimitives";
 
 type AuthMode = "login" | "lookup" | "reference" | "register";
 
-const fieldClass = "partner-input w-full px-3.5 py-3 text-sm";
+const fieldClass = "partner-input w-full px-3.5 py-3 text-base sm:text-sm";
 
 export default function AuthScreen({ onAuthenticated }: { onAuthenticated: (profile: PartnerProfile) => void }) {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -114,23 +114,23 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: (prof
   const title = mode === "login"
     ? "Partner Girişi"
     : mode === "lookup"
-      ? "Kodunu bul"
+      ? "Kodunu Bul"
       : mode === "reference"
-        ? "Referans doğrulama"
-        : "Hesabını oluştur";
+        ? "Referans Doğrulama"
+        : "Hesabını Oluştur";
 
   return (
     <main lang="tr" className="partner-root flex min-h-[100dvh] flex-col">
-      <header className="flex h-[76px] items-center justify-between border-b partner-border px-5 sm:px-8">
-        <a href="/" aria-label="HANK ana sayfa" className="inline-flex items-center">
+      <header className="partner-header flex h-[76px] items-center justify-between border-b partner-border px-5 sm:px-8">
+        <a href="/" aria-label="HANK Ana Sayfa" className="inline-flex items-center">
           <span className="bg-black px-2 py-1"><img src="/uploads/branding/hank-logo.svg" alt="HANK" className="h-7 w-auto invert sm:h-8" /></span>
         </a>
-        <a href="/" className="text-xs font-semibold partner-muted hover:text-white">Siteye dön</a>
+        <a href="/" className="text-sm font-semibold partner-muted hover:text-white">Siteye Dön</a>
       </header>
 
-      <div className="flex flex-1 items-center justify-center px-5 py-12">
+      <div className="flex flex-1 items-start justify-center px-5 py-6 sm:items-center sm:py-12">
         <section className="w-full max-w-[390px]">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] partner-muted">PARTNER</p>
+          <p className="partner-muted mb-3 text-sm font-semibold">Partner</p>
           <h1 className="partner-display text-4xl leading-none">{title}</h1>
           <p className="partner-muted mt-3 max-w-sm text-sm leading-6">
             {mode === "login" && "Kullanıcı adın veya partner kodunla hesabına gir."}
@@ -143,46 +143,46 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: (prof
           {mode === "login" && (
             <form onSubmit={submitCredentials} className="mt-7 space-y-4">
               <div>
-                <label htmlFor="partner-identifier" className="mb-1.5 block text-xs font-bold">Kullanıcı adı veya kod</label>
+                <label htmlFor="partner-identifier" className="mb-1.5 block text-sm font-bold">Kullanıcı Adı Veya Kod</label>
                 <input id="partner-identifier" autoComplete="username" value={identifier} onChange={(event) => setIdentifier(event.target.value)} className={fieldClass} aria-invalid={Boolean(fieldError)} required />
               </div>
               <div>
-                <label htmlFor="partner-password" className="mb-1.5 block text-xs font-bold">Şifre</label>
+                <label htmlFor="partner-password" className="mb-1.5 block text-sm font-bold">Şifre</label>
                 <div className="relative">
                   <input id="partner-password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className={`${fieldClass} pr-12`} required />
-                  <button type="button" aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} onClick={() => setShowPassword((value) => !value)} className="partner-muted absolute inset-y-0 right-0 grid w-11 place-items-center hover:text-white">
+                  <button type="button" aria-label={showPassword ? "Şifreyi Gizle" : "Şifreyi Göster"} onClick={() => setShowPassword((value) => !value)} className="partner-muted absolute inset-y-0 right-0 grid w-11 place-items-center hover:text-white">
                     {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
               </div>
               <button disabled={busy} className="partner-primary flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-sm font-bold disabled:opacity-60">
-                {busy && <LoaderCircle size={16} className="animate-spin" />}Giriş yap
+              {busy && <LoaderCircle size={16} className="animate-spin" />}Giriş Yap
               </button>
-              <button type="button" onClick={() => { setMode("lookup"); clearMessages(); }} className="w-full py-2 text-sm font-semibold underline underline-offset-4 hover:text-neutral-300">İlk kez giriş yapıyorum</button>
+              <button type="button" onClick={() => { setMode("lookup"); clearMessages(); }} className="w-full py-2 text-sm font-semibold underline underline-offset-4 hover:text-neutral-300">İlk Kez Giriş Yapıyorum</button>
             </form>
           )}
 
           {mode === "lookup" && (
             <form onSubmit={checkCode} className="mt-7 space-y-4">
-              <label htmlFor="partner-code" className="mb-1.5 block text-xs font-bold">HANK kodu</label>
+              <label htmlFor="partner-code" className="mb-1.5 block text-sm font-bold">HANK Kodu</label>
               <input id="partner-code" autoComplete="off" value={code} onChange={(event) => setCode(event.target.value)} className={fieldClass} required />
               <button disabled={busy} className="partner-primary flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-sm font-bold disabled:opacity-60">
-                {busy && <LoaderCircle size={16} className="animate-spin" />}Devam et<ArrowRight size={16} />
+                {busy && <LoaderCircle size={16} className="animate-spin" />}Devam Et<ArrowRight size={16} />
               </button>
-              <button type="button" onClick={returnToLogin} className="w-full py-2 text-sm font-semibold underline underline-offset-4">Giriş ekranına dön</button>
+              <button type="button" onClick={returnToLogin} className="w-full py-2 text-sm font-semibold underline underline-offset-4">Giriş Ekranına Dön</button>
             </form>
           )}
 
           {mode === "reference" && (
             <form onSubmit={verifyReference} className="mt-7 space-y-4">
-              <label htmlFor="partner-reference" className="mb-1.5 block text-xs font-bold">Referans kodu</label>
+              <label htmlFor="partner-reference" className="mb-1.5 block text-sm font-bold">Referans Kodu</label>
               <input id="partner-reference" autoComplete="off" value={referenceCode} onChange={(event) => setReferenceCode(event.target.value)} className={fieldClass} required />
               <button disabled={busy} className="partner-primary flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-sm font-bold disabled:opacity-60">
-                {busy && <LoaderCircle size={16} className="animate-spin" />}Doğrula ve devam et<ArrowRight size={16} />
+                {busy && <LoaderCircle size={16} className="animate-spin" />}Doğrula Ve Devam Et<ArrowRight size={16} />
               </button>
               <div className="flex flex-col items-center gap-1">
-                <button type="button" onClick={returnToLogin} className="w-full py-1 text-sm font-semibold underline underline-offset-4">Giriş ekranına dön</button>
-                <button type="button" onClick={returnToLookup} className="partner-muted py-1 text-xs underline underline-offset-4">Farklı kodla devam et</button>
+                <button type="button" onClick={returnToLogin} className="w-full py-1 text-sm font-semibold underline underline-offset-4">Giriş Ekranına Dön</button>
+                <button type="button" onClick={returnToLookup} className="partner-muted py-1 text-sm underline underline-offset-4">Farklı Kodla Devam Et</button>
               </div>
             </form>
           )}
@@ -190,30 +190,30 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: (prof
           {mode === "register" && (
             <form onSubmit={submitCredentials} className="mt-7 space-y-4">
               <div>
-                <label htmlFor="partner-username" className="mb-1.5 block text-xs font-bold">Kullanıcı adı</label>
+                <label htmlFor="partner-username" className="mb-1.5 block text-sm font-bold">Kullanıcı Adı</label>
                 <input id="partner-username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} className={fieldClass} required />
               </div>
               <div>
-                <label htmlFor="partner-new-password" className="mb-1.5 block text-xs font-bold">Şifre</label>
+                <label htmlFor="partner-new-password" className="mb-1.5 block text-sm font-bold">Şifre</label>
                 <div className="relative">
                   <input id="partner-new-password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className={`${fieldClass} pr-12`} required />
-                  <button type="button" aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"} onClick={() => setShowPassword((value) => !value)} className="partner-muted absolute inset-y-0 right-0 grid w-11 place-items-center hover:text-white">
+                  <button type="button" aria-label={showPassword ? "Şifreyi Gizle" : "Şifreyi Göster"} onClick={() => setShowPassword((value) => !value)} className="partner-muted absolute inset-y-0 right-0 grid w-11 place-items-center hover:text-white">
                     {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
               </div>
               <button disabled={busy} className="partner-primary flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-sm font-bold disabled:opacity-60">
-                {busy && <LoaderCircle size={16} className="animate-spin" />}Hesabı oluştur
+                {busy && <LoaderCircle size={16} className="animate-spin" />}Hesabı Oluştur
               </button>
               <div className="flex flex-col items-center gap-1">
-                <button type="button" onClick={returnToLogin} className="w-full py-1 text-sm font-semibold underline underline-offset-4">Giriş ekranına dön</button>
-                <button type="button" onClick={returnToLookup} className="partner-muted py-1 text-xs underline underline-offset-4">Farklı kodla devam et</button>
+                <button type="button" onClick={returnToLogin} className="w-full py-1 text-sm font-semibold underline underline-offset-4">Giriş Ekranına Dön</button>
+                <button type="button" onClick={returnToLookup} className="partner-muted py-1 text-sm underline underline-offset-4">Farklı Kodla Devam Et</button>
               </div>
             </form>
           )}
         </section>
       </div>
-      <footer className="partner-muted px-5 py-4 text-center text-[10px] tracking-[0.14em]">PARTNER ALANI</footer>
+      <footer className="partner-muted px-5 py-4 text-center text-sm">Partner Alanı</footer>
     </main>
   );
 }

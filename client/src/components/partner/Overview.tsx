@@ -3,14 +3,14 @@ import { ArrowUpRight, ArrowRight, Clock3, Wallet } from "lucide-react";
 import type { PartnerProfile } from "./partner-api";
 import { commissionText, dashboardUrl, dateText, money, request } from "./partner-api";
 import type { PartnerDashboard } from "./partner-api";
-import { CopyCode, ErrorBox, LoadingRows } from "./PartnerPrimitives";
+import { CopyCode, ErrorBox, LoadingRows, ProductThumbnail } from "./PartnerPrimitives";
 
 function OverviewStat({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <article className="partner-border border-t-2 pt-4">
-      <p className="partner-muted text-[11px] font-semibold">{label}</p>
-      <p className="partner-display mt-2 text-3xl leading-none sm:text-4xl">{value}</p>
-      <p className="partner-muted mt-2 text-[11px]">{detail}</p>
+    <article className="partner-stat-card">
+      <p className="partner-muted text-sm font-semibold">{label}</p>
+      <p className="partner-display partner-stat-value mt-2 text-2xl leading-tight sm:text-3xl">{value}</p>
+      <p className="partner-muted mt-2 text-sm">{detail}</p>
     </article>
   );
 }
@@ -37,15 +37,15 @@ export default function Overview({ profile, goTo }: { profile: PartnerProfile; g
     <div className="space-y-8">
       <section className="flex flex-col justify-between gap-6 bg-black px-5 py-6 text-white sm:flex-row sm:items-end sm:px-8 sm:py-8">
         <div>
-          <p className="partner-muted text-[10px] font-bold uppercase tracking-[0.2em]">PARTNER PERFORMANSI</p>
-          <h1 className="partner-display mt-2 text-4xl leading-none sm:text-5xl">Genel Bakış</h1>
-          <p className="partner-muted mt-2 text-sm">Merhaba, {profile.name}</p>
-          <p className="partner-muted mt-3 text-sm">Komisyon oranı <strong className="ml-1 text-white">{commissionText(profile)}</strong></p>
+          <p className="partner-muted text-sm font-semibold">Partner Performansı</p>
+          <h1 className="partner-display mt-2 text-3xl leading-tight sm:text-4xl">Genel Bakış</h1>
+          <p className="partner-break partner-muted mt-2 text-sm">Merhaba, {profile.name}</p>
+          <p className="partner-muted mt-3 text-sm">Komisyon Oranı <strong className="ml-1 text-white">{commissionText(profile)}</strong></p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="partner-border border px-4 py-2.5">
-            <span className="partner-muted mr-3 text-[9px] font-bold tracking-[0.18em]">PARTNER KODUN</span>
-            <strong className="font-mono text-sm">{profile.code}</strong>
+            <span className="partner-muted mr-3 text-sm font-semibold">Partner Kodun</span>
+            <strong className="text-sm font-semibold tracking-wide">{profile.code}</strong>
           </div>
           <CopyCode code={profile.code} />
         </div>
@@ -55,28 +55,38 @@ export default function Overview({ profile, goTo }: { profile: PartnerProfile; g
       {loading && !data && <LoadingRows label="Özet yükleniyor" />}
       {data && summary && (
         <>
-          <section aria-label="Bakiye özeti" className="partner-border grid gap-6 border-b pb-7 sm:grid-cols-2 xl:grid-cols-4">
-            <OverviewStat label="Kullanılabilir bakiye" value={money(summary.availableBalance)} detail="Yeni ödeme talebi için" />
-            <OverviewStat label="Ayırılmış bakiye" value={money(summary.reservedBalance)} detail="Bekleyen ödeme talepleri" />
-            <OverviewStat label="Toplam kazanılan" value={money(summary.commissionEarned)} detail={`${summary.orderCount} sipariş, tüm zamanlar`} />
-            <OverviewStat label="Ödenen toplam" value={money(summary.paidTotal)} detail="Tamamlanan ödemeler" />
+          <section aria-label="Bakiye Özeti" className="partner-border grid grid-cols-2 gap-3 border-b pb-7 sm:gap-4 xl:grid-cols-4">
+            <OverviewStat label="Kullanılabilir Bakiye" value={money(summary.availableBalance)} detail="Yeni ödeme talebi için" />
+            <OverviewStat label="Ayırılmış Bakiye" value={money(summary.reservedBalance)} detail="Bekleyen ödeme talepleri" />
+            <OverviewStat label="Toplam Kazanılan" value={money(summary.commissionEarned)} detail={`${summary.orderCount} sipariş, tüm zamanlar`} />
+            <OverviewStat label="Ödenen Toplam" value={money(summary.paidTotal)} detail="Tamamlanan ödemeler" />
           </section>
 
           <section className="grid gap-8 xl:grid-cols-[1.2fr_.8fr]">
             <div>
               <div className="mb-4 flex items-end justify-between gap-3">
-                <div><p className="partner-muted text-[10px] font-bold uppercase tracking-[0.18em]">SON HAREKETLER</p><h2 className="partner-display text-3xl uppercase">Son satışlar</h2></div>
-                <button type="button" onClick={() => goTo("sales")} className="inline-flex items-center gap-1.5 text-xs font-bold underline underline-offset-4">Tüm satışlar<ArrowRight size={14} /></button>
+                <div><p className="partner-muted text-sm font-semibold">Son Hareketler</p><h2 className="partner-display text-2xl">Son Satışlar</h2></div>
+                <button type="button" onClick={() => goTo("sales")} className="inline-flex items-center gap-1.5 text-sm font-bold underline underline-offset-4">Tüm Satışlar<ArrowRight size={14} /></button>
               </div>
               {data.sales.length ? (
                 <div className="partner-border divide-y border-y">
                   {data.sales.slice(0, 5).map((sale) => (
-                    <article key={sale.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <article key={sale.id} className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-bold">{sale.orderNumber}</p>
-                        <p className="partner-muted mt-1 text-xs">{dateText(sale.createdAt)} · {sale.customerName}</p>
+                        <p className="partner-break text-sm font-bold">{sale.orderNumber}</p>
+                        <p className="partner-break partner-muted mt-1 text-sm">{dateText(sale.createdAt)} · {sale.customerName}</p>
+                        {sale.items[0] && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <ProductThumbnail src={sale.items[0].productImage} name={sale.items[0].productName} />
+                            <p className="partner-break min-w-0 text-sm text-neutral-200">
+                              {sale.items[0].productName}
+                              {sale.items[0].variantDetails && <span className="partner-muted ml-2">{sale.items[0].variantDetails}</span>}
+                              <span className="partner-muted ml-2">× {sale.items[0].quantity}</span>
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right"><p className="text-sm font-bold">{money(sale.commission)}</p><p className="partner-muted mt-1 text-[10px]">Komisyon</p></div>
+                      <div className="text-right"><p className="text-sm font-bold">{money(sale.commission)}</p><p className="partner-muted mt-1 text-sm">Komisyon</p></div>
                     </article>
                   ))}
                 </div>
@@ -85,12 +95,12 @@ export default function Overview({ profile, goTo }: { profile: PartnerProfile; g
 
             <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-1">
               <section>
-                <div className="mb-4 flex items-end justify-between gap-2"><div><p className="partner-muted text-[10px] font-bold uppercase tracking-[0.18em]">AYLIK ÖZET</p><h2 className="partner-display text-3xl uppercase">Dönem performansı</h2></div></div>
+                <div className="mb-4 flex items-end justify-between gap-2"><div><p className="partner-muted text-sm font-semibold">Aylık Özet</p><h2 className="partner-display text-2xl">Dönem Performansı</h2></div></div>
                 {data.monthly.length ? (
                   <div className="partner-border divide-y border-y">
                     {data.monthly.slice(0, 4).map((item) => (
-                      <div key={item.month} className="flex items-center justify-between gap-3 py-3 text-sm">
-                        <div><p className="font-semibold">{dateText(`${item.month}-01`, { month: "long", year: "numeric" })}</p><p className="partner-muted mt-1 text-xs">{item.count} sipariş · {money(item.revenue)} ciro</p></div>
+                      <div key={item.month} className="partner-break flex items-center justify-between gap-3 py-3 text-sm">
+                        <div><p className="font-semibold">{dateText(`${item.month}-01`, { month: "long", year: "numeric" })}</p><p className="partner-muted mt-1 text-sm">{item.count} sipariş · {money(item.revenue)} ciro</p></div>
                         <strong>{money(item.commission)}</strong>
                       </div>
                     ))}
@@ -98,13 +108,13 @@ export default function Overview({ profile, goTo }: { profile: PartnerProfile; g
                 ) : <p className="partner-border partner-muted border-y py-6 text-sm">Aylık performans kaydı bulunmuyor.</p>}
               </section>
               <section>
-                <div className="mb-4"><p className="partner-muted text-[10px] font-bold uppercase tracking-[0.18em]">ÜRÜN TERCİHLERİ</p><h2 className="partner-display text-3xl uppercase">Öne çıkan ürünler</h2></div>
+                <div className="mb-4"><p className="partner-muted text-sm font-semibold">Ürün Tercihleri</p><h2 className="partner-display text-2xl">Öne Çıkan Ürünler</h2></div>
                 {data.topProducts.length ? (
                   <div className="partner-border divide-y border-y">
                     {data.topProducts.slice(0, 4).map((item, index) => (
-                      <div key={`${item.name}-${index}`} className="flex items-center justify-between gap-3 py-3 text-sm">
-                        <span className="min-w-0 truncate font-semibold">{String(index + 1).padStart(2, "0")} <span className="ml-2">{item.name}</span></span>
-                        <span className="partner-muted shrink-0 text-xs">{item.quantity} adet</span>
+                      <div key={`${item.name}-${index}`} className="flex items-start justify-between gap-3 py-3 text-sm">
+                        <span className="partner-break min-w-0 flex-1 font-semibold">{index + 1}. <span className="ml-2">{item.name}</span></span>
+                        <span className="partner-muted shrink-0 text-sm">{item.quantity} adet</span>
                       </div>
                     ))}
                   </div>
@@ -114,12 +124,12 @@ export default function Overview({ profile, goTo }: { profile: PartnerProfile; g
           </section>
 
           <section className="partner-border flex flex-col justify-between gap-4 border-t pt-5 sm:flex-row sm:items-center">
-            <p className="partner-muted text-xs">Bakiye tutarları tüm zamanları kapsar. Satış dönemi seçildiğinde yalnızca dönem ciro ve komisyonu değişir.</p>
-            <button type="button" onClick={() => goTo("withdrawals")} className="partner-primary inline-flex w-fit items-center gap-2 px-4 py-3 text-xs font-bold"><Wallet size={15} />Ödeme taleplerine git<ArrowUpRight size={14} /></button>
+            <p className="partner-muted text-sm">Bakiye tutarları tüm zamanları kapsar. Satış dönemi seçildiğinde yalnızca dönem ciro ve komisyonu değişir.</p>
+            <button type="button" onClick={() => goTo("withdrawals")} className="partner-primary inline-flex w-fit items-center gap-2 px-4 py-3 text-sm font-bold"><Wallet size={15} />Ödeme Taleplerine Git<ArrowUpRight size={14} /></button>
           </section>
         </>
       )}
-      {loading && data && <div className="partner-muted flex items-center gap-2 text-xs"><Clock3 size={14} />Özet yenileniyor</div>}
+      {loading && data && <div className="partner-muted flex items-center gap-2 text-sm"><Clock3 size={14} />Özet yenileniyor</div>}
     </div>
   );
 }

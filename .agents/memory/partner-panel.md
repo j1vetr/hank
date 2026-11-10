@@ -25,4 +25,16 @@ Partner paneli ve giriş ekranı HANK sitesinin siyah beyaz tasarımıyla uyumlu
 
 **Why:** Kullanıcı mevcut tasarımın siteyle ilgisi olmadığını belirterek bu gereksinimleri açıkça istedi.
 
-**How to apply:** Partner ekranlarını ayrı bir marka gibi tasarlama. Mağazadaki logo, font ve bileşen dilini referans al. Onaylanan tasarım siyah ana zemin, koyu gri alanlar, beyaz yazılar ve siyah yazılı beyaz ana butonlar kullanır. Siyah beyaz isteğini beyaz ağırlıklı açık tema olarak yorumlama. Yeşil ve krem paleti, dekoratif ikonları ve yapay sloganları geri getirme.
+**How to apply:** Partner ekranlarını ayrı bir marka gibi tasarlama. Mağazadaki logo, renk ve bileşen dilini referans al. Onaylanan tasarım siyah ana zemin, koyu gri alanlar, beyaz yazılar ve siyah yazılı beyaz ana butonlar kullanır. Siyah beyaz isteğini beyaz ağırlıklı açık tema olarak yorumlama. Yeşil ve krem paleti, dekoratif ikonları ve yapay sloganları geri getirme.
+
+Partner panelinde başlıklar dahil tek font kullanılmalı. Kullanıcı Montserrat veya Inter istedi, panel için Inter seçildi. Dar ve gazete gibi görünen başlık fontları kullanılmamalı. Menü, buton ve alan başlıklarında “Siteye Dön” gibi kelime başları büyük olmalı.
+
+**Why:** Kullanıcı önceki başlıkları “gazete gibi” buldu ve ikinci, üçüncü kelimelerin küçük harfle başlamasını eleştirdi.
+
+**How to apply:** Inter tercihi giriş ekranı, panel başlıkları, tutarlar ve form alanlarını kapsar. Mağazadaki farklı başlık fontunu partner paneline geri taşıma. Başlık ve eylemlerde Türkçe büyük harfleri koru, ürün ve kişi adlarını otomatik değiştirme.
+
+Partner panelinin mobil sürümünde gerçek açılır menü bulunmalı. Yalnızca bölüm seçme kutusu ve yatay taşmanın olmaması mobil uyumluluk için yeterli kabul edilmiyor.
+
+**Why:** Kullanıcı mobil menünün olmadığını ve düzenin garip kaldığını söyleyerek kapsamlı mobil düzenleme istedi.
+
+**How to apply:** Menüye tüm partner bölümlerini, siteye dönüşü ve çıkışı dahil et. Menü, formlar, uzun ürün adları, yüksek tutarlar ve kaydırma davranışı küçük telefonlarda ve yatay görünümde kullanılabilir olmalı.

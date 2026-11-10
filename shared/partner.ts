@@ -30,7 +30,7 @@ export interface PartnerSale {
   paymentStatus: string;
   commission: string;
   commissionEstimated: boolean;
-  items: Array<{ productName: string; variantDetails: string | null; quantity: number }>;
+  items: Array<{ productName: string; productImage: string | null; variantDetails: string | null; quantity: number }>;
 }
 
 export interface PartnerDashboard {

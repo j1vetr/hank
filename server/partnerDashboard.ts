@@ -26,8 +26,11 @@ export async function getPartnerDashboard(partner: PartnerProfile, start?: strin
       WHERE ${filtered} ORDER BY o.created_at DESC,o.id
     `),
     db.execute(sql`
-      SELECT i.order_id,i.product_name,i.variant_details,i.quantity,o.status,o.payment_status
-      FROM order_items i JOIN orders o ON o.id=i.order_id WHERE ${filtered}
+      SELECT i.order_id,i.product_name,i.variant_details,i.quantity,o.status,o.payment_status,
+        NULLIF(p.images->>0,'') AS product_image
+      FROM order_items i JOIN orders o ON o.id=i.order_id
+      LEFT JOIN products p ON p.id=i.product_id
+      WHERE ${filtered}
     `),
     db.execute(sql`SELECT * FROM partner_withdrawals WHERE coupon_id=${partner.couponId} ORDER BY created_at DESC`),
     db.execute(sql`SELECT id,amount,paid_at,note FROM influencer_payments WHERE coupon_id=${partner.couponId} ORDER BY paid_at DESC`),
@@ -82,7 +85,8 @@ export async function getPartnerDashboard(partner: PartnerProfile, start?: strin
       commission: eligibleOrder(row) && !row.reversed ? row.commission : "0.00",
       commissionEstimated: row.estimated,
       items: items.filter(i => i.order_id === row.id).map(i => ({
-        productName: i.product_name, variantDetails: i.variant_details, quantity: i.quantity,
+        productName: i.product_name, productImage: i.product_image ?? null,
+        variantDetails: i.variant_details, quantity: i.quantity,
       })),
     })),
     withdrawals: withdrawalResult.rows.map(withdrawalView),
