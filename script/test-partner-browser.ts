@@ -34,7 +34,40 @@ try {
   const page = await browser.newPage({ viewport: { width: 402, height: 874 } });
   const pageErrors: string[] = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const style = document.createElement("style");
+      style.textContent = "#replit-dev-banner { display: none !important; }";
+      document.head.append(style);
+    });
+  });
+  async function openSection(name: string) {
+    const selector = page.getByLabel("Bölüm seç");
+    if (await selector.isVisible()) {
+      await selector.selectOption({ label: name });
+      return;
+    }
+    await page.getByRole("navigation").getByText(name, { exact: true }).filter({ visible: true }).first().click();
+  }
+  async function assertFits() {
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
   await page.goto(`${origin}/partner`);
+  await expect(page.getByRole("heading", { name: "Partner Girişi", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Kullanıcı adı veya kod")).toBeVisible();
+  await expect(page.getByRole("img", { name: "HANK", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("img", { name: "HANK", exact: true }).first()).toHaveAttribute("src", "/uploads/branding/hank-logo.svg");
+  const rootBackground = await page.locator("main.partner-root").evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(rootBackground.match(/\d+/g)!.map(Number).slice(0, 3).every(channel => channel <= 20)).toBe(true);
+  await expect(page.getByRole("button", { name: "Giriş yap", exact: true })).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.getByText("01 / PRIVATE", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Şifre", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Şifreyi göster", exact: true }).click();
+  await expect(page.getByLabel("Şifre", { exact: true })).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "Şifreyi gizle", exact: true }).click();
+  await expect(page.getByLabel("Şifre", { exact: true })).toHaveAttribute("type", "password");
+  await page.screenshot({ path: "generated-artifacts/partner-login-mobile.jpg", fullPage: true });
+  await page.getByRole("button", { name: "İlk kez giriş yapıyorum", exact: true }).click();
   await page.getByLabel("HANK kodu").fill(code);
   await page.getByRole("button", { name: "Devam et", exact: true }).click();
   await expect(page.getByLabel("Referans kodu")).toBeVisible();
@@ -44,26 +77,56 @@ try {
   await expect(page.getByRole("alert")).toContainText("Referans kodu geçersiz");
   await page.getByLabel("Referans kodu").fill("HANKS");
   await page.getByRole("button", { name: /Referansı|Doğrula|Devam et/ }).click();
+  await expect(page.getByLabel("Referans kodu")).toHaveCount(0);
   await page.getByLabel("Kullanıcı adı", { exact: true }).fill(username);
   await page.getByLabel("Şifre", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Hesabı oluştur", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Satışların", exact: true })).toBeVisible();
-  await expect(page.getByText("HANK Test Forma", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/Müşteri: Deneme G\. M\./)).toBeVisible();
-  await expect(page.getByText("Gizli Müşteri", { exact: true })).toHaveCount(0);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByRole("heading", { name: "Genel Bakış", exact: true })).toBeVisible();
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Partner kodunu kopyala", exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(code);
+  await expect(page.getByText(/HANK Test Forma/).first()).toBeVisible();
+  await assertFits();
   await page.screenshot({ path: "generated-artifacts/partner-mobile.jpg", fullPage: true });
+  await openSection("Satışlarım");
+  await expect(page.getByRole("heading", { name: "Satışlarım", exact: true })).toBeVisible();
+  await expect(page.getByText(/Deneme G\. M\./).first()).toBeVisible();
+  await expect(page.getByText("Gizli Müşteri", { exact: true })).toHaveCount(0);
+  await assertFits();
+  await openSection("Çekim Taleplerim");
   await page.getByLabel("Talep tutarı").fill("10,50");
-  await page.getByRole("button", { name: "Ödeme talebi oluştur", exact: true }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Ödeme talebin alındı" })).toBeVisible();
+  await page.getByRole("button", { name: /^(Ödeme|Çekim) talebi oluştur$/ }).click();
+  await expect(page.getByRole("status").filter({ hasText: /talebin alındı/ })).toBeVisible();
   await expect(page.getByText("İncelemede", { exact: true })).toBeVisible();
+  await openSection("Satışlarım");
   await page.getByLabel("Başlangıç tarihi").fill("2099-01-01");
-  await expect(page.getByText("Bu aralıkta satış görünmüyor", { exact: true })).toBeVisible();
+  await expect(page.getByText("Bu tarih aralığında satış görünmüyor.", { exact: true })).toBeVisible();
   await page.getByLabel("Başlangıç tarihi").fill("");
-  await expect(page.getByText("HANK Test Forma", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/HANK Test Forma/).first()).toBeVisible();
+  await openSection("Hesabım");
+  const updatedPassword = `Test-${randomUUID()}`;
+  await page.getByLabel("Mevcut şifre", { exact: true }).fill(password);
+  await page.getByLabel("Yeni şifre", { exact: true }).fill(updatedPassword);
+  await page.getByRole("button", { name: "Şifreyi güncelle", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: /Şifren güncellendi/ })).toBeVisible();
+  await openSection("Genel Bakış");
+  await page.setViewportSize({ width: 320, height: 568 });
+  await assertFits();
+  await openSection("Satışlarım");
+  await assertFits();
+  await openSection("Çekim Taleplerim");
+  await assertFits();
+  await openSection("Hesabım");
+  await assertFits();
   await page.setViewportSize({ width: 1440, height: 1000 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await openSection("Genel Bakış");
+  await assertFits();
   await page.screenshot({ path: "generated-artifacts/partner-desktop.jpg", fullPage: true });
+  await page.getByRole("button", { name: "Çıkış yap", exact: true }).filter({ visible: true }).first().click();
+  await page.getByLabel("Kullanıcı adı veya kod").fill(username);
+  await page.getByLabel("Şifre", { exact: true }).fill(updatedPassword);
+  await page.getByRole("button", { name: "Giriş yap", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Genel Bakış", exact: true })).toBeVisible();
 
   const admin = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   admin.on("dialog", dialog => dialog.accept());
@@ -81,14 +144,13 @@ try {
   const account = panel.locator("article").filter({ has: admin.getByRole("button", { name: "Şifreyi sıfırla", exact: true }) }).filter({ hasText: code });
   await account.getByRole("button", { name: "Şifreyi sıfırla", exact: true }).click();
   await page.reload();
-  await expect(page.getByLabel("HANK kodu")).toBeVisible();
-  await page.getByRole("button", { name: "Şifremle giriş yap", exact: true }).click();
+  await expect(page.getByLabel("Kullanıcı adı veya kod")).toBeVisible();
   await page.getByLabel("Kullanıcı adı veya kod").fill(username);
-  await page.getByLabel("Şifre", { exact: true }).fill(password);
+  await page.getByLabel("Şifre", { exact: true }).fill(updatedPassword);
   await page.getByRole("button", { name: "Giriş yap", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("hatalı");
   expect(pageErrors).toEqual([]);
-  console.log("PASS: real browser onboarding, reference validation, masked sales, Turkish-decimal withdrawal, date filter, mobile/desktop overflow, authenticated admin payment and password reset.");
+  console.log("PASS: real browser branded login, password visibility, onboarding, reference validation, section navigation, masked sales, Turkish-decimal withdrawal, date filter, password update/relogin, 320px/mobile/desktop overflow, authenticated admin payment and password reset.");
 } finally {
   await browser.close();
   if (orderId) await db.execute(sql`DELETE FROM orders WHERE id=${orderId}`);

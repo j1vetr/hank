@@ -1,29 +1,130 @@
 .partner-root {
+  min-height: 100dvh;
+  background: #080808;
+  color: #f5f5f5;
   font-family: var(--font-sans), sans-serif;
-  animation: partner-enter 380ms ease-out both;
+  animation: partner-enter 300ms ease-out both;
 }
 
 .partner-root button,
-.partner-root input {
+.partner-root input,
+.partner-root select {
   -webkit-tap-highlight-color: transparent;
 }
 
-.partner-root button:not(:disabled) {
-  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, color 160ms ease, opacity 160ms ease;
+.partner-root button:not(:disabled),
+.partner-root a {
+  transition: transform 150ms ease, opacity 150ms ease;
 }
 
 .partner-root button:not(:disabled):active {
   transform: translateY(1px);
 }
 
+.partner-root button:not(:disabled):hover {
+  opacity: 0.88;
+}
+
 .partner-root :focus-visible {
-  outline: 3px solid #819c36;
+  outline: 2px solid #ffffff;
   outline-offset: 3px;
 }
 
+.partner-root .partner-input {
+  border: 1px solid #454545;
+  border-radius: 3px;
+  background: #1b1b1b;
+  color: #ffffff;
+}
+
+.partner-root .partner-input:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 12%);
+}
+
+.partner-root .partner-display {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: 0.035em;
+  color: #f5f5f5;
+}
+
+.partner-root .partner-card {
+  border: 1px solid #353535;
+  background: #191919;
+}
+
+.partner-root .partner-muted {
+  color: #a5a5a5;
+}
+
+.partner-root .partner-surface {
+  background: #191919;
+}
+
+.partner-root .partner-border {
+  border-color: #383838;
+}
+
+.partner-root .partner-selected {
+  border-color: #ffffff;
+  background: #252525;
+  color: #ffffff;
+}
+
+.partner-root .partner-status {
+  border-color: #525252;
+  background: #242424;
+  color: #e5e5e5;
+}
+
+.partner-root .partner-status-muted {
+  background: #303030;
+  color: #c6c6c6;
+}
+
+.partner-root .partner-error {
+  border-color: #484848;
+  background: #191919;
+  color: #eeeeee;
+}
+
+.partner-root .partner-primary {
+  border: 1px solid #ffffff;
+  background: #ffffff;
+  color: #111111;
+}
+
+.partner-root .partner-primary:hover {
+  background: #d9d9d9;
+  border-color: #d9d9d9;
+  color: #111111;
+}
+
+.partner-root .partner-skeleton {
+  background: #262626;
+  animation: partner-skeleton 1.35s ease-in-out infinite alternate;
+}
+
+.partner-root .partner-input::placeholder {
+  color: #858585;
+}
+
+.partner-root select option {
+  background: #191919;
+  color: #ffffff;
+}
+
+.partner-root input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 @keyframes partner-enter {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes partner-skeleton {
+  to { opacity: 0.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {

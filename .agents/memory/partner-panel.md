@@ -25,4 +25,4 @@ Partner paneli ve giriş ekranı HANK sitesinin siyah beyaz tasarımıyla uyumlu
 
 **Why:** Kullanıcı mevcut tasarımın siteyle ilgisi olmadığını belirterek bu gereksinimleri açıkça istedi.
 
-**How to apply:** Partner ekranlarını ayrı bir marka gibi tasarlama. Mağazadaki logo, font ve bileşen dilini referans al. Yeşil ve krem paleti, dekoratif ikonları ve yapay sloganları geri getirme.
+**How to apply:** Partner ekranlarını ayrı bir marka gibi tasarlama. Mağazadaki logo, font ve bileşen dilini referans al. Onaylanan tasarım siyah ana zemin, koyu gri alanlar, beyaz yazılar ve siyah yazılı beyaz ana butonlar kullanır. Siyah beyaz isteğini beyaz ağırlıklı açık tema olarak yorumlama. Yeşil ve krem paleti, dekoratif ikonları ve yapay sloganları geri getirme.
