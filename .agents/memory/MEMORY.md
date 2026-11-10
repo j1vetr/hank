@@ -3,3 +3,4 @@
 - [Fatura aktarım güvenliği](invoice-transfer-safety.md) — Belirsiz yanıtlar ve takipsiz eski siparişler körlemesine yeniden gönderilmez. Fatura ile tahsilat ayrı kapsamlar.
 - [Partner paneli gereksinimleri](partner-panel.md) — Mevcut influencer kodlarıyla hesap açılışı, kullanıcı adı veya kodla giriş ve adminden şifre sıfırlama.
 - [Kampanya görselleri ve kapsam](campaign-artwork-scope.md) — Kullanıcının gönderdiği görsel ve kampanya metni yorumlanmadan kullanılır, tasarım isteğinde indirime dokunulmaz.
+- [Sunucuya taşınabilir paketler](package-portability.md) — Kendi sunucusunda npm install kullanılıyor. Kilit dosyasında Replit iç paket adresleri bırakılmaz.
