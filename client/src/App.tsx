@@ -10,6 +10,7 @@ import { lazy, Suspense, memo } from "react";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import Chatbot from "@/components/Chatbot";
+import { NovemberEntryPopup } from "@/components/promo/NovemberEntryPopup";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Category = lazy(() => import("@/pages/Category"));
@@ -50,6 +51,7 @@ function Router() {
   return (
     <>
       <ScrollToTop />
+      <NovemberEntryPopup />
       <Suspense fallback={<PageLoader />}>
         <Switch>
         <Route path="/" component={Home} />

@@ -7,6 +7,7 @@ import { Minus, Plus, Trash2, ShoppingBag, Truck, Shield, RotateCcw, ArrowRight,
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCampaignPresentation } from '@shared/campaignDisplay';
+import { NovemberCartNotice } from '@/components/promo/NovemberPromotionNotice';
 
 interface Product {
   id: string;
@@ -293,6 +294,8 @@ export default function Cart() {
                     </div>
                   </motion.div>
                 )}
+
+                <NovemberCartNotice itemCount={items.length} />
 
                 {/* Shipping Info Notice */}
                 <motion.div 

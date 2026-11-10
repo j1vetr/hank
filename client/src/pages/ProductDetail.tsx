@@ -37,6 +37,7 @@ import { useProductReviews, useProductRating, useUserReview, useCreateReview } f
 import { useAuth } from '@/hooks/useAuth';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import { useQuery } from '@tanstack/react-query';
+import { NovemberProductNotice } from '@/components/promo/NovemberPromotionNotice';
 
 const FREE_SHIPPING_THRESHOLD = 2500;
 
@@ -799,6 +800,8 @@ export default function ProductDetail() {
                   {price.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                 </span>
               </div>
+
+              <NovemberProductNotice />
 
               {activeCampaign?.eligibleProductIds.includes(product.id) && (
                 <div className="mb-6 p-3.5 bg-gradient-to-r from-violet-500/15 to-fuchsia-500/10 border border-violet-400/25 rounded-lg">

@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import { SearchOverlay } from '@/components/SearchOverlay';
+import AnnouncementBar from '@/components/AnnouncementBar';
+import { isNovemberCampaignWindow } from '@shared/novemberPromotion';
 
 import {
   DropdownMenu,
@@ -33,6 +35,7 @@ interface MenuItemData {
 }
 
 export function Header() {
+  const showNovemberBar = isNovemberCampaignWindow();
   const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -144,24 +147,7 @@ export function Header() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50 lg:overflow-visible">
         <div className="bg-gradient-to-b from-background via-background/95 to-background/90 backdrop-blur-xl border-b border-white/5 lg:overflow-visible">
-          <div className="hidden lg:block border-b border-white/5 overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900">
-            <div className="relative h-9 flex items-center">
-              <div className="absolute inset-0 flex items-center animate-marquee-slow whitespace-nowrap">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="flex items-center gap-16 mx-12">
-                    <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span className="text-white font-medium">WORLDWIDE SHIPPING</span>
-                    </span>
-                    <span className="flex items-center gap-2 text-xs tracking-widest uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      <span className="text-white font-medium">2.500₺ ÜZERİ ÜCRETSİZ KARGO</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <AnnouncementBar />
           
           <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
             {/* MOBILE LAYOUT: 3-zone flex with absolute centered logo */}
@@ -376,6 +362,7 @@ export function Header() {
           </div>
         </div>
       </header>
+      {showNovemberBar && <div className="h-12 lg:hidden" aria-hidden="true" />}
 
       <AnimatePresence>
         {mobileMenuOpen && (
