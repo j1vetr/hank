@@ -20,3 +20,9 @@ Eski satışlardan mevcut komisyon bakiyesini yeniden hesaplama. Geçmiş komisy
 **Why:** Eski oran değişiklikleri ve manuel bakiye düzeltmeleri yalnızca satış toplamlarından geri çıkarılamaz. Geçmişi yeniden komisyonlandırmak önceki ödemeleri iki kez kazanç sayabilir.
 
 **How to apply:** Eski sipariş detayındaki tahmini tutarı kesin kazanılmış bakiye gibi kullanma. Yeni satışlarda komisyon koşullarını dondur. İade, daha önce ödenmiş komisyonu geri alıyorsa eksi bakiyeyi silme, sonraki kazançlardan mahsup edilmesine izin ver.
+
+Partner paneli ve giriş ekranı HANK sitesinin siyah beyaz tasarımıyla uyumlu olmalı. Gerçek HANK logosu kullanılmalı, marka yerine yazı ve genel bir spor ikonu konulmamalı. Giriş ekranı sade olmalı, noktayla bölünmüş slogan başlıkları ve gereksiz karmaşıklık kullanılmamalı.
+
+**Why:** Kullanıcı mevcut tasarımın siteyle ilgisi olmadığını belirterek bu gereksinimleri açıkça istedi.
+
+**How to apply:** Partner ekranlarını ayrı bir marka gibi tasarlama. Mağazadaki logo, font ve bileşen dilini referans al. Yeşil ve krem paleti, dekoratif ikonları ve yapay sloganları geri getirme.
