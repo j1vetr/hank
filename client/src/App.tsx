@@ -36,6 +36,7 @@ const Store = lazy(() => import("@/pages/Store"));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
 const PaymentFail = lazy(() => import("@/pages/PaymentFail"));
 const OrderTracking = lazy(() => import("@/pages/OrderTracking"));
+const Partner = lazy(() => import("@/components/partner/Partner"));
 
 function PageLoader() {
   return (
@@ -74,6 +75,7 @@ function Router() {
         <Route path="/toov-admin/orders/:id" component={AdminOrderDetail} />
         <Route path="/toov-admin/quotes/:id" component={AdminQuoteDetail} />
         <Route path="/toov-admin" component={AdminDashboard} />
+        <Route path="/partner" component={Partner} />
         <Route component={NotFound} />
         </Switch>
       </Suspense>

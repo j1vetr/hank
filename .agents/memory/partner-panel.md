@@ -14,3 +14,9 @@ Kullanıcı ilk hesap açılışında mevcut influencer kodu ve ortak sabit refe
 **Why:** Kullanıcı ilk hesap açılışını bu şekilde tarif etti. Ortak referans kodu kişiye özel sahiplik doğrulaması değildir.
 
 **How to apply:** Ortak referans değerini belleğe kaydetme. İlk kurulum yalnızca bir kez yapılmalı. Mevcut hesabın şifresi ortak referans koduyla değiştirilememeli.
+
+Eski satışlardan mevcut komisyon bakiyesini yeniden hesaplama. Geçmiş komisyon oranlarının tam geçmişi bulunmadığı için eski sipariş bazlı tutarlar tahmin olarak sunulabilir, ancak mevcut bakiye ve ödeme geçmişi başlangıç için esas alınır.
+
+**Why:** Eski oran değişiklikleri ve manuel bakiye düzeltmeleri yalnızca satış toplamlarından geri çıkarılamaz. Geçmişi yeniden komisyonlandırmak önceki ödemeleri iki kez kazanç sayabilir.
+
+**How to apply:** Eski sipariş detayındaki tahmini tutarı kesin kazanılmış bakiye gibi kullanma. Yeni satışlarda komisyon koşullarını dondur. İade, daha önce ödenmiş komisyonu geri alıyorsa eksi bakiyeyi silme, sonraki kazançlardan mahsup edilmesine izin ver.

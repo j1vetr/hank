@@ -1,5 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { registerBizimHesapCollectionRoutes } from "./bizimhesapCollectionRoutes";
+import { registerPartnerRoutes } from "./partnerRoutes";
+import { legacyPartnerPayment } from "./partnerFinance";
+import { PartnerError } from "./partnerDomain";
+import { eligibleOrder } from "./partnerDomain";
+import { partnerCommissions } from "@shared/schema";
 import { createServer, type Server } from "http";
 import { storage, db } from "./storage";
 import { z } from "zod";
@@ -656,6 +661,8 @@ export async function registerRoutes(
     (req as any).adminId = payload.adminUserId;
     next();
   };
+
+  registerPartnerRoutes(app, requireAdmin);
 
   // Allowed upload types for security
   const ALLOWED_UPLOAD_TYPES = ['products', 'categories', 'hero', 'branding'];
@@ -2393,27 +2400,7 @@ export async function registerRoutes(
           if (coupon) {
             await storage.redeemCoupon(coupon.id, order.id, null, parseFloat(pendingPayment.discountAmount || '0'));
             
-            // Update influencer commission if applicable
-            if (coupon.isInfluencerCode) {
-              let commission = 0;
-              const orderTotal = parseFloat(pendingPayment.total);
-              
-              switch (coupon.commissionType) {
-                case 'percentage':
-                  commission = (orderTotal * parseFloat(coupon.commissionValue || '0')) / 100;
-                  break;
-                case 'per_use':
-                  commission = parseFloat(coupon.commissionValue || '0');
-                  break;
-              }
-              
-              if (commission > 0) {
-                const currentCommission = parseFloat(coupon.totalCommissionEarned || '0');
-                await storage.updateCoupon(coupon.id, {
-                  totalCommissionEarned: (currentCommission + commission).toFixed(2),
-                });
-              }
-            }
+            // redeemCoupon atomically records the frozen commission for paid orders.
           }
         }
 
@@ -2670,30 +2657,7 @@ export async function registerRoutes(
       if (validatedCoupon) {
         await storage.redeemCoupon(validatedCoupon.id, order.id, userId, discountAmount);
         
-        // If it's an influencer code, update their commission
-        if (validatedCoupon.isInfluencerCode) {
-          let commission = 0;
-          
-          switch (validatedCoupon.commissionType) {
-            case 'percentage':
-              // Commission based on order total (after discount and shipping)
-              commission = (serverTotal * parseFloat(validatedCoupon.commissionValue || '0')) / 100;
-              break;
-            case 'per_use':
-              commission = parseFloat(validatedCoupon.commissionValue || '0');
-              break;
-            case 'fixed_total':
-              // Fixed total is a one-time payment, tracked separately
-              break;
-          }
-          
-          if (commission > 0) {
-            const currentCommission = parseFloat(validatedCoupon.totalCommissionEarned || '0');
-            await storage.updateCoupon(validatedCoupon.id, {
-              totalCommissionEarned: (currentCommission + commission).toFixed(2),
-            });
-          }
-        }
+        // Unpaid orders do not earn commission. Payment updates activate their frozen snapshot.
       }
 
       // Create order items and reduce stock
@@ -3901,22 +3865,7 @@ export async function registerRoutes(
           // Decrement usage count
           await db.execute(sql`UPDATE coupons SET usage_count = GREATEST(0, usage_count - 1) WHERE id = ${coupon.id}`);
 
-          // Recalculate and deduct the commission that was added for this order
-          let commission = 0;
-          const orderTotal = parseFloat(order.total);
-          switch (coupon.commissionType) {
-            case 'percentage':
-              commission = (orderTotal * parseFloat(coupon.commissionValue || '0')) / 100;
-              break;
-            case 'per_use':
-              commission = parseFloat(coupon.commissionValue || '0');
-              break;
-          }
-          if (commission > 0) {
-            const currentCommission = parseFloat(coupon.totalCommissionEarned || '0');
-            const newCommission = Math.max(0, currentCommission - commission).toFixed(2);
-            await storage.updateCoupon(coupon.id, { totalCommissionEarned: newCommission });
-          }
+          // updateOrder reverses the saved commission exactly once.
         }
       }
 
@@ -3952,10 +3901,10 @@ export async function registerRoutes(
 
   app.post("/api/admin/influencer-coupons/:id/pay", requireAdmin, async (req, res) => {
     try {
-      const coupon = await storage.markInfluencerPaid(req.params.id);
-      if (!coupon) return res.status(404).json({ error: "Coupon not found" });
-      res.json(coupon);
+      await legacyPartnerPayment(req.params.id);
+      res.json(await storage.getCoupon(req.params.id));
     } catch (error) {
+      if (error instanceof PartnerError) return res.status(error.status).json({ error: error.message });
       res.status(500).json({ error: "Failed to mark as paid" });
     }
   });
@@ -3967,15 +3916,11 @@ export async function registerRoutes(
       if (typeof amount !== 'number' || amount <= 0) {
         return res.status(400).json({ error: "Geçersiz tutar" });
       }
-      const coupon = await storage.getCoupon(req.params.id);
-      if (!coupon || !coupon.isInfluencerCode) {
-        return res.status(404).json({ error: "Influencer kodu bulunamadı" });
-      }
-      const current = parseFloat(coupon.totalCommissionEarned || '0');
-      const newValue = Math.max(0, current - amount).toFixed(2);
-      const updated = await storage.updateCoupon(coupon.id, { totalCommissionEarned: newValue });
-      res.json({ ok: true, previous: current.toFixed(2), current: newValue, coupon: updated });
+      await legacyPartnerPayment(req.params.id, amount);
+      const updated = await storage.getCoupon(req.params.id);
+      res.json({ ok: true, current: updated?.totalCommissionEarned, coupon: updated });
     } catch (error) {
+      if (error instanceof PartnerError) return res.status(error.status).json({ error: error.message });
       console.error('Commission adjust error:', error);
       res.status(500).json({ error: "Komisyon düzeltilemedi" });
     }
@@ -4030,10 +3975,12 @@ export async function registerRoutes(
         redemption: couponRedemptions,
         order: orders,
         coupon: coupons,
+        savedCommission: partnerCommissions,
       })
       .from(couponRedemptions)
       .leftJoin(orders, eq(couponRedemptions.orderId, orders.id))
       .leftJoin(coupons, eq(couponRedemptions.couponId, coupons.id))
+      .leftJoin(partnerCommissions, eq(partnerCommissions.orderId, orders.id))
       .where(eq(coupons.isInfluencerCode, true))
       .orderBy(desc(couponRedemptions.createdAt));
 
@@ -4064,11 +4011,15 @@ export async function registerRoutes(
         }
         
         monthlyData[monthKey].count += 1;
+        const eligible = r.order && eligibleOrder({ status: r.order.status, payment_status: r.order.paymentStatus });
+        if (!eligible) continue;
         monthlyData[monthKey].revenue += parseFloat(r.order?.total || '0');
         
         // Calculate commission
         const coupon = r.coupon;
-        if (coupon && coupon.commissionType === 'percentage') {
+        if (r.savedCommission) {
+          monthlyData[monthKey].commission += r.savedCommission.reversed ? 0 : parseFloat(r.savedCommission.amount);
+        } else if (coupon && coupon.commissionType === 'percentage') {
           monthlyData[monthKey].commission += (parseFloat(r.order?.total || '0') * parseFloat(coupon.commissionValue || '0')) / 100;
         } else if (coupon && coupon.commissionType === 'per_use') {
           monthlyData[monthKey].commission += parseFloat(coupon.commissionValue || '0');
@@ -4094,7 +4045,7 @@ export async function registerRoutes(
         })),
         totals: {
           totalRedemptions: filteredRedemptions.length,
-          totalRevenue: filteredRedemptions.reduce((sum, r) => sum + parseFloat(r.order?.total || '0'), 0),
+          totalRevenue: filteredRedemptions.reduce((sum, r) => sum + (r.order && eligibleOrder({ status: r.order.status, payment_status: r.order.paymentStatus }) ? parseFloat(r.order.total) : 0), 0),
           totalCommission: Object.values(monthlyData).reduce((sum, m) => sum + m.commission, 0),
         },
       });
@@ -4119,9 +4070,11 @@ export async function registerRoutes(
       const redemptionsData = await db.select({
         redemption: couponRedemptions,
         order: orders,
+        savedCommission: partnerCommissions,
       })
       .from(couponRedemptions)
       .leftJoin(orders, eq(couponRedemptions.orderId, orders.id))
+      .leftJoin(partnerCommissions, eq(partnerCommissions.orderId, orders.id))
       .where(eq(couponRedemptions.couponId, couponId))
       .orderBy(desc(couponRedemptions.createdAt));
 
@@ -4140,7 +4093,7 @@ export async function registerRoutes(
         }
 
         const orderTotal = parseFloat(r.order?.total || '0');
-        const isCancelled = r.order?.status === 'cancelled';
+        const isCancelled = !r.order || !eligibleOrder({ status: r.order.status, payment_status: r.order.paymentStatus });
 
         monthlyMap[monthKey].count += 1;
 
@@ -4150,7 +4103,9 @@ export async function registerRoutes(
           totalRevenue += orderTotal;
 
           let commission = 0;
-          if (coupon.commissionType === 'percentage') {
+          if (r.savedCommission) {
+            commission = r.savedCommission.reversed ? 0 : parseFloat(r.savedCommission.amount);
+          } else if (coupon.commissionType === 'percentage') {
             commission = orderTotal * (parseFloat(coupon.commissionValue || '0') / 100);
           } else if (coupon.commissionType === 'per_use') {
             commission = parseFloat(coupon.commissionValue || '0');
@@ -4174,6 +4129,8 @@ export async function registerRoutes(
         discountAmount: r.redemption.discountAmount,
         createdAt: r.redemption.createdAt,
         orderStatus: r.order?.status,
+        commissionAmount: r.order && eligibleOrder({ status: r.order.status, payment_status: r.order.paymentStatus })
+          ? (r.savedCommission?.reversed ? "0.00" : r.savedCommission?.amount) : "0.00",
       }));
 
       res.json({

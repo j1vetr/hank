@@ -8,6 +8,7 @@ import VariantSkuCheckDialog from '@/components/admin/VariantSkuCheckDialog';
 import BulkVariantSkuCheckDialog from '@/components/admin/BulkVariantSkuCheckDialog';
 import BizimHesapCollectionSettings from '@/components/admin/BizimHesapCollectionSettings';
 import OrderPriceSummary from '@/components/admin/OrderPriceSummary';
+import PartnerAdminPanel from '@/components/partner/PartnerAdminPanel';
 import { 
   LayoutDashboard, 
   Package, 
@@ -4368,16 +4369,8 @@ function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; o
                   const sc = STATUS_CFG[r.orderStatus] || { label: r.orderStatus, cls: 'bg-zinc-700 text-zinc-400' };
                   const isCancelled = r.orderStatus === 'cancelled';
 
-                  // Calculate the commission this order generated
-                  let orderCommission = 0;
-                  if (isCancelled) {
-                    const orderTotal = parseFloat(r.orderTotal || '0');
-                    if (influencer.commissionType === 'percentage') {
-                      orderCommission = (orderTotal * parseFloat(influencer.commissionValue || '0')) / 100;
-                    } else if (influencer.commissionType === 'per_use') {
-                      orderCommission = parseFloat(influencer.commissionValue || '0');
-                    }
-                  }
+                  // Saved commissions are reversed automatically, never deduct them twice.
+                  const orderCommission = Number(r.commissionAmount || 0);
 
                   const isAdjusting = adjustingId === r.id;
 
@@ -4667,6 +4660,8 @@ function InfluencerPanel() {
           <p className="text-xs text-zinc-500 mt-1">influencer kanalıyla</p>
         </div>
       </div>
+
+      <PartnerAdminPanel influencers={influencers} />
 
       {/* Influencer list */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">

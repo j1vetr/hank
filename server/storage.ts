@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { syncPartnerCommission } from "./partnerFinance";
 import { bizimHesapCollectionSettings, type BizimHesapCollectionSettings } from "@shared/schema";
 import type { CollectionSettingsInput } from "./bizimhesapCollection";
 import { insertOrderWithCashierSnapshot } from "./bizimhesapOrder";
@@ -857,8 +858,7 @@ export class DbStorage implements IStorage {
   }
 
   async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
-    const [updated] = await db.update(orders).set({ status }).where(eq(orders.id, id)).returning();
-    return updated;
+    return this.updateOrder(id, { status });
   }
 
   async getOrderItems(orderId: string): Promise<OrderItem[]> {
@@ -1236,13 +1236,18 @@ export class DbStorage implements IStorage {
   }
 
   async redeemCoupon(couponId: string, orderId: string, userId: string | null, discountAmount: number): Promise<void> {
-    await db.insert(couponRedemptions).values({
-      couponId,
-      orderId,
-      userId,
-      discountAmount: String(discountAmount),
+    await db.transaction(async tx => {
+      await tx.execute(sql`SELECT id FROM orders WHERE id=${orderId} FOR UPDATE`);
+      await tx.execute(sql`SELECT id FROM coupons WHERE id=${couponId} FOR UPDATE`);
+      const existing = await tx.execute(sql`SELECT id FROM coupon_redemptions WHERE order_id=${orderId} AND coupon_id=${couponId} LIMIT 1`);
+      if (!existing.rows.length) {
+        await tx.insert(couponRedemptions).values({
+          couponId, orderId, userId, discountAmount: String(discountAmount),
+        });
+        await tx.execute(sql`UPDATE coupons SET usage_count=usage_count+1 WHERE id=${couponId}`);
+      }
+      await syncPartnerCommission(tx, orderId);
     });
-    await this.incrementCouponUsage(couponId);
   }
 
   // Order notes methods
@@ -1262,8 +1267,13 @@ export class DbStorage implements IStorage {
   }
 
   async updateOrder(id: string, data: Partial<Order>): Promise<Order | undefined> {
-    const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
-    return updated;
+    return db.transaction(async tx => {
+      const [updated] = await tx.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+      if (updated && (data.status !== undefined || data.paymentStatus !== undefined)) {
+        await syncPartnerCommission(tx, id);
+      }
+      return updated;
+    });
   }
 
   async claimInvoiceTransfer(id: string, attemptId: string): Promise<Order | undefined> {

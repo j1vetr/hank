@@ -1,0 +1,36 @@
+.partner-root {
+  font-family: var(--font-sans), sans-serif;
+  animation: partner-enter 380ms ease-out both;
+}
+
+.partner-root button,
+.partner-root input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.partner-root button:not(:disabled) {
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.partner-root button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.partner-root :focus-visible {
+  outline: 3px solid #819c36;
+  outline-offset: 3px;
+}
+
+@keyframes partner-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-root,
+  .partner-root * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

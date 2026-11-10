@@ -447,6 +447,42 @@ export const insertInfluencerPaymentSchema = createInsertSchema(influencerPaymen
 export type InsertInfluencerPayment = z.infer<typeof insertInfluencerPaymentSchema>;
 export type InfluencerPayment = typeof influencerPayments.$inferSelect;
 
+export const partnerAccounts = pgTable("partner_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  couponId: varchar("coupon_id").notNull().unique().references(() => coupons.id, { onDelete: "cascade" }),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash"),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const partnerSessions = pgTable("partner_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  accountId: varchar("account_id").notNull().references(() => partnerAccounts.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const partnerWithdrawals = pgTable("partner_withdrawals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  couponId: varchar("coupon_id").notNull().references(() => coupons.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("pending").notNull(),
+  note: text("note"),
+  adminNote: text("admin_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+});
+
+export const partnerCommissions = pgTable("partner_commissions", {
+  orderId: varchar("order_id").primaryKey().references(() => orders.id, { onDelete: "cascade" }),
+  couponId: varchar("coupon_id").notNull().references(() => coupons.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  code: text("code").notNull(),
+  credited: boolean("credited").default(false).notNull(),
+  reversed: boolean("reversed").default(false).notNull(),
+  legacy: boolean("legacy").default(false).notNull(),
+});
+
 // Order Notes / History
 export const orderNotes = pgTable("order_notes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

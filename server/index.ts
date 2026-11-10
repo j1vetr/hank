@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { runAutoCartCampaignMigration, runInvoiceTrackingMigration } from "./runMigrations";
+import { runPartnerMigration } from "./partnerMigration";
 
 const app = express();
 const httpServer = createServer(app);
@@ -55,7 +56,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      if (capturedJsonResponse && !path.startsWith("/api/partner") && !path.startsWith("/api/admin/partner")) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
@@ -69,6 +70,7 @@ app.use((req, res, next) => {
 (async () => {
   await runAutoCartCampaignMigration();
   await runInvoiceTrackingMigration();
+  await runPartnerMigration();
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
