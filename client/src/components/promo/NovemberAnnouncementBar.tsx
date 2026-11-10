@@ -12,14 +12,14 @@ export default function AnnouncementBar() {
     );
   }
   return (
-    <div className="w-full overflow-hidden border-b border-black/20 bg-[#c84538] text-[#171513]" data-testid="bar-november-promo">
+    <div className="w-full overflow-hidden border-b border-black/25 bg-[#d52d25] text-white" data-testid="bar-november-promo">
       <Link
         href="/magaza"
         className="mx-auto flex h-12 max-w-7xl flex-col items-center justify-center gap-0 px-3 text-center lg:h-9 lg:flex-row lg:gap-x-3"
         data-testid="link-november-promo"
       >
-        <span className="text-[10px] font-black uppercase tracking-[0.11em] sm:text-xs">{NOVEMBER_HEADLINE}</span>
-        <span className="text-[9px] font-bold tracking-[0.1em] sm:text-[10px] lg:ml-1">{NOVEMBER_OFFER}</span>
+        <span className="font-display text-[17px] leading-none tracking-[0.035em] sm:text-xl">{NOVEMBER_HEADLINE}</span>
+        <span className="font-sans text-[11px] font-semibold leading-none tracking-[0.06em] lg:ml-1">{NOVEMBER_OFFER}</span>
       </Link>
     </div>
   );

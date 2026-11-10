@@ -111,7 +111,7 @@ export function NovemberEntryPopup() {
         <Link
           href="/magaza"
           onClick={close}
-          className="mt-2 flex min-h-11 items-center justify-center bg-[#d0a56d] px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-[#211d19] transition-colors hover:bg-[#e2bc8e] sm:text-sm"
+          className="mt-2 flex min-h-11 items-center justify-center bg-white px-4 text-center text-xs font-black uppercase tracking-[0.12em] text-black transition-colors hover:bg-[#e8e8e8] sm:text-sm"
           data-testid="button-november-discover"
         >
           Kasım fırsatlarını keşfet

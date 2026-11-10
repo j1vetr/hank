@@ -41,6 +41,15 @@ try {
     expect(rect!.y + rect!.height).toBeLessThanOrEqual(height + 1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.getByTestId("bar-november-promo")).toBeVisible();
+    await expect(page.getByTestId("bar-november-promo")).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(page.getByTestId("bar-november-promo")).toHaveCSS("background-color", "rgb(213, 45, 37)");
+    await expect(page.getByTestId("button-november-discover")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await expect(page.getByTestId("button-november-discover")).toHaveCSS("color", "rgb(0, 0, 0)");
+    const headline = page.getByTestId("link-november-promo").locator("span").first();
+    await expect(headline).toHaveCSS("font-family", /Bebas Neue/);
+    const headlineRect = await headline.boundingBox();
+    expect(headlineRect!.x).toBeGreaterThanOrEqual(0);
+    expect(headlineRect!.x + headlineRect!.width).toBeLessThanOrEqual(width);
     await expect(dialog.getByRole("img")).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Kampanya penceresini kapat" })).toBeVisible();
     await page.keyboard.press("Tab");
