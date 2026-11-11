@@ -38,3 +38,9 @@ Partner panelinin mobil sürümünde gerçek açılır menü bulunmalı. Yalnız
 **Why:** Kullanıcı mobil menünün olmadığını ve düzenin garip kaldığını söyleyerek kapsamlı mobil düzenleme istedi.
 
 **How to apply:** Menüye tüm partner bölümlerini, siteye dönüşü ve çıkışı dahil et. Menü, formlar, uzun ürün adları, yüksek tutarlar ve kaydırma davranışı küçük telefonlarda ve yatay görünümde kullanılabilir olmalı.
+
+Admin tarafında partner hesap kontrolleri ve ödeme talepleri Influencerlar içinde kalmalı, genel influencer yönetimiyle aynı uzun sayfaya karıştırılmamalı. Kullanıcı Genel, Partner Panel ve Ödeme Talepleri olarak ayrı sekmeler istedi.
+
+**Why:** Kullanıcı mevcut partner kontrolleri ve taleplerin influencer yönetimini kalabalıklaştırdığını belirterek bu ayrımı istedi.
+
+**How to apply:** Genel influencer işlemlerini, partner erişim ve şifre işlemlerini, ödeme taleplerini kendi sekmelerinde tut. Ayrı bir üst seviye admin bölümü oluşturma.

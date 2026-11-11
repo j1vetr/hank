@@ -9,6 +9,7 @@ import BulkVariantSkuCheckDialog from '@/components/admin/BulkVariantSkuCheckDia
 import BizimHesapCollectionSettings from '@/components/admin/BizimHesapCollectionSettings';
 import OrderPriceSummary from '@/components/admin/OrderPriceSummary';
 import PartnerAdminPanel from '@/components/partner/PartnerAdminPanel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   LayoutDashboard, 
   Package, 
@@ -4458,6 +4459,7 @@ function InfluencerDetailView({ couponId, onBack, onPay }: { couponId: string; o
 
 function InfluencerPanel() {
   const queryClient = useQueryClient();
+  const [influencerTab, setInfluencerTab] = useState<'general' | 'partner' | 'payments'>('general');
   const [showInfluencerModal, setShowInfluencerModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [editingInfluencer, setEditingInfluencer] = useState<any>(null);
@@ -4466,11 +4468,11 @@ function InfluencerPanel() {
   const [selectedInfluencer, setSelectedInfluencer] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: influencers = [], isLoading: influencersLoading } = useQuery({
+  const { data: influencers = [], isLoading: influencersLoading, isError: influencersErrorState, error: influencersError, refetch: refetchInfluencers } = useQuery({
     queryKey: ['admin-influencer-coupons'],
     queryFn: async () => {
       const res = await fetch('/api/admin/influencer-coupons', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch influencer coupons');
+      if (!res.ok) throw new Error('Influencer kodları alınamadı.');
       return res.json();
     },
   });
@@ -4621,7 +4623,22 @@ function InfluencerPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <Tabs value={influencerTab} onValueChange={(value) => setInfluencerTab(value as 'general' | 'partner' | 'payments')} className="min-w-0">
+      <div className="mb-5 overflow-x-auto overscroll-x-contain">
+        <TabsList aria-label="Influencer Bölümleri" className="flex h-auto w-max min-w-full justify-start rounded-xl border border-zinc-800 bg-zinc-950 p-1 sm:w-auto sm:min-w-0">
+          <TabsTrigger value="general" className="min-h-10 flex-1 rounded-lg px-4 text-xs font-semibold text-zinc-400 data-[state=active]:bg-zinc-100 data-[state=active]:text-zinc-950 data-[state=active]:shadow-none sm:flex-none">Genel</TabsTrigger>
+          <TabsTrigger value="partner" className="min-h-10 flex-1 rounded-lg px-4 text-xs font-semibold text-zinc-400 data-[state=active]:bg-zinc-100 data-[state=active]:text-zinc-950 data-[state=active]:shadow-none sm:flex-none">Partner Panel</TabsTrigger>
+          <TabsTrigger value="payments" className="min-h-10 flex-1 rounded-lg px-4 text-xs font-semibold text-zinc-400 data-[state=active]:bg-zinc-100 data-[state=active]:text-zinc-950 data-[state=active]:shadow-none sm:flex-none">Ödeme Talepleri</TabsTrigger>
+        </TabsList>
+      </div>
+      <TabsContent value={influencerTab} className="mt-0 min-w-0 focus-visible:outline-none">
+        {influencerTab === 'general' ? <div className="space-y-6">
+      {influencersErrorState && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-900/60 bg-rose-950/20 p-4">
+          <p role="alert" className="text-sm text-rose-200">{influencersError instanceof Error ? influencersError.message : 'Influencer kodları yüklenemedi.'}</p>
+          <button type="button" onClick={() => void refetchInfluencers()} className="min-h-10 rounded-lg border border-rose-800 px-3 text-xs font-semibold text-rose-100 hover:bg-rose-900/30">Yeniden Dene</button>
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -4660,8 +4677,6 @@ function InfluencerPanel() {
           <p className="text-xs text-zinc-500 mt-1">influencer kanalıyla</p>
         </div>
       </div>
-
-      <PartnerAdminPanel influencers={influencers} />
 
       {/* Influencer list */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
@@ -4786,7 +4801,7 @@ function InfluencerPanel() {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs text-zinc-600">—</span>
+                          <span className="text-xs text-zinc-600">Yok</span>
                         )}
                       </td>
                       {/* Actions */}
@@ -4937,7 +4952,9 @@ function InfluencerPanel() {
           </div>
         </div>
       )}
-    </div>
+        </div> : <PartnerAdminPanel influencers={influencers} view={influencerTab === 'partner' ? 'accounts' : 'withdrawals'} />}
+      </TabsContent>
+    </Tabs>
   );
 }
 
